@@ -9,7 +9,6 @@ export enum page {
     IndexMain,
     Website,
     // Donate,
-    ActiveCode,
 
     Share,
     Setting,

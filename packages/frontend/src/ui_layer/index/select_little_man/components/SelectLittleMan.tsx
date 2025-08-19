@@ -15,7 +15,6 @@ import { getClickMiddleSoundResourceId, getClickSmallSoundResourceId } from "../
 import { renderImage } from "../../../utils/ImageUtils";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { Device } from "meta3d-jiehuo-abstract";
-import { get29ActiveCodeOutdateInfo, getActiveInfo, getNoActiveCodeInfo, is29ActiveSuccess } from "../../../../scene3d_layer/script/ActiveCode";
 import { Modal, Selector } from "antd-mobile";
 import { LandscapeUtils } from "meta3d-jiehuo-abstract";
 import { renderSwitch } from "../../../utils/SwitchUtils";
@@ -77,81 +76,16 @@ let SelectLittleMan: React.FC = () => {
     }
 
     let _judgeAndSelect = (state, modelName, isNeedActive) => {
-        if (isNeedActive) {
-            if (NullableUtils.isNullable(activeInfo)) {
-                return Promise.resolve(state)
-            }
-
-            let info = NullableUtils.getExn(activeInfo)
-
-            // if (!is29ActiveSuccess(info)) {
-            //     Modal.confirm({
-            //         getContainer: LandscapeUtils.getRootDom(),
-            //         content: '现在激活？',
-            //         onConfirm: async () => {
-            //             dispatch(setPageData(info))
-            //             dispatch(setPage(page.ActiveCode))
-
-            //             return Promise.resolve(state)
-            //         },
-            //     })
-
-            //     return Promise.resolve(state)
-            // }
-
-            Modal.confirm({
-                getContainer: LandscapeUtils.getRootDom(),
-                content: _isShowOutdate(true) ? `激活码已过期，现在重新激活？` : '现在激活？（绿色人物属性更高）',
-                onConfirm: async () => {
-                    dispatch(setPageData(info))
-                    dispatch(setPage(page.ActiveCode))
-
-                    return Promise.resolve(state)
-                },
-            })
-
-            return Promise.resolve(state)
-        }
-
         return Promise.resolve(_select(state, modelName))
     }
 
-    let _isNeedActive = () => {
-        if (NullableUtils.isNullable(activeInfo)) {
-            return false
-        }
-
-        return NullableUtils.getExn(activeInfo) == getNoActiveCodeInfo() || !is29ActiveSuccess(activeInfo)
-    }
-
-
-    // let _isShowNotActive = (isNeedActive) => {
-    //     if (isNeedActive) {
-    //         if (NullableUtils.isNullable(activeInfo)) {
-    //             return false
-    //         }
-
-    //         // return !isActiveSuccess(NullableUtils.getExn(activeInfo))
-    //         return NullableUtils.getExn(activeInfo) == getNoActiveCodeInfo()
-    //     }
-
-    //     return false
-    // }
-
     let _isShowOutdate = (isNeedActive) => {
-        if (isNeedActive) {
-            if (NullableUtils.isNullable(activeInfo)) {
-                return false
-            }
-
-            return NullableUtils.getExn(activeInfo) == get29ActiveCodeOutdateInfo()
-        }
-
         return false
     }
 
     let _getAllPageLittleManCharacters = () => {
-        let isNeedActive = _isNeedActive()
+        // let isNeedActive = _isNeedActive()
+        let isNeedActive = false
 
         return [
             [
@@ -241,12 +175,6 @@ let SelectLittleMan: React.FC = () => {
             }
         </>
     }
-
-    useEffect(() => {
-        getActiveInfo().then(info => {
-            setActiveInfo(_ => NullableUtils.return_(info))
-        })
-    }, []);
 
     return <Layout className="select-little-man-main"  >
         <Flex justify="center" align="center">

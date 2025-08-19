@@ -27,7 +27,6 @@ import { setError } from "../error_handle/store/ErrorHandleStore";
 import { getKeyDownEventName } from "meta3d-jiehuo-abstract/src/Event";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import ErrorHandle from "../error_handle/component/ErrorHandle";
-import ActiveCode from "../active_code/components/ActiveCode";
 import SelectRoad from "../select_road/components/SelectRoad";
 import LittleManSetting from "../little_man_setting/components/LittleManSetting";
 import GiantessSetting from "../giantess_setting/components/GiantessSetting";
@@ -50,8 +49,6 @@ let Index: React.FC = () => {
                 return <Setting />
             // case page.Donate:
             //     return <Donate />
-            case page.ActiveCode:
-                return <ActiveCode />
             case page.Share:
                 return <Share />
             case page.Website:

@@ -15,7 +15,6 @@ import { getClickMiddleSoundResourceId, getClickSmallSoundResourceId } from "../
 import { renderImage } from "../../../utils/ImageUtils";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { Device } from "meta3d-jiehuo-abstract";
-import { get29ActiveCodeOutdateInfo, getActiveInfo, getNoActiveCodeInfo, is29ActiveSuccess, is9ActiveSuccess } from "../../../../scene3d_layer/script/ActiveCode";
 import { isValid } from "../../../../scene3d_layer/script/scene/scene_city/utils/MMDUtils";
 import { Modal, Selector } from "antd-mobile";
 import { LandscapeUtils } from "meta3d-jiehuo-abstract";
@@ -37,6 +36,10 @@ let SelectCharacter: React.FC = () => {
     // let [pageMMDCharacters, setPageMMDCharacters] = useState([])
     let [pageIndex, setPageIndex] = useState(0)
     let [activeInfo, setActiveInfo] = useState(NullableUtils.getEmpty())
+
+    let _isShowOutdate = (isNeedActive) => {
+        return false
+    }
 
     let _renderCharacter = (src, mmdCharacter_, isNeedActive, resourceLevel, key) => {
         return <Col key={key} className="col" span={5}>
@@ -75,75 +78,14 @@ let SelectCharacter: React.FC = () => {
     }
 
     let _judgeAndSelect = (state, character, isNeedActive) => {
-        if (isNeedActive) {
-            if (NullableUtils.isNullable(activeInfo)) {
-                return Promise.resolve(state)
-            }
-
-            let info = NullableUtils.getExn(activeInfo)
-
-            // if (!isActiveSuccess(info)) {
-            //     Modal.confirm({
-            //         getContainer: LandscapeUtils.getRootDom(),
-            //         content: '现在激活？',
-            //         onConfirm: async () => {
-            //             dispatch(setPageData(info))
-            //             dispatch(setPage(page.ActiveCode))
-
-            //             return Promise.resolve(state)
-            //         },
-            //     })
-
-            //     return Promise.resolve(state)
-            // }
-            Modal.confirm({
-                getContainer: LandscapeUtils.getRootDom(),
-                content: _isShowOutdate(true) ? `激活码已过期，现在重新激活？` : '现在激活？（绿色人物可爆衣）',
-                onConfirm: async () => {
-                    dispatch(setPageData(info))
-                    dispatch(setPage(page.ActiveCode))
-
-                    return Promise.resolve(state)
-                },
-            })
-
-            return Promise.resolve(state)
-        }
-
         return Promise.resolve(_select(state, character))
     }
 
-    let _isNeed9Active = () => {
-        if (NullableUtils.isNullable(activeInfo)) {
-            return false
-        }
-
-        return NullableUtils.getExn(activeInfo) == getNoActiveCodeInfo()
-    }
-
-    let _isNeed29Active = () => {
-        if (NullableUtils.isNullable(activeInfo)) {
-            return false
-        }
-
-        return NullableUtils.getExn(activeInfo) == getNoActiveCodeInfo() || !is29ActiveSuccess(activeInfo)
-    }
-
-    let _isShowOutdate = (isNeedActive) => {
-        if (isNeedActive) {
-            if (NullableUtils.isNullable(activeInfo)) {
-                return false
-            }
-
-            return NullableUtils.getExn(activeInfo) == get29ActiveCodeOutdateInfo()
-        }
-
-        return false
-    }
-
     let _getAllPageMMDCharacters = () => {
-        let isNeed9Active = _isNeed9Active()
-        let isNeed29Active = _isNeed29Active()
+        // let isNeed9Active = _isNeed9Active()
+        // let isNeed29Active = _isNeed29Active()
+        let isNeed9Active = false
+        let isNeed29Active = false
 
         // let state = readState()
         let allMMDData
@@ -321,12 +263,6 @@ let SelectCharacter: React.FC = () => {
     //         }
     //     />
     // }
-
-    useEffect(() => {
-        getActiveInfo().then(info => {
-            setActiveInfo(_ => NullableUtils.return_(info))
-        })
-    }, []);
 
     return <Layout className="select-charater-main"  >
         <Flex justify="center" align="center">

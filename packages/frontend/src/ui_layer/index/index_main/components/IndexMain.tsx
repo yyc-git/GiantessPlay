@@ -13,7 +13,6 @@ import { getClickMiddleSoundResourceId, getClickSmallSoundResourceId } from "../
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { getAbstractState, readState } from "../../../../business_layer/State";
 import { getVersion } from "meta3d-jiehuo-abstract/src/version/Version";
-import { getActiveInfo, isActiveSuccess } from "../../../../scene3d_layer/script/ActiveCode";
 
 let IndexMain: React.FC = () => {
     let [isRenderActiveCode, setIsRenderActiveCode] = useState(false)
@@ -25,12 +24,6 @@ let IndexMain: React.FC = () => {
 
         return `v${mainVersion}.${subVersion}`
     }
-
-    useEffect(() => {
-        getActiveInfo().then(info => {
-            return setIsRenderActiveCode(_ => !isActiveSuccess(info))
-        })
-    }, []);
 
     return <Layout className="index-main-main"  >
         {/* <Header  >
@@ -93,15 +86,6 @@ let IndexMain: React.FC = () => {
             </Row>
 
             <section className="fixed-button">
-                {
-                    isRenderActiveCode ?
-                        renderImage(state => {
-                            dispatch(setPage(page.ActiveCode))
-
-                            return Promise.resolve(state)
-                        }, "./resource/ui/not_in_game/active-button.png", "active", false, NullableUtils.return_(getClickMiddleSoundResourceId()))
-                        : null
-                }
                 {
                     renderImage(state => {
                         dispatch(setPage(page.Share))
