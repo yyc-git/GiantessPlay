@@ -1,0 +1,9 @@
+@import "../../../../../Main.scss";
+
+.loading-main {
+	@include loading-background;
+
+	.div {
+		height: 100%;
+	}
+}

@@ -1,0 +1,46 @@
+{
+    "name": "meta3d-jiehuo-abstract",
+    "version": "0.0.1",
+    "main": "./dist/static/js/main.js",
+    "types": "./src/Main.d.ts",
+    "scripts": {
+        "watch": "tsc -w -noEmit",
+        "generate_type": "tsc --declaration --emitDeclarationOnly",
+        "webpack:watch": "cross-env NODE_ENV=development webpack --watch --config webpack.config.js",
+        "webpack": "cross-env NODE_ENV=production webpack --config webpack.config.js",
+        "test:watch": "jest --maxWorkers=4 --watch --config jest.json"
+    },
+    "dependencies": {
+        "@types/three": "0.158.1",
+        "@types/howler": "^2.2.11",
+        "@types/pathfinding": "^0.0.9",
+        "ammojs-typed": "^1.0.6",
+        "immutable": "^4.0.0-rc.12",
+        "most": "^1.9.0",
+        "localforage": "^1.10.0",
+        "three-csg-ts": "^3.1.14",
+        "three": "0.159.0",
+        "nipplejs": "0.10.2",
+        "howler": "^2.2.4",
+        "pathfinding": "0.4.18"
+    },
+    "devDependencies": {
+        "@babel/node": "^7.8.7",
+        "@babel/preset-env": "^7.9.0",
+        "@babel/preset-react": "^7.0.0",
+        "@babel/plugin-transform-modules-commonjs": "^7.24.1",
+        "@types/jest": "^25.2.1",
+        "@types/sinon": "^10.0.0",
+        "gl-bench": "^1.0.42",
+        "three-webgl-stats": "^1.0.5",
+        "identity-obj-proxy": "^3.0.0",
+        "babel-jest": "^24.1.0",
+        "jest": "^25.2.7",
+        "jest-cucumber": "^3.0.1",
+        "ts-jest": "^26.1.4",
+        "cross-env": "^7.0.3",
+        "cz-customizable": "^6.3.0",
+        "gulp": "^4.0.2",
+        "typescript": "^5.8.0"
+    }
+}

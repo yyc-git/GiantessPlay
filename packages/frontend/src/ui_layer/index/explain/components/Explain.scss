@@ -1,0 +1,28 @@
+@import "../../../../Main.scss";
+
+.explain-main {
+	@include background-unset;
+
+	.title {
+		@include font-size-large;
+	}
+
+	.level1 {
+		@include font-size-level1;
+	}
+
+	.pc {
+		width: 70%;
+		margin: 0 auto;
+		color: black;
+	}
+
+	.ant-image {
+		text-align: center;
+	}
+
+	.mobile {
+		width: 15rem;
+
+	}
+}

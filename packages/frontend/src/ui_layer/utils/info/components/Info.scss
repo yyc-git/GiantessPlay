@@ -1,0 +1,5 @@
+@import "../../../../Main.scss";
+
+.title {
+	@include font-size-large;
+}

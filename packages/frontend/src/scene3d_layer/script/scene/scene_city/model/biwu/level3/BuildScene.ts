@@ -1,0 +1,163 @@
+import { NewThreeInstance } from "meta3d-jiehuo-abstract"
+import { state } from "../../../../../../type/StateType"
+import { setState, getState, getDynamicGroupName, getName, getGridResourceId, getBaseMapResourceId, getConfigData } from "../../../CityScene"
+import { NullableUtils } from "meta3d-jiehuo-abstract"
+import { Matrix4, PCFSoftShadowMap, Vector3, Quaternion, Material, Box3, Box3Helper, Color, TextureLoader, Texture, RepeatWrapping, SRGBColorSpace, AxesHelper } from "three"
+// import { setControlsConfig } from "./Camera"
+import { Scene } from "meta3d-jiehuo-abstract"
+import { getAbstractState, setAbstractState } from "../../../../../../state/State"
+import { SceneUtils } from "meta3d-jiehuo-abstract"
+import { addDirectionLight } from "../../../Light"
+import { ArrayUtils } from "meta3d-jiehuo-abstract"
+// import * as Tree1 from "../../../manage/city1/Tree1"
+import * as MapWall from "../../../manage/city1/MapWall"
+// import * as Animated from "../../../manage/city1/Animated"
+import * as TreesAndProps from "../../../manage/city1/TreesAndProps"
+import * as Cars from "../../../manage/city1/Cars"
+import * as Buildings from "../../../manage/city1/Buildings"
+import { Instance } from "meta3d-jiehuo-abstract"
+import { Object3DUtils } from "meta3d-jiehuo-abstract"
+import { Device } from "meta3d-jiehuo-abstract"
+import { SkyBox } from "meta3d-jiehuo-abstract"
+// import { Terrain } from "meta3d-jiehuo-abstract/src/terrain/Terrain"
+import { CSM } from "meta3d-jiehuo-abstract"
+import { getCurrentCamera } from "meta3d-jiehuo-abstract/src/scene/Camera"
+import { InstancedLOD2 } from "meta3d-jiehuo-abstract"
+import { Shadow } from "meta3d-jiehuo-abstract"
+import { getIsDebug } from "../../../../Scene"
+import { Terrain } from "meta3d-jiehuo-abstract"
+import { isInGroups } from "meta3d-jiehuo-abstract/src/terrain/Terrain"
+import { Loader } from "meta3d-jiehuo-abstract"
+import { addBuilding } from "../../../manage/city1/Mission"
+import { isMobile } from "meta3d-jiehuo-abstract/src/Device"
+import { RenderSetting } from "meta3d-jiehuo-abstract"
+import { shadowLevel } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { Flow } from "meta3d-jiehuo-abstract"
+import { getShadowConfigBySetting } from "../level1/BuildScene"
+import { DirectionLight } from "meta3d-jiehuo-abstract"
+import { DirectionLightShadow } from "meta3d-jiehuo-abstract"
+import { getGirlMesh } from "../../../girl/Girl"
+
+let _addTerrain = (scene, state: state) => {
+    // //let lodContainerGroup = NullableUtils.getExn(Scene.findObjectByName(scene, getLODContainerGroupName()))
+
+    let terrainMesh = NullableUtils.getExn(getState(state).terrain.terrainMesh)
+
+    scene.add(terrainMesh)
+
+    // CSM.setupMaterial(getAbstractState(state), terrainMesh.material as Material);
+
+    return scene
+}
+
+let _addLight = (state: state, scene, renderer, camera) => {
+    scene = SceneUtils.addAmbientLight(scene)
+
+    // state = addDirectionLight(state, scene, renderer)
+
+    let light = DirectionLight.createDirectionLight(scene, getIsDebug(state), {
+        // position: new Vector3(10, 100, 0),
+
+        // position: new Vector3(-100, 100, 60),
+        position: new Vector3(180, 100, 60),
+
+        // position: new Vector3(10000, 100, 60),
+        // target: new Vector3(-150, 0, 60),
+
+        // target: new Vector3(-300, 0, 60),
+        target: new Vector3(-20, 0, 60),
+        intensity: 3,
+        color: 0xffffff
+    })
+
+    let data = DirectionLightShadow.enableShadow(getAbstractState(state), scene, light, renderer, getIsDebug(state))
+    scene = data[0]
+    light = data[1]
+    renderer = data[2]
+
+    scene.add(light, light.target)
+
+
+    // let csmConfig = {
+    //     // maxFar: 300,
+    //     maxFar: 100,
+    //     // cascades: 2,
+    //     cascades: 2,
+    //     shadowMapSize: 1024,
+    //     // shadowMapSize: 512,
+    //     // shadowBias:0.0001,
+    ////     shadowBias:0.5,
+    //     fade: false,
+    //     mode: "practical",
+    //     parent: scene,
+    //     // lightDirection: new Vector3(-1, -1, -1).normalize(),
+    //     // lightDirection: new Vector3(0, -1, 0).normalize(),
+    //     lightDirection: new Vector3(0.1, -1, 0.1).normalize(),
+    //     lightIntensity: 1,
+    //     camera: camera,
+    // }
+
+    // csmConfig = getShadowConfigBySetting(state, csmConfig)
+
+    // state = setAbstractState(state, CSM.create(getAbstractState(state), csmConfig as any))
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = PCFSoftShadowMap;
+
+    return [state, scene]
+}
+
+
+let _addSkyBox = (scene) => {
+    let name = getName()
+
+    return SkyBox.addToScene(scene, SkyBox.create([
+        `./resource/${name}/sky box/right.jpg`,
+        `./resource/${name}/sky box/left.jpg`,
+        `./resource/${name}/sky box/top.jpg`,
+        `./resource/${name}/sky box/bottom.jpg`,
+        `./resource/${name}/sky box/front.jpg`,
+        `./resource/${name}/sky box/back.jpg`,
+    ]))
+}
+
+export let build = (state: state, renderer) => {
+
+    let scene = Scene.createScene(getName())
+
+    state = setState(state, {
+        ...getState(state),
+        // damageData: {
+        //     ...getState(state).damageData,
+        //     lodContainerGroup: NullableUtils.return_(lodContainerGroup),
+        // },
+        scene: NullableUtils.return_(scene),
+        // girl: {
+        //     ...getGirlState(state),
+        //     position: new Vector3(0, 0, 5)
+        // }
+    })
+
+    // state = setControlsConfig(state)
+
+    let data
+
+    // scene = _addGroups(scene, [lodContainerGroup, dynamicGroup])
+
+
+    data = _addLight(state, scene, renderer, getCurrentCamera(getAbstractState(state)))
+    state = data[0]
+    scene = data[1]
+
+
+    scene = _addTerrain(scene, state)
+
+    scene = _addSkyBox(scene)
+
+    Scene.getScene(getAbstractState(state)).add(scene)
+
+
+
+
+    return state
+}

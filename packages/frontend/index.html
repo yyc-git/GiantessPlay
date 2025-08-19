@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>巨大娘的玩耍</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0">
+    <meta name="x5-fullscreen" content="true" />
+
+    <meta name="full-screen" content="yes">
+    <meta name="screen-orientation" content="landscape">
+
+
+    <!-- 禁止调整浏览器字体大小行为 -->
+    <style>
+        body {
+            -webkit-text-size-adjust: 100% !important;
+            text-size-adjust: 100% !important;
+            -moz-text-size-adjust: 100% !important;
+        }
+    </style>
+
+
+
+    <!-- 禁止长按选择 -->
+    <style>
+        html,
+        body,
+        canvas 
+        {
+            touch-callout: none;
+            -webkit-touch-callout: none;
+            /*系统默认菜单被禁用*/
+            -webkit-user-select: none;
+            /*webkit浏览器*/
+            -khtml-user-select: none;
+            /*早期浏览器*/
+            -moz-user-select: none;
+            /*火狐*/
+            -ms-user-select: none;
+            /*IE10*/
+            user-select: none;
+        }
+
+        /* input {
+            -webkit-user-select: auto;
+        }
+
+        textarea {
+            -webkit-user-select: auto;
+        } */
+    </style>
+
+    <!-- <script>
+        // /*清空要复制的内容*/
+        // document.body.onbeforecopy = function () {
+        //     window.getSelection().removeAllRanges();
+        // }
+        // document.body.oncopy = function () {
+        //     window.getSelection().removeAllRanges();
+        //     return false;
+        // }
+
+        // 禁止长按复制
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        });
+        document.ontouchstart = function (e) {
+            e.preventDefault();
+        };
+
+        // // 禁止粘贴
+        // document.addEventListener('paste', function (e) {
+        //     e.preventDefault();
+        // });
+    </script> -->
+
+
+
+
+
+
+    <script src="./meta3d-jiehuo-abstract/libs/ammo.wasm.js"></script>
+
+
+    <!-- <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?1ccf2d1fd3515dc5ea38eeb66a024bb0";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script> -->
+    <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?7d5ddeb8059b0faf5f2a563437fb3bd0";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+
+
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- Android系统
+调整浏览器字体是通过改变字体大小,所以可以考虑将字体大小在设置的时候进行等比例缩小。
+例如，一个文字希望以10px来进行渲染，当浏览器字体被放大两倍时，此时font-size会变为20px。
+因此我们可以在取到这个放大比例之后，对原样式进行等比缩小，比如将原文字大小设置为5px，渲染的时候就变成了10px。
+-->
+    <script>
+        (function () {
+            var $dom = document.createElement('div');
+            $dom.style = 'font-size:10px;';
+            document.body.appendChild($dom);
+            // 计算出放大后的字体
+            var scaledFontSize = parseInt(window.getComputedStyle($dom, null).getPropertyValue('font-size'));
+            document.body.removeChild($dom);
+            // 计算原字体和放大后字体的比例
+            var scaleFactor = 10 / scaledFontSize;
+            var originRootFontSize = parseInt(window.getComputedStyle(document.documentElement, null).getPropertyValue('font-size'));
+            document.documentElement.style.fontSize = originRootFontSize * scaleFactor * scaleFactor + 'px';
+        })();
+    </script>
+</body>
+
+</html>

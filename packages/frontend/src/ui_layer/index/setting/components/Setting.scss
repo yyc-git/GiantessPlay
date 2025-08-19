@@ -1,0 +1,34 @@
+@import "../../../../Main.scss";
+
+.setting-main {
+	@include background-unset;
+
+	.title {
+		// @include font-size-modal-title;
+		// text-align: center;
+		@include font-size-large;
+	}
+
+	.row .ant-row {
+		margin-bottom: 0.5rem;
+	}
+
+	// .adm-slider {
+	// 	width: 7rem;
+	// 	height: 2rem;
+	// }
+
+	.adm-selector {
+		@include font-size;
+	}
+
+	.adm-center-popup-wrap {
+		min-width: 70%;
+	}
+
+	span {
+		@include font-size;
+		color: white;
+	}
+
+}

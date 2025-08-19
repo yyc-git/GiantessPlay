@@ -1,0 +1,37 @@
+@import "../../../../../../Main.scss";
+
+.dialogue-main {
+	@include background-unset;
+
+	// .adm-mask{
+	// 	margin-top:30%;
+	// }
+
+	.title {
+		@include font-size;
+		z-index: 2;
+
+		color: yellow !important;
+	}
+
+	.row {
+		height: 100%;
+
+		.col {
+
+			.title_container {
+				width: 100%;
+			}
+
+			.level3 {
+				@include font-size-level3;
+				color: white !important;
+			}
+
+			// .level2 {
+			// 	@include font-size-level2;
+			// 	color: yellow !important;
+			// }
+		}
+	}
+}

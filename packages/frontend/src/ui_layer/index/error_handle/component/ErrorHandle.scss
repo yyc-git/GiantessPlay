@@ -1,0 +1,31 @@
+@import "../../../../Main.scss";
+
+.error-handle-main {
+	@include background-unset;
+
+	.title {
+		@include font-size-large;
+		z-index: 2;
+	}
+
+	.row {
+		height: 100%;
+
+		.col {
+
+			.title_container {
+				width: 100%;
+			}
+
+			.level1 {
+				@include font-size-level1;
+				color: red !important;
+			}
+
+			.level2 {
+				@include font-size-level2;
+				color: yellow !important;
+			}
+		}
+	}
+}

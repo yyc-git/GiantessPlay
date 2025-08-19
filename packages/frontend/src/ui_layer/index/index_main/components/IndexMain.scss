@@ -1,0 +1,64 @@
+@import "../../../../Main.scss";
+
+.index-main-main {
+	@include background-unset;
+
+	.title {
+		// @include font-size-x-large;
+
+		height: 6rem;
+		// margin-bottom: 1rem;
+	}
+
+
+	.body {
+		@include background-unset;
+
+		.version {
+			@include font-size-level3;
+			// font-size: 1.5rem !important;
+
+			// color: purple;
+		}
+
+		.ant-row {
+			height: 30%;
+		}
+
+		.ant-image {
+			width: 100%;
+			text-align: center;
+
+			img {
+				width: 12rem;
+			}
+		}
+
+		.fixed-button {
+			.active {
+				position: fixed;
+				bottom: 5rem;
+				right: 2rem;
+				z-index: 2;
+			}
+
+			.share {
+				position: fixed;
+				bottom: 2rem;
+				right: 2rem;
+				z-index: 2;
+			}
+
+
+			.ant-image {
+				width: 100%;
+				text-align: center;
+
+				img {
+					width: 8rem;
+				}
+			}
+		}
+
+	}
+}

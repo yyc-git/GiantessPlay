@@ -1,0 +1,14 @@
+.pose {
+    .image {
+        position: fixed;
+        z-index: 2;
+
+        opacity: 1.0;
+
+        width: 2rem;
+        height: 2rem;
+
+        bottom: 13rem;
+        right: 2rem;
+    }
+}

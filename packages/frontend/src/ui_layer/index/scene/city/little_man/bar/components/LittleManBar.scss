@@ -1,0 +1,78 @@
+@import "../../../../../../../Main.scss";
+
+$littleManWidth: 10rem;
+
+.bar-main {
+	@include background-unset;
+
+
+	position: fixed;
+	top: 0.5rem;
+
+	left: 0.5rem;
+
+	width: $littleManWidth ;
+
+	.row {
+		height: 100%;
+
+		position: absolute;
+		left: 0;
+		top: 0;
+
+
+		.col {
+
+			.title_container {
+				width: 100%;
+			}
+
+			.bar_hp_background {
+				width: $littleManWidth;
+				height: 1rem;
+			}
+
+			.bar_hp {
+				// width: 10rem;
+				// position: relative;
+				/*!
+				negative value not work on android->wechat browser
+				*/
+				// top: -0.9rem;
+				// margin-top: -2rem;
+
+
+				height: 0.76rem;
+			}
+
+
+			.hp_number {
+				@include font-size-level4;
+				color: white !important;
+
+				// position: relative;
+				// top: -2rem;
+				// margin-top: -2rem;
+				// margin-top: 5rem;
+
+				margin: 0;
+
+			}
+
+
+
+		}
+	}
+
+	.little-man-hp {
+		// position: relative;
+		// top: 0.5rem;
+
+		height: 1rem;
+
+		.row_hp_number {
+			top: 0.2rem !important;
+			right: 0;
+		}
+	}
+}

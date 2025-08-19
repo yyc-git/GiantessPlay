@@ -1,0 +1,39 @@
+@import "../../../../../../../Main.scss";
+
+$width: 10rem;
+
+.giantess_level_status-main {
+
+	.row .ant-row {
+		margin-bottom: 0.5rem;
+	}
+
+	.task_title {
+		position: fixed;
+		top: 1rem;
+		left: 45%;
+		z-index: 1;
+
+		// margin-top: 0 !important;
+
+		@include font-size-level1;
+
+		& {
+			text-align: center
+		}
+	}
+
+	.height_title {
+		position: fixed;
+		top: 5rem;
+		left: 1rem;
+		z-index: 1;
+
+		@include font-size-level1;
+
+		& {
+			text-align: center
+		}
+	}
+
+}

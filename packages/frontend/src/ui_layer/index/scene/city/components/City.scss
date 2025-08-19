@@ -1,0 +1,139 @@
+@import "../../../../../Main.scss";
+
+.city {
+	.main_menu_button {
+		// position: absolute;
+		position: fixed;
+		top: 1rem;
+		right: 1rem;
+		z-index: 2;
+
+		width: 3rem;
+		height: 3rem;
+	}
+
+	.package_button {
+		position: fixed;
+		top: 1rem;
+		right: 6rem;
+		z-index: 2;
+
+		width: 3rem;
+		height: 3rem;
+	}
+
+	.control_button {
+		position: fixed;
+		top: 5rem;
+		right: 6rem;
+		z-index: 2;
+
+		width: 3rem;
+		height: 3rem;
+	}
+
+	.debug_button {
+		position: fixed;
+		top: 10rem;
+		left: 1rem;
+		z-index: 1000;
+		width: 3rem;
+		height: 3rem;
+	}
+
+
+	// 	.task_container {
+	// 		width: 100%;
+	// 		z-index: 1;
+
+	// 		.task_title {
+	// 			@include font-size-level1;
+	// 		}
+	// 	}
+
+	// 	.height_container {
+	// 		width: 100%;
+	// 		z-index: 1;
+
+	// 		.height_title {
+	// 			@include font-size-level1;
+	// 		}
+	// 	}
+
+
+}
+
+.main_menu,
+.package,
+.control {
+	// width: 80%;
+	// width: 30rem !important;
+	// opacity: 0.5;
+
+	// @include font-size;
+
+	.title {
+		@include font-size-modal-title;
+		text-align: center;
+	}
+
+	.row .ant-row {
+		margin-bottom: 0.5rem;
+	}
+
+	// .adm-slider {
+	// 	width: 7rem;
+	// 	height: 2rem;
+	// }
+
+	.adm-selector {
+		@include font-size;
+	}
+
+	.adm-center-popup-wrap {
+		min-width: 70%;
+	}
+
+	span {
+		@include font-size;
+	}
+}
+
+.package {
+	.ant-card {
+		margin-right: 1rem;
+	}
+
+	.prop_container {
+		position: relative;
+
+		width: 6rem;
+		height: 6rem;
+	}
+
+	.prop_image {
+		width: 100%;
+		height: 100%;
+	}
+
+	.prop_count {
+		position: absolute;
+		top: 0;
+		left: 0.2rem;
+		z-index: 1;
+
+		background-color: black;
+
+		@include font-size-level3;
+	}
+
+	.selected {
+		width: 2rem;
+		height: 2rem;
+
+		position: absolute;
+		bottom: 0;
+		right: 0.2rem;
+		z-index: 1;
+	}
+}

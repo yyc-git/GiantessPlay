@@ -1,0 +1,28 @@
+@import "../../../../../Main.scss";
+
+.mission_complete {
+	.title {
+		@include font-size-modal-title;
+		text-align: center;
+	}
+
+	.row .ant-row {
+		margin-bottom: 0.5rem;
+	}
+
+	.adm-center-popup-wrap {
+		min-width: 70%;
+	}
+
+	span,
+	.game_time,
+	.destroyed_rate {
+		@include font-size;
+	}
+
+	.button {
+		.ant-btn {
+			margin-right: 1rem;
+		}
+	}
+}

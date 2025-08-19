@@ -1,0 +1,44 @@
+@import "../../../../../../../Main.scss";
+
+$width: 20rem;
+$halfWidth: 10rem;
+
+.qte-main {
+    @include background-unset;
+
+    position: fixed;
+    top: 5rem;
+
+    left: 50%;
+    margin-left: - $halfWidth;
+
+    width: $width;
+
+    height: 1rem;
+
+    .row {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    .background-line {
+        width: 100%;
+        height: 100%;
+        background-color: black;
+    }
+
+    .active-line {
+        width: 5rem;
+        height: 100%;
+        background-color: yellow;
+    }
+
+    .move-line {
+        width: 0.2rem;
+        height: 200%;
+        top: -50%;
+        background-color: white;
+    }
+
+}

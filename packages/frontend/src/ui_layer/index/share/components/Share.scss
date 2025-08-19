@@ -1,0 +1,31 @@
+@import "../../../../Main.scss";
+
+.share-main {
+	@include background-unset;
+
+	.title {
+		@include font-size-large;
+	}
+
+	.row .ant-row {
+		margin-bottom: 0.5rem;
+	}
+
+	.level1 {
+		@include font-size-level1;
+	}
+
+
+	.col {
+		width: 100%;
+
+		.ant-image {
+			width: 100%;
+			text-align: center;
+
+			img {
+				width: 10rem;
+			}
+		}
+	}
+}

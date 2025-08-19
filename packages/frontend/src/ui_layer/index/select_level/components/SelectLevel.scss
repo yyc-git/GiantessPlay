@@ -1,0 +1,102 @@
+@import "../../../../Main.scss";
+
+.select-level-main {
+	@include background-unset;
+
+	.title {
+		@include font-size-large;
+	}
+
+	.select {
+		// width: 100%;
+		height: 100%;
+
+		// background-color: purple;
+		// width: 100%;
+		// height: 100%;
+		.col {
+
+			.title_container {
+				width: 100%;
+			}
+
+			.level1 {
+				@include font-size-level1;
+			}
+
+			.level2 {
+				@include font-size-level2;
+
+				color: red !important;
+			}
+
+			// .level {
+			// 	// width: 100%;
+			// 	// height: 80%;
+
+			// 	width: 90%;
+			// 	height: 50%;
+			// 	background-image: url("/ui/not_in_game/level1.png");
+			// 	background-size: 100% 100%;
+
+			// }
+
+			.ant-image {
+				width: 100%;
+				// height: 50%;
+				text-align: center;
+
+				img {
+					// width: 100%;
+					// height: 100%;
+					width: 15rem;
+				}
+			}
+
+			// .enter-button {
+			// 	.ant-image {
+			// 		width: 100%;
+			// 		text-align: center;
+
+			// 		img {
+			// 			width: 5rem;
+			// 		}
+			// 	}
+			// }
+
+			// width: 100%;
+			// height: 100%;
+
+
+			// .image {
+			// 	// width:5rem;
+			// 	// height: 10rem;
+			// 	width: 100%;
+			// 	// height: 100%;
+			// }
+		}
+
+
+		.next,
+		.previous {
+			width: 2rem;
+			padding-top: 10rem;
+		}
+
+
+		.lock {
+			position: relative;
+			top: -12rem;
+
+			.ant-image {
+				width: 100%;
+				text-align: center;
+
+				img {
+					width: 10rem;
+					height: 10rem;
+				}
+			}
+		}
+	}
+}

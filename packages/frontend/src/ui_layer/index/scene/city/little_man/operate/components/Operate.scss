@@ -1,0 +1,116 @@
+@import "../../../../../../../Main.scss";
+
+.operate {
+    // @mixin text{
+    // 	background: unset;
+    // }
+
+    .image {
+        opacity: 0.6;
+
+        border-radius: 50%;
+
+        width: 4rem;
+        height: 4rem;
+
+        pointer-events: none;
+    }
+
+    .text {
+        width: 1rem;
+        height: 1rem;
+
+        background-color: white;
+        color: black;
+
+        display: block;
+        margin: 0 auto;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .unusable-mask {
+        width: 4rem;
+        height: 4rem;
+        position: absolute;
+        top: 0;
+        right: 0;
+
+        z-index: 3;
+
+        background-color: gray;
+        opacity: 0.8;
+        border-radius: 50%;
+    }
+
+    .using-mask {
+        width: 4rem;
+        height: 4rem;
+        position: absolute;
+        top: 0;
+        right: 0;
+
+        z-index: -1;
+
+        background-color: #00FFFF;
+        opacity: 0.8;
+        border-radius: 50%;
+    }
+
+    .cooling-mask {
+        width: 4rem;
+        height: 4rem;
+        position: absolute;
+        top: 0;
+        right: 0;
+
+        z-index: 3;
+
+        background-color: gray;
+        opacity: 0.8;
+        border-radius: 50%;
+
+        @include font-size-level3;
+
+        padding: 1.2rem;
+    }
+
+    // position: absolute;
+    // bottom: 2.1rem;
+    // right: 0rem;
+    // z-index: 2;
+
+    .button {
+        position: fixed;
+
+        z-index: 2;
+
+        // opacity: 0.3;
+
+        // border-radius: 50%;
+    }
+
+    // .bigger {
+    //     width: 4rem;
+    //     height: 4rem;
+
+    //     bottom: 7rem;
+    //     right: 6rem;
+    // }
+
+    // .smaller {
+    //     width: 4rem;
+    //     height: 4rem;
+
+    //     bottom: 7rem;
+    //     right: 2rem;
+    // }
+
+    // .stomp {
+    //     bottom: 2rem;
+    //     right: 2rem;
+
+
+    // }
+
+}

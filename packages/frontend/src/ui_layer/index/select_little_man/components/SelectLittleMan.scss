@@ -1,0 +1,101 @@
+@import "../../../../Main.scss";
+
+.select-little-man-main {
+	@include background-unset;
+
+	.title {
+		// font-size: 2rem !important;
+		@include font-size-large;
+	}
+
+	.select {
+		// width: 100%;
+		height: 100%;
+
+		// background-color: purple;
+		// width: 100%;
+		// height: 100%;
+		.col {
+			width: 100%;
+			// height: 80%;
+			text-align: center;
+
+			.ant-image {
+				// width: 100%;
+				width: 6rem;
+				// height: 80%;
+				// text-align: center;
+
+				img {
+					// width: 100%;
+					// height: 100%;
+					// width: 9rem;
+
+					// width: 5.5rem;
+					// height: 11rem;
+
+					width: 6rem;
+				}
+			}
+
+
+			.button {
+				.ant-image {
+					width: 100%;
+					text-align: center;
+
+					img {
+						width: 4rem;
+					}
+				}
+			}
+
+			.status {
+				.ant-image {
+					width: 100%;
+					text-align: center;
+
+					img {
+						width: 4rem;
+						height: 4rem;
+					}
+				}
+			}
+
+			.White {
+				background-color: white;
+			}
+
+			.Green {
+				background-color: #008000;
+			}
+
+			// .charater {
+			// 	width: 100%;
+			// 	height: 80%;
+			// 	background-image: url("/ui/not_in_game/charater1.png");
+			// 	background-size: 100% 100%;
+
+			// }
+
+			// width: 100%;
+			// height: 100%;
+
+
+			// .image {
+			// 	// width:5rem;
+			// 	// height: 10rem;
+			// 	width: 100%;
+			// 	// height: 100%;
+			// }
+		}
+
+
+		.next,
+		.previous {
+			width: 2rem;
+			padding-top: 5rem;
+		}
+
+	}
+}
