@@ -1,7 +1,8 @@
 {
-	"name": "gts-demo",
+	"name": "giantessplay",
 	"private": true,
-	"license": "",
+	"license": "MIT",
+	"author": "yyc",
 	"scripts": {
 		"clean": "lerna clean",
 		"bootstrap": "lerna bootstrap"

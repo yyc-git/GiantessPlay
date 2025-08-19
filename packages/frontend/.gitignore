@@ -9,7 +9,7 @@ mine/
 
 coverage
 
-dist/
+# dist/
 
 npm-debug
 

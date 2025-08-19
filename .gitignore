@@ -14,7 +14,7 @@ lib/es6_global/
 
 ocaml/
 
-dist/
+# dist/
 
 .bs.js
 .gen.tsx
