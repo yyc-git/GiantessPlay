@@ -70,13 +70,6 @@ cd ./packages/front
 npm run webpack:dev-server
 ```
 
-Build the project to get files in ./packages/frontend/dist:
-
-构建项目以获取在./packages/frontend/dist中的文件：
-```js
-cd ./packages/frontend
-npm run webpack
-```
 
 
 # community
