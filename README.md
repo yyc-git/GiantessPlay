@@ -54,8 +54,7 @@ Clone project ->Enter project root directory ->Install:
 cd ~/
 git clone https://github.com/yyc-git/GiantessPlay.git
 cd GiantessPlay
-npm install
-npm run bootstrap
+yarn install
 ```
 
 Start dev server to develop the project:
@@ -63,20 +62,13 @@ Start dev server to develop the project:
 启动开发服务器以开发项目：
 ```js
 cd ./packages/meta3d-jiehuo-abstract
-npm run webpack:watch
+yarn webpack:watch
 ```
 ```js
 cd ./packages/front
-npm run webpack:dev-server
+yarn webpack:dev-server
 ```
 
-Build the project to get files in ./packages/frontend/dist:
-
-构建项目以获取在./packages/frontend/dist中的文件：
-```js
-cd ./packages/frontend
-npm run webpack
-```
 
 
 # community
