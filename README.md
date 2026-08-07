@@ -41,7 +41,7 @@ This open source repo's version is 0.16.1 version, while the latest version is ^
 # Gameplay Screenshots  
 ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113055699-1468770798.jpg)  
 ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113047057-1284018318.png)  
-![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113036288-464021184.png)  
+<!-- ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113036288-464021184.png)   -->
 <!-- ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324080808522-1826336841.png)   -->
 ![image](https://img2024.cnblogs.com/blog/419321/202508/419321-20250819160250525-1267922397.png)  
 
