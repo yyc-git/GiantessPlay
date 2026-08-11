@@ -6,12 +6,13 @@
 <!-- 【巨大娘的玩耍】是一款肉鸽H5 3D巨大娘动作射击游戏，同时支持手机端和PC端 -->
 【巨大娘的玩耍】是一款H5 3D巨大娘动作射击游戏，同时支持手机端和PC端
 
-This open source repo's version is 0.16.1 version, while the latest version is ^1.0
+This open source repo's version is v1.2.7 and v0.16.1 version, while the latest version is ^2.0.0-alpha
 
-此开源仓库的版本为0.16.1，而最新版本为^1.0
+此开源仓库的版本为v1.2.7和v0.16.1，而最新版本为^2.0.0-alpha
 
 
-[Enter the game](https://meta3d-local-9gacdhjl439cff76-1302358347.tcloudbaseapp.com/gts_old_play_pro/dist/index.html) • [进入游戏](https://meta3d-local-9gacdhjl439cff76-1302358347.tcloudbaseapp.com/gts_old_play_pro/dist/index.html)
+[Enter the game(v0.16.1)](https://meta3d-local-9gacdhjl439cff76-1302358347.tcloudbaseapp.com/gts_old_play_pro/dist/index.html) • [进入游戏(v0.16.1)](https://meta3d-local-9gacdhjl439cff76-1302358347.tcloudbaseapp.com/gts_old_play_pro/dist/index.html)
+
 
 [Enter the latest version of the game](https://gts-play.cn/) • [进入最新版游戏](https://gts-play.cn/)
 
@@ -24,25 +25,26 @@ This open source repo's version is 0.16.1 version, while the latest version is ^
 - **Bosses:** Challenge various giantess bosses  
 - **Dual Roles:** Switch between Tiny characters (shooting-focused) and Giantess characters (action-focused)  
 - **Platform:** H5 3D web game – play instantly online without downloads, runs on all platforms (mobile, PC, etc.)  
-<!-- - **Mod Support:** Customize game content with mods -->  
-<!-- - **Gameplay:** Roguelite random battles, diverse playstyle combinations, player progression, dynamic difficulty   -->
+- **Mod Support:** Customize game content with mods -->  
+- **Gameplay:** Roguelite random battles, diverse playstyle combinations, player progression, dynamic difficulty  
 
 # 游戏特点
 
 游戏特点如下：
 
 - 主题是二次元美少女巨大娘
+- 肉鸽随机战斗，多种玩法组合，玩家不断变强，动态难度
+- 支持模组
 - 可挑战各种巨大娘Boss
 - 可切换小人、巨大娘两种类型的角色，其中小人偏向于射击，巨大娘偏向于动作
 - H5 3D网页游戏，在线玩无需下载，手机、PC等全平台可运行游戏
-<!-- - 肉鸽随机战斗，多种玩法组合，玩家不断变强，动态难度 -->
 
 
 # Gameplay Screenshots  
 ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113055699-1468770798.jpg)  
 ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113047057-1284018318.png)  
-<!-- ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113036288-464021184.png)   -->
-<!-- ![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324080808522-1826336841.png)   -->
+![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324113036288-464021184.png)  
+![image](https://img2024.cnblogs.com/blog/419321/202503/419321-20250324080808522-1826336841.png)  
 ![image](https://img2024.cnblogs.com/blog/419321/202508/419321-20250819160250525-1267922397.png)  
 
 # How to build
@@ -73,6 +75,6 @@ yarn webpack:dev-server
 
 # community
 
-- [Enter Forum(Discord)](https://discord.com/invite/JbhkqUJKFF)
+- [Enter Forum](https://meta3d-local-9gacdhjl439cff76-1302358347.tcloudbaseapp.com/gts_forum/dist?language=en)
 - [加QQ群：892578345](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=QpNrLbhk5TZD8bg_sNalLrAKHVS3qCD2&authKey=ePPMKFJ1H3OXMdRLXJlYKNdyMPoO%2Fh2FWzcxgx5LjtdqZGmKU5i5QbYbAZeZRoz%2F&noverify=0&group_code=892578345)
-- [进入论坛（贴吧）](https://tieba.baidu.com/f?kw=%E5%B7%A8%E5%A4%A7%E5%A8%98%E7%9A%84%E7%8E%A9%E8%80%8D&ie=utf-8&tab=main)
+- [进入论坛](https://meta3d-local-9gacdhjl439cff76-1302358347.tcloudbaseapp.com/gts_forum/dist/#/)
