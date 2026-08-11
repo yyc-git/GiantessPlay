@@ -1,0 +1,16 @@
+{
+    "name": "meta3d-commonlib-type",
+    "version": "1.3.0",
+    "authors": "Wonder",
+    "license": "",
+    "scripts": {
+        "watch": "rescript clean && rescript build -w",
+        "buildAll:ci": "rescript clean && rescript build"
+    },
+    "dependencies": {
+        "rescript": "^10.0.0"
+    },
+    "devDependencies": {
+        "gentype": "^3.48.0"
+    }
+}

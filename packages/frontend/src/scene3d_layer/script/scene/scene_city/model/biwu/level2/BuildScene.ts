@@ -1,6 +1,6 @@
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../../../type/StateType"
-import { setState, getState, getDynamicGroupName, getName, getGridResourceId, getBaseMapResourceId, getConfigData } from "../../../CityScene"
+import { setState, getState, getDynamicGroupName, getName, getGridResourceId,  getConfigData } from "../../../CityScene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { Matrix4, PCFSoftShadowMap, Vector3, Quaternion, Material, Box3, Box3Helper, Color, TextureLoader, Texture, RepeatWrapping, SRGBColorSpace, AxesHelper } from "three"
 // import { setControlsConfig } from "./Camera"
@@ -28,15 +28,16 @@ import { getIsDebug } from "../../../../Scene"
 import { Terrain } from "meta3d-jiehuo-abstract"
 import { isInGroups } from "meta3d-jiehuo-abstract/src/terrain/Terrain"
 import { Loader } from "meta3d-jiehuo-abstract"
-import { addBuilding } from "../../../manage/city1/Mission"
+import { addBuilding } from "../../../manage/mission/Mission"
 import { isMobile } from "meta3d-jiehuo-abstract/src/Device"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
-import { shadowLevel } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Flow } from "meta3d-jiehuo-abstract"
 import { getShadowConfigBySetting } from "../level1/BuildScene"
+import { parseAndAddResources } from "../../../manage/city1/Terrain"
 
 let _addTerrain = (scene, state: state) => {
     // //let lodContainerGroup = NullableUtils.getExn(Scene.findObjectByName(scene, getLODContainerGroupName()))
+
+    state = parseAndAddResources(state)
 
     let terrainMesh = NullableUtils.getExn(getState(state).terrain.terrainMesh)
 
@@ -72,7 +73,7 @@ let _addLight = (state: state, scene, renderer, camera) => {
     state = setAbstractState(state, CSM.create(getAbstractState(state), csmConfig as any))
 
 
-    // if (RenderSetting.getRenderSetting(getAbstractState(state)).isEnableShadow) {
+    // if (getRenderSetting(state).isEnableShadow) {
     //     renderer.shadowMap.enabled = true;
     //     renderer.shadowMap.type = PCFSoftShadowMap;
     // }
@@ -112,7 +113,7 @@ export let build = (state: state, renderer) => {
         // },
         scene: NullableUtils.return_(scene),
         // girl: {
-        //     ...getGirlState(state),
+        //     ...getUsedGirlData(state, usedGirl),
         //     position: new Vector3(0, 0, 5)
         // }
     })

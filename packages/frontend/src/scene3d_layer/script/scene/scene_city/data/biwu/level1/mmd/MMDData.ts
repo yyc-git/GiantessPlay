@@ -3,9 +3,11 @@ import * as MMDData from "../../../mmd/MMDData"
 // import { getName } from "../../../../girl/Girl"
 import { getName } from "../../../../CityScene"
 import { animationName } from "../DataType"
-import { getHakuQPResourceId, getHakuQPResourcePath } from "../../../Const"
 import { state } from "../../../../../../../type/StateType"
 import { getFullHp } from "../../../../girl/Girl"
+import { usedGirlEnum } from "../../../../type/StateType"
+import { ArrayUtils } from "meta3d-jiehuo-abstract"
+import { mmdCharacter } from "mmd-character-extend/src/json/Type"
 
 // let _handleVMDPath = (mmdCharacter_: MMDData.mmdCharacter, originPath) => {
 //     let name = getName()
@@ -18,7 +20,7 @@ import { getFullHp } from "../../../../girl/Girl"
 //     }
 // }
 
-let _getVMDRawData = () => {
+let _getVMDRawData = (state) => {
     return [
         [
             animationName.PickdownFromIdle,
@@ -31,11 +33,11 @@ let _getVMDRawData = () => {
             Const.getWelcomeAnimationResourcePath(getName())
         ],
     ].concat(
-        MMDData.getVMDRawData()
+        MMDData.getVMDRawData(state)
     )
 }
 
-let _handleVMDPath = (mmdCharacter_, originPath) => {
+let _handleVMDPath = (state, mmdCharacter_, originPath) => {
     switch (originPath) {
         // case Const.getPickdownFromIdleAnimationResourcePath(getName()):
         // if (mmdCharacter_ == MMDData.mmdCharacter.Vanilla) {
@@ -50,7 +52,7 @@ let _handleVMDPath = (mmdCharacter_, originPath) => {
         // }
 
         case Const.getWelcomeAnimationResourcePath(getName()):
-            return MMDData.handleVMDPath(mmdCharacter_, [
+            return MMDData.handleVMDPath(state, mmdCharacter_, [
                 path => {
                     return "vmd_160/"
                 },
@@ -59,20 +61,20 @@ let _handleVMDPath = (mmdCharacter_, originPath) => {
                 }
             ], originPath)
         default:
-            return MMDData.handleVMDPath(mmdCharacter_, [path => path, path => path], originPath)
+            return MMDData.handleVMDPath(state, mmdCharacter_, [path => path, path => path], originPath)
     }
 }
 
-let _getVMDData = (mmdCharacter_) => {
-    return _getVMDRawData().map(([animationName_, originPath]) => {
+let _getVMDData = (state, mmdCharacter_) => {
+    return _getVMDRawData(state).map(([animationName_, originPath]) => {
         return [
             animationName_,
-            _handleVMDPath(mmdCharacter_, originPath)
+            _handleVMDPath(state, mmdCharacter_, originPath)
         ]
     })
 }
 
-export let getAllMMDData = (): MMDData.allMMDData => {
+export let getAllMMDData = (state: state) => {
     // return [
     //     // [
     //     //     MMDData.mmdCharacter.Haku_QP,
@@ -90,22 +92,24 @@ export let getAllMMDData = (): MMDData.allMMDData => {
 
     // ]
 
-    return MMDData.getAllMMDDataWithVMDData(_getVMDData).filter(d => {
-        switch (d[0]) {
-            case MMDData.mmdCharacter.Meiko:
-            case MMDData.mmdCharacter.Moye:
-                // case MMDData.mmdCharacter.Nero:
-                // case MMDData.mmdCharacter.Xiaye2:
-                // case MMDData.mmdCharacter.Moye:
-                // case MMDData.mmdCharacter.Haku_QP:
-                return false
-            default:
-                return true
-        }
-    })
+    return MMDData.getAllMMDDataWithVMDData(state, _getVMDData)
+    //     .filter(d => {
+    //         // return [ArrayUtils.getLast(MMDData.getAllMMDDataWithVMDData(state, _getVMDData))].filter(d => {
+    //         switch (d[0]) {
+    //             case mmdCharacter.Meiko:
+    //             // case mmdCharacter.Moye:
+    //                 // case MMDData.mmdCharacter.Nero:
+    //                 // case MMDData.mmdCharacter.Xiaye2:
+    //                 // case MMDData.mmdCharacter.Moye:
+    //                 // case MMDData.mmdCharacter.Haku_QP:
+    //                 return false
+    //             default:
+    //                 return true
+    //         }
+    //     })
 }
 
-export let getClothHpData = (state: state): MMDData.clothHpData => {
+export let getClothHpData = (state: state, usedGirl) => {
     // let fullHp = getFullHp(state)
 
     // return [
@@ -121,5 +125,5 @@ export let getClothHpData = (state: state): MMDData.clothHpData => {
     //     },
     // ]
 
-    return MMDData.getClothHpData(state)
+    return MMDData.getClothHpData(state, usedGirlEnum.BossGiantess)
 }

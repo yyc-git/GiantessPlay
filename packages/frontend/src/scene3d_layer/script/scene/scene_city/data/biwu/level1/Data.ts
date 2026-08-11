@@ -1,7 +1,7 @@
 import { buildPickdownFromIdleWorkEventNameEventData, getBackRightLightStompEndEventName, getHangRightLightStompEndEventName, getPickdownFromIdleWorkEventName } from "../../../../../../utils/EventUtils"
 import { getIsDebug } from "../../../../Scene"
 import { collisionPart } from "../../../type/StateType"
-import { getLastFrameIndex } from "../../../utils/DataUtils"
+import { getLateFrameIndex } from "../../../utils/DataUtils"
 import { animationBlendData, animationCollisionData, track } from "../../DataType"
 import { getAnimationFrameCountWithoutState, getPickdownFromIdleWorkFrameIndex } from "./Const"
 import { actionName, animationName } from "./DataType"
@@ -9,16 +9,16 @@ import { actionName, animationName } from "./DataType"
 export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, getFrameIndexFunc, isSpecificFrameIndexFunc, isEndFunc, isPreviousAnimationFunc, hasPickDataFunc]): animationBlendData<animationName> => {
     return [
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.PickdownFromIdle)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.PickdownFromIdle)
             },
             currentAnimationNames: [animationName.Idle],
             noBlend: true,
             nextAnimationName: animationName.PickdownFromIdle,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.PickdownFromIdle, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.PickdownFromIdle, getIsDebug(state))
             },
             currentAnimationNames: [animationName.PickdownFromIdle],
             nextAnimationName: animationName.Idle,
@@ -27,11 +27,11 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
     ]
 }
 
-export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
+export let getAnimationCollisionData = ([isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
     getShapeFunc,
     getScaleFunc,
     getHeightFunc,
-    isLittleRoadFunc
+    isLittleCharacterTypeFunc
 ]): Array<animationCollisionData<animationName>> => {
     return [
         {
@@ -43,14 +43,14 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
                     frameIndex: getPickdownFromIdleWorkFrameIndex(),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getPickdownFromIdleWorkEventName(),
                             eventData: buildPickdownFromIdleWorkEventNameEventData(
-                                // getShapeFunc(state, collisionPart.RightHand).center
-                                getShapeFunc(state, collisionPart.RightHand).center.clone().setY(0)
+                                // getShapeFunc(state, usedGirl, collisionPart.RightHand).center
+                                getShapeFunc(state, usedGirl, collisionPart.RightHand).center.clone().setY(0)
                             )
                         }
                     }

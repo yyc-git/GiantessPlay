@@ -1,23 +1,30 @@
 import { Camera, Layer, NullableUtils, ThirdPersonControls, View } from "meta3d-jiehuo-abstract"
 import { cameraType, state } from "../../../type/StateType"
-import { getGirlScale, getState, setState } from "./CityScene"
+import { getGirlScale, getState, restoreCameraFromSavedData, setState, updateCameraDistance } from "./CityScene"
 import { Object3D, PerspectiveCamera, Vector3 } from "three"
 import { getAbstractState, readState, setAbstractState, writeState } from "../../../state/State"
 import { getIsDebug } from "../Scene"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
-import { getCurrentCamera, getOrbitControls } from "meta3d-jiehuo-abstract/src/scene/Camera"
+import { getCurrentCamera, getFirstPersonControls, getOrbitControls } from "meta3d-jiehuo-abstract/src/scene/Camera"
 import { camera, littleManCamera, littleManThirdPersonCameraTarget, objectStateName } from "./type/StateType"
-import { getRenderSetting } from "meta3d-jiehuo-abstract/src/setting/RenderSetting"
-import { renderAccuracyLevel } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import * as LittleMan from "./little_man/LittleMan"
 import { StateMachine } from "meta3d-jiehuo-abstract"
 import { CameraControls } from "meta3d-jiehuo-abstract"
-import { getFarFactorByScale } from "./utils/CameraUtils"
 import { markAllMeshesNotVisible } from "meta3d-jiehuo-abstract/src/utils/Object3DUtils"
-import * as FirstPersonControls from "./FirstPersonControls"
+// import * as FirstPersonControls from "./FirstPersonControls"
 import { getWorldPosition } from "./little_man/Transform"
-import { getCameraFar, getCameraNear, getMaxDistance, getMinDistance, isCameraCollision, updateThirdPersonControlsByCameraData } from "./utils/LittleManCameraUtils"
+import { getMaxDistance, getMinDistance, isCameraCollision, updateThirdPersonControlsByCameraData } from "./utils/LittleManCameraUtils"
+import * as ShootControls from "./ShootControls"
+import { requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
+import { renderAccuracyLevel } from "setting-default/src/Type"
+import { getCameraFarByRenderAccuracy } from "./manage/city1/WholeScene"
+import { getRemainCameraType } from "./utils/CameraUtils"
+import { computeTargetToCameraDirection, disableAllControls, getCameraNear, getCameraRotateSpeedRatio } from "./Camera"
+import { characterType } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { Device } from "meta3d-jiehuo-abstract"
+// import * as GirlCamera from "./Camera"
+// import { hasGirl, hasGirlMesh } from "./girl/Girl"
 
 const _v1 = new Vector3();
 
@@ -32,12 +39,23 @@ export let _setState = (state: state, cameraState: littleManCamera) => {
     })
 }
 
+export let getTargetDirection = (state: state) => {
+    return _getState(state).targetDirection
+}
+
+export let removeTargetDirection = (state: state) => {
+    return _setState(state, {
+        ..._getState(state),
+        targetDirection: NullableUtils.getEmpty()
+    })
+}
+
 export let getThirdPersonCameraTarget = (state: state) => {
     return _getState(state).thirdPersonCameraTarget
 }
 
 export let setThirdPersonCameraTarget = (state: state, thirdPersonCameraTarget_: littleManThirdPersonCameraTarget) => {
-    (getCurrentCamera(getAbstractState(state)) as PerspectiveCamera).near = _buildCameraNear(thirdPersonCameraTarget_)
+    (getCurrentCamera(getAbstractState(state)) as PerspectiveCamera).near = _buildCameraNear()
 
     return _setState(state, {
         ..._getState(state),
@@ -45,8 +63,13 @@ export let setThirdPersonCameraTarget = (state: state, thirdPersonCameraTarget_:
     })
 }
 
-let _getThirdPersonControlOrbitControlsTarget = (state: state): Vector3 => {
+export let getLittleManThirdPersonControlOrbitControlsTarget = (state: state): Vector3 => {
     let center = LittleMan.getBoxCenter(state)
+
+    // // TODO remove
+    // if(isNaN(center.x)){
+    //     console.error(center)
+    // }
 
     switch (getThirdPersonCameraTarget(state)) {
         case littleManThirdPersonCameraTarget.Body:
@@ -59,10 +82,11 @@ let _getThirdPersonControlOrbitControlsTarget = (state: state): Vector3 => {
 export let getOrbitControlsTarget = (state: state): Vector3 => {
     switch (getCameraType(state)) {
         case cameraType.ThirdPerson:
-            return _getThirdPersonControlOrbitControlsTarget(state)
-        case cameraType.FirstPerson:
-            return FirstPersonControls.getOrbitControlsTarget(state, _getState(state).targetDirection)
-            break
+            return getLittleManThirdPersonControlOrbitControlsTarget(state)
+        // case cameraType.FirstPerson:
+        // return FirstPersonControls.getOrbitControlsTarget(state, _getState(state).targetDirection)
+        case cameraType.Shoot:
+            return ShootControls.getOrbitControlsTarget(state)
         default:
             throw new Error("err")
     }
@@ -80,13 +104,13 @@ let _getCameraInitialPosition = (state) => {
 
     // let distance = getDistance(state)
 
-    // let offset = NullableUtils.getExn(targetDirection).clone().negate().normalize().multiplyScalar(LittleMan.getBoxSizeForCompute(state) * 2)
-    // let offset = NullableUtils.getExn(targetDirection).clone().negate().multiplyScalar(LittleMan.getBoxSizeForCompute(state) * 6).normalize().multiplyScalar(distance)
+    // let offset = NullableUtils.getExn(targetDirection).clone().negate().normalize().multiplyScalar(LittleMan.getBoxSizeForCompute(state, usedGirl) * 2)
+    // let offset = NullableUtils.getExn(targetDirection).clone().negate().multiplyScalar(LittleMan.getBoxSizeForCompute(state, usedGirl) * 6).normalize().multiplyScalar(distance)
     let offset = NullableUtils.getExn(targetDirection).clone().negate().normalize().multiplyScalar(LittleMan.getBoxSizeForCompute(state) * 6)
 
 
     return LittleMan.getBoxCenter(state).add(new Vector3(0, LittleMan.getBoxSizeForCompute(state) * 2, 0)).add(
-        // NullableUtils.getExn(targetDirection).clone().negate().multiplyScalar(LittleMan.getBoxSizeForCompute(state) * 6).normalize().multiplyScalar(distance)
+        // NullableUtils.getExn(targetDirection).clone().negate().multiplyScalar(LittleMan.getBoxSizeForCompute(state, usedGirl) * 6).normalize().multiplyScalar(distance)
 
         _v1.set(offset.x, 0, offset.z)
         // offset
@@ -108,7 +132,15 @@ let _limitDistance = (distance, state) => {
 //     return orbitControlsTarget.clone().add(targetToCameraDirection.normalize().multiplyScalar(distance))
 // }
 let _getCameraPosition = (state, camera, orbitControls, orbitControlsTarget, distance) => {
-    let targetToCameraDirection = camera.position.clone().sub(orbitControls.target)
+    let targetToCameraDirection
+    let targetDirection = _getState(state).targetDirection
+
+    if (!NullableUtils.isNullable(targetDirection)) {
+        targetToCameraDirection = targetDirection.clone().negate()
+    }
+    else {
+        targetToCameraDirection = camera.position.clone().sub(orbitControls.target)
+    }
 
     // let distance = targetToCameraDirection.length()
 
@@ -121,33 +153,52 @@ let _getCameraPosition = (state, camera, orbitControls, orbitControlsTarget, dis
 //     return getThirdPersonCameraTarget(state) !== littleManThirdPersonCameraTarget.Foot
 // }
 
-let _buildCameraNear = (thirdPersonCameraTarget_: littleManThirdPersonCameraTarget) => {
+let _buildCameraNear = () => {
     // return 0.1
     return 1
 }
 
 export let buildCameraFar = (state: state, factor = 0.6) => {
-    let far
-    switch (getRenderSetting(getAbstractState(state)).renderAccuracy) {
-        case renderAccuracyLevel.VeryHigh:
-            far = 8000
-            break
-        case renderAccuracyLevel.High:
-            far = 2000
-            break
-        case renderAccuracyLevel.Middle:
-            far = 1500
-            break
-        case renderAccuracyLevel.Low:
-            far = 1000
-            break
-    }
+    // let far
+    // switch (getRenderAccuracy(state)) {
+    //     case renderAccuracyLevel.MostHigh:
+    //         far = 20000
+    //         break
+    //     case renderAccuracyLevel.VeryHigh:
+    //         far = 8000
+    //         break
+    //     case renderAccuracyLevel.High:
+    //         far = 2000
+    //         break
+    //     case renderAccuracyLevel.Middle:
+    //         far = 1500
+    //         break
+    //     case renderAccuracyLevel.Low:
+    //         far = 1000
+    //         break
+    // }
 
-    return far * factor * NumberUtils.greaterThan(getFarFactorByScale(getGirlScale(state)) / 1.5, 1)
+    // // return far * factor * (hasGirlMesh(state) ? NumberUtils.greaterThan(getFarFactorByScale(getGirlScale(state, usedGirl)) / 1.5, 1) : 1)
+
+    // far *= factor
+
+    // // if (hasGirl(state)) {
+    // //     return far * NumberUtils.greaterThan(getFarFactorByScale(getGirlScale(state, usedGirl)) / 1.5, 1)
+    // // }
+
+    // return far
+
+    // return getNewestFarDistance(state) * factor
+    return getCameraFarByRenderAccuracy(state) * factor
 }
 
+export let getCameraPositionWhenUpdate = (camera) => {
+    let position = camera.position.clone()
 
-export let updateThirdPersonControls = (state: state, near, far, distance: number) => {
+    return position.setY(position.y + 10)
+}
+
+let _updateThirdPersonControls = (state: state, near, far, distance: number) => {
     let abstractState = getAbstractState(state)
 
     let camera = Camera.getCurrentCamera(abstractState)
@@ -160,11 +211,15 @@ export let updateThirdPersonControls = (state: state, near, far, distance: numbe
             far
         ],
         isCameraCollision(state),
-        getOrbitControls(abstractState), camera, _getThirdPersonControlOrbitControlsTarget(state),
-        _getCameraPosition(state, camera, getOrbitControls(abstractState), _getThirdPersonControlOrbitControlsTarget(state), distance),
+        getOrbitControls(abstractState), camera, getLittleManThirdPersonControlOrbitControlsTarget(state),
+        _getCameraPosition(state, camera, getOrbitControls(abstractState), getLittleManThirdPersonControlOrbitControlsTarget(state), distance),
+        // getCameraPositionWhenUpdate(camera),
+
         // NullableUtils.getEmpty(),
+
         getMinDistance(state),
-        getMaxDistance(state),
+        // getMaxDistance(state),
+        Infinity,
     )
 
     return setAbstractState(state, abstractState)
@@ -175,7 +230,7 @@ export let updateThirdPersonControls = (state: state, near, far, distance: numbe
 // export let zoomOutCamera = (state: state) => {
 //     while (
 //         getOrbitControls(getAbstractState(state)).getDistance() <
-//         LittleMan.getBoxSizeForCompute(state) * 10
+//         LittleMan.getBoxSizeForCompute(state, usedGirl) * 10
 //     ) {
 //         state = zoomOut(state)
 //     }
@@ -183,23 +238,35 @@ export let updateThirdPersonControls = (state: state, near, far, distance: numbe
 //     return state
 // }
 
-let _initThirdPersonControlsWhenUse = (state: state, controls, camera, isDebug) => {
+let _initThirdPersonControlsWhenUse = (state: state, controls, camera, isDebug, isFirstUse) => {
+    state = disableAllControls(state)
     getOrbitControls(getAbstractState(state)).enabled = true
 
     let abstractState = ThirdPersonControls.initControls(getAbstractState(state),
         [
-            _buildCameraNear(getThirdPersonCameraTarget(state)),
+            _buildCameraNear(),
             buildCameraFar(state)
         ],
         isCameraCollision(state),
-        controls, camera, _getThirdPersonControlOrbitControlsTarget(state),
-        _getCameraInitialPosition(state),
+        controls, camera, getLittleManThirdPersonControlOrbitControlsTarget(state),
+
+        isFirstUse ?
+            _getCameraInitialPosition(state) :
+            _getCameraPosition(state, camera, getOrbitControls(getAbstractState(state)),
+                getLittleManThirdPersonControlOrbitControlsTarget(state),
+                4.3),
+
+
         getMinDistance(state),
         getMaxDistance(state),
         // isDebug ? Math.PI : Math.PI / 1.2,
         Math.PI,
-        isDebug)
+        isDebug,
+        getCameraRotateSpeedRatio(state, characterType.LittleMan)
+    )
     abstractState = CameraControls.initWhenUse(abstractState)
+
+    state = LittleMan.show(state)
 
     return setAbstractState(state, abstractState)
 }
@@ -238,12 +305,88 @@ export let setCameraType = (state: state, cameraType_) => {
 //     return state
 // }
 
-export let useThirdPersonControls = (state: state) => {
+export let useThirdPersonControls = (state: state, isFirstUse = false) => {
     state = setCameraType(state, cameraType.ThirdPerson)
 
-    state = LittleMan.show(state)
+    state = _initThirdPersonControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state), isFirstUse)
 
-    state = _initThirdPersonControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state))
+    state = updateCameraDistance(state)
+
+    return state
+}
+
+// export let useFirstPerfonControls = (state: state) => {
+//     state = setCameraType(state, cameraType.FirstPerson)
+
+//     state = LittleMan.hide(state)
+
+//     state = FirstPersonControls.initFirstPersonControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state), _getState(state).targetDirection, buildCameraFar(state))
+
+//     return state
+// }
+
+
+let _getCameraPositionForFirstPersonControls = (state: state) => {
+    return LittleMan.getBoxCenter(state).add(
+        // new Vector3(LittleMan.getBoxSizeForCompute(state, usedGirl) * 0, LittleMan.getBoxSizeForCompute(state, usedGirl) * 2, 0)
+        new Vector3(0, LittleMan.getBoxSizeForCompute(state) * 2, LittleMan.getBoxSizeForCompute(state) * -1)
+    )
+}
+
+let _initFirstPersonControlsWhenUse = (state: state, controls, camera) => {
+    state = disableAllControls(state)
+    getFirstPersonControls(getAbstractState(state)).enabled = true
+
+    camera.near = _buildCameraNear()
+    camera.far = buildCameraFar(state)
+
+    state = setAbstractState(state, CameraControls.initWhenUse(getAbstractState(state)))
+
+    camera.fov = 60
+
+
+    // let targetToCameraDirection = computeTargetToCameraDirection(camera, getOrbitControlsTarget(state))
+
+    camera = Camera.updatePosition(camera, _getCameraPositionForFirstPersonControls(state))
+
+    // controls.target = camera.position.clone().sub(
+    //     targetToCameraDirection.multiplyScalar(5)
+    // )
+
+    controls.movementSpeed = 0
+    // controls.lookVertical = true
+
+    controls.autoForward = false
+    // controls.activeLook = false
+
+    controls.constrainVertical = true
+    controls.verticalMin = Math.PI * 0.25
+    controls.verticalMax = Math.PI
+
+
+    // controls.constrainHorrizon = true
+    // controls.horrizonMin = 0
+    // controls.horrizonMax = Math.PI
+    controls.constrainHorrizon = false
+
+    // controls.setLookat(0, 90)
+
+    // controls.lookSpeed = 0.125 * 50 * getCameraRotateSpeedRatio(state, characterType.Giantess)
+    controls.lookSpeed = 0.125 * 50 * getCameraRotateSpeedRatio(state, characterType.LittleMan) * 1.5
+
+    if (Device.isMobileByState(getAbstractState(state))) {
+        controls.lookSpeed *= 2
+    }
+    else {
+        // controls.lookSpeed *= 0.8
+        controls.lookSpeed *= 1.2
+
+        // state = setAbstractState(state, CameraControls.initKeyState(getAbstractState(state)))
+    }
+
+
+    // state = _handleHideMaterialForFirstPerson(state)
+    state = LittleMan.hide(state)
 
     return state
 }
@@ -251,9 +394,25 @@ export let useThirdPersonControls = (state: state) => {
 export let useFirstPerfonControls = (state: state) => {
     state = setCameraType(state, cameraType.FirstPerson)
 
-    state = LittleMan.hide(state)
+    // state = LittleMan.hide(state)
 
-    state = FirstPersonControls.initFirstPersonControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state), _getState(state).targetDirection)
+    // state = FirstPersonControls.initFirstPersonControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state), _getState(state).targetDirection, buildCameraFar(state))
+    state = _initFirstPersonControlsWhenUse(state, Camera.getFirstPersonControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)))
+
+    return state
+}
+
+export let useShootControls = (state: state) => {
+    // requireCheck(() => {
+    //     test("current camera type should be Third Person", () => {
+    //         return getCameraType(state) == cameraType.ThirdPerson
+    //     })
+    // }, getIsDebug(state))
+
+    state = setCameraType(state, cameraType.Shoot)
+
+    // state = ShootControls.initShootControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state), _getState(state).targetDirection)
+    state = ShootControls.initShootControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state))
 
     return state
 }
@@ -265,7 +424,7 @@ export let getZoom = (state: state) => {
 }
 
 export let setZoom = (state: state, zoom: number) => {
-    getOrbitControls(getAbstractState(state)).setZoom(zoom)
+    // getOrbitControls(getAbstractState(state)).setZoom(zoom)
 
     return _setState(state, {
         ..._getState(state),
@@ -306,9 +465,10 @@ export let dispose = (state: state) => {
     state = setAbstractState(state, CameraControls.dispose(getAbstractState(state)))
 
     state = _setState(state, {
-        ..._getState(state),
+        // ..._getState(state),
+        ...createState(),
 
-        cameraType: _getDefaultCameraType(),
+        cameraType: getRemainCameraType(_getDefaultCameraType, _getState(state).cameraType),
         thirdPersonCameraTarget: _getDefaultThirdPersonCameraTarget(),
         cameraZoom: _getDefaultZoom(),
     })
@@ -340,6 +500,11 @@ export let getCameraType = (state: state) => {
 export let isThirdPersonCamera = (state: state) => {
     return getCameraType(state) == cameraType.ThirdPerson
 }
+
+export let isShootCamera = (state: state) => {
+    return getCameraType(state) == cameraType.Shoot
+}
+
 
 export let getCameraPosition = (state: state) => {
     return getCurrentCamera(getAbstractState(state)).position
@@ -374,16 +539,22 @@ export let getDistance = (state: state) => {
 export let updateControlsWhenZoomOutToThirdPersonControls = (state: state, cameraPosition, controlsTarget) => {
     switch (getCameraType(state)) {
         case cameraType.ThirdPerson:
-            state = useThirdPersonControls(state)
-            state = updateThirdPersonControlsByCameraData(state,
-                getCameraNear(state), getCameraFar(state),
-                cameraPosition, controlsTarget)
+            // state = useThirdPersonControls(state)
+            // state = updateThirdPersonControlsByCameraData(state,
+            //     getCameraNear(state), getCameraFar(state),
+            //     cameraPosition, controlsTarget)
             break
+        case cameraType.Shoot:
         case cameraType.FirstPerson:
             state = useThirdPersonControls(state)
             state = updateThirdPersonControlsByCameraData(state,
-                getCameraNear(state), getCameraFar(state),
-                cameraPosition, controlsTarget)
+                getCameraNear(state),
+                // getCameraFar(state),
+                buildCameraFar(state),
+
+                // cameraPosition,
+                getCameraPositionWhenUpdate(Camera.getCurrentCamera(getAbstractState(state))),
+                controlsTarget)
             break
         default:
             throw new Error("err")
@@ -395,36 +566,41 @@ export let updateControlsWhenZoomOutToThirdPersonControls = (state: state, camer
 export let updateControlsWhenZoomOutToThirdPersonControls2 = (state: state, near, far, distance: number) => {
     switch (getCameraType(state)) {
         case cameraType.ThirdPerson:
-            state = useThirdPersonControls(state)
-            state = updateThirdPersonControls(state, near, far, distance)
+            // // state = useThirdPersonControls(state)
+            state = _updateThirdPersonControls(state, near, far, distance)
             break
+        case cameraType.Shoot:
         case cameraType.FirstPerson:
-            state = useThirdPersonControls(state)
-            state = updateThirdPersonControls(state, near, far, distance)
-            break
         default:
-            throw new Error("err")
+            state = useThirdPersonControls(state)
+            state = _updateThirdPersonControls(state, near, far, distance)
+            break
+        // default:
+        //     throw new Error("err")
     }
 
     return state
 }
 
-export let updateControlsWhenRestore = (state: state) => {
+export let restoreControlsForNotChangePosition = (state: state) => {
+    if (!hasNeedRestoreData(state)) {
+        state = useThirdPersonControls(state)
+        return state
+    }
+
     let [near, far, cameraPosition, controlsTarget, cameraType_] = _getNeedRestoreDataExn(state)
 
-    state = _setState(state, {
-        ..._getState(state),
-        needRestoreData: NullableUtils.getEmpty()
-    })
+    state = clearNeedRestoreData(state)
 
     switch (cameraType_) {
+        case cameraType.Shoot:
         case cameraType.ThirdPerson:
             state = useThirdPersonControls(state)
             state = updateThirdPersonControlsByCameraData(state, near, far, cameraPosition, controlsTarget)
             break
         case cameraType.FirstPerson:
             state = useFirstPerfonControls(state)
-            state = FirstPersonControls.updateFirstPersonControls(state, near, far, cameraPosition, controlsTarget)
+            // state = FirstPersonControls.updateFirstPersonControls(state, near, far, cameraPosition, controlsTarget)
             break
         default:
             throw new Error("err")
@@ -433,24 +609,92 @@ export let updateControlsWhenRestore = (state: state) => {
     return state
 }
 
-export let keepDistance = (state, distance) => {
-    let camera = getCurrentCamera(getAbstractState(state))
+export let clearNeedRestoreData = (state: state) => {
+    return _setState(state, {
+        ..._getState(state),
+        needRestoreData: NullableUtils.getEmpty()
+    })
+}
 
-    camera.position.copy(
-        _getCameraPosition(state, camera, getOrbitControls(getAbstractState(state)), _getThirdPersonControlOrbitControlsTarget(state), distance)
-    )
+export let restoreControlsForChangePosition = (state: state) => {
+    // if (!hasNeedRestoreData(state)) {
+    //     state = useThirdPersonControls(state)
+    //     return state
+    // }
+
+    // let [near, far, cameraPosition, controlsTarget, cameraType_] = _getNeedRestoreDataExn(state)
+
+    state = clearNeedRestoreData(state)
+
+    // switch (cameraType_) {
+    //     case cameraType.Shoot:
+    //     case cameraType.ThirdPerson:
+    //         state = useThirdPersonControls(state)
+    //         // state = updateThirdPersonControlsByCameraData(state, near, far, cameraPosition, controlsTarget)
+    //         break
+    //     case cameraType.FirstPerson:
+    //         state = useFirstPerfonControls(state)
+    //         // state = FirstPersonControls.updateFirstPersonControls(state, near, far, cameraPosition, controlsTarget)
+    //         break
+    //     default:
+    //         throw new Error("err")
+    // }
+
+    state = restoreCameraFromSavedData(state)
+
+    return state
+}
+
+export let updatePosition = (state) => {
+    // let camera = getCurrentCamera(getAbstractState(state))
+
+    switch (getCameraType(state)) {
+        case cameraType.FirstPerson:
+            // state = FirstPersonControls.updateForTargetDirection(state,
+            //     getTargetToCameraDirection(state)
+            // )
+
+            // Camera.updatePosition(camera, _getCameraPosition(state, camera, getOrbitControls(getAbstractState(state)), FirstPersonControls.getOrbitControlsTarget(state, NullableUtils.getEmpty()), distance)
+            // )
+
+
+            // state = FirstPersonControls.initFirstPersonControlsWhenUse(state, Camera.getOrbitControls(getAbstractState(state)), Camera.getCurrentCamera(getAbstractState(state)), getIsDebug(state), _getState(state).targetDirection, buildCameraFar(state))
+            state = updateFirstPersonControls(state)
+
+            break
+        case cameraType.ThirdPerson:
+            // Camera.updatePosition(camera, _getCameraPosition(state, camera, getOrbitControls(getAbstractState(state)), getLittleManThirdPersonControlOrbitControlsTarget(state), distance)
+            // )
+
+
+            // ThirdPersonControls.setTarget(getOrbitControls(getAbstractState(state)), getLittleManThirdPersonControlOrbitControlsTarget(state))
+            // Camera.updatePosition(camera, _getCameraPosition(state, camera, getOrbitControls(getAbstractState(state)), getLittleManThirdPersonControlOrbitControlsTarget(state), distance)
+            // )
+
+
+            let velocity = getLittleManThirdPersonControlOrbitControlsTarget(state).clone().sub(
+                getControlsTarget(state)
+            )
+            state = setAbstractState(state, ThirdPersonControls.updateCamera(getAbstractState(state), velocity, getLittleManThirdPersonControlOrbitControlsTarget(state),
+                isCameraCollision(state),
+            )
+            )
+
+            break
+    }
 
     return state
 }
 
 export let isLockToThirdPersonControls = (state: state) => {
-    return hasNeedRestoreData(state)
+    // return hasNeedRestoreData(state)
+    return false
 }
 
 export let lookat = (state: state, targetDirection: Vector3) => {
     switch (getCameraType(state)) {
         case cameraType.FirstPerson:
-            state = FirstPersonControls.updateForTargetDirection(state, targetDirection)
+            getFirstPersonControls(getAbstractState(state)).lookAt(getCameraPosition(state).clone().add(targetDirection))
             break
     }
 
@@ -466,16 +710,41 @@ export let lookat = (state: state, targetDirection: Vector3) => {
     })
 }
 
+export let updateFirstPersonControls = (state: state) => {
+    let camera = getCurrentCamera(getAbstractState(state))
+
+    Camera.updatePosition(camera, _getCameraPositionForFirstPersonControls(state))
+
+    // state = _updateFirstPersonCameraNearAndFar(state)
+
+    // if (getCurrentPose(state, usedGirl) != pose.Sit) {
+    //     let controlRotationAngle = FirstPersonControls.computeTransformForCamera(getAbstractState(state), Camera.getFirstPersonControls(getAbstractState(state)))
+
+    //     state = setGirlRotation(state,
+    //         new Quaternion().setFromAxisAngle(
+    //             new Vector3(0, 1, 0),
+    //             Math.PI + controlRotationAngle
+    //         )
+    //     )
+    // }
+
+    return state
+}
+
 export let updateCamera = (state: state, velocity) => {
     switch (getCameraType(state)) {
         case cameraType.ThirdPerson:
-            state = setAbstractState(state, ThirdPersonControls.updateCamera(getAbstractState(state), velocity, _getThirdPersonControlOrbitControlsTarget(state),
+            state = setAbstractState(state, ThirdPersonControls.updateCamera(getAbstractState(state), velocity, getLittleManThirdPersonControlOrbitControlsTarget(state),
                 isCameraCollision(state),
             )
             )
             break
         case cameraType.FirstPerson:
-            state = FirstPersonControls.updateCamera(state, velocity, _getState(state).targetDirection)
+            // state = FirstPersonControls.updateCamera(state, velocity, _getState(state).targetDirection)
+            state = updateFirstPersonControls(state)
+            break
+        case cameraType.Shoot:
+            state = ShootControls.updateCamera(state, velocity)
             break
         // default:
         //     throw new Error("err")
@@ -504,3 +773,42 @@ export let updateCamera = (state: state, velocity) => {
 //         firstPersonControlsConfig: NullableUtils.getEmpty()
 //     })
 // }
+
+export let getTargetToCameraDirection = (state: state) => {
+    // return NullableUtils.getWithDefault(
+    //     _getState(state).targetDirection,
+    //     computeTargetToCameraDirection(getCurrentCamera(getAbstractState(state)), getLittleManThirdPersonControlOrbitControlsTarget(state))
+    // )
+
+
+    switch (getCameraType(state)) {
+        case cameraType.ThirdPerson:
+        case cameraType.Shoot:
+            return computeTargetToCameraDirection(getCurrentCamera(getAbstractState(state)), getOrbitControlsTarget(state))
+        case cameraType.FirstPerson:
+            return getFirstPersonControls(getAbstractState(state)).getLookatDirection().clone().negate()
+        default:
+            throw new Error("err")
+    }
+}
+
+export let moveCameraForScreenShake = (state: state, offset: Vector3) => {
+    let camera = getCurrentCamera(getAbstractState(state))
+    let target
+
+    switch (getCameraType(state)) {
+        case cameraType.ThirdPerson:
+        case cameraType.Shoot:
+            target = getOrbitControlsTarget(state)
+            break
+        case cameraType.FirstPerson:
+            // Camera.updatePosition(camera, getCameraPosition(state).clone().add(offset.multiplyScalar(10)))
+            target = getCameraPosition(state).clone().add(getFirstPersonControls(getAbstractState(state)).getLookatDirection().clone().multiplyScalar(2))
+            break
+        default:
+            // throw new Error("err")
+            return
+    }
+
+    camera.lookAt(target.clone().add(offset))
+}

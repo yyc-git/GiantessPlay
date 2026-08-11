@@ -23,7 +23,7 @@ import { Flow } from "meta3d-jiehuo-abstract"
 import { buildDownDirection, buildRandomDirectionInXZ } from "../../../../../../utils/DirectionUtils"
 import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { InstanceSourceLOD as InstanceSourceLODType } from "meta3d-jiehuo-abstract/src/lod/InstanceSourceLOD"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { fontType, fsm_state, labelAnimation, lodQueueIndex, name, shellParticle, staticLODContainerIndex, tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Collision } from "meta3d-jiehuo-abstract"
@@ -34,28 +34,28 @@ import { GPUSkin } from "meta3d-jiehuo-abstract"
 import { LODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/LODQueue"
 import { Device } from "meta3d-jiehuo-abstract"
 import { InstancedSkinLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedSkinLOD2"
-import { armyValue, emitPrecision, emitSpeed, emitVolume, emitterLife, emitterSize, emitterSpeed, objectValue, milltaryValue, explodeSize } from "../../../data/ValueType"
+import { armyValue, emitPrecision, emitSpeed, emitterVolume, emitterLife, emitterSize, emitterSpeed, objectValue, milltaryValue, explodeSize } from "../../../data/ValueType"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Loader } from "meta3d-jiehuo-abstract"
-import { add, buildQueue } from "../../../utils/LODQueueUtils"
+import { add, buildQueue } from "../../../utils/AviailableLODQueueUtils"
 import { fixZFighting } from "meta3d-jiehuo-abstract/src/utils/MaterialUtils"
 import { solveBlackBoardProblem } from "meta3d-jiehuo-abstract/src/utils/TextureUtils"
 import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import { buildStatus } from "../../../utils/LODContainerUtils"
 import { buildMultipleTweens, computeEuler, computeMoveTime, getMoveData, position, singleMoveData } from "../../../utils/MoveUtils"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
+
 import { LabelManager } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { convertPositionFromThreejsToBlender } from "../../../utils/BlenderUtils"
 import { getGrid } from "../PathFind"
 import { ModelLoader } from "meta3d-jiehuo-abstract"
-import { parseArmyVehicleQueues, parseCharacter } from "../WholeScene"
+import { getNearDistance, parseArmyVehicleQueues } from "../WholeScene"
 import { Render } from "meta3d-jiehuo-abstract"
-import { getActualHeight, getGirlPositionParrelToObj, getPositionParrelToObj, getScale, getSmallGirlBox } from "../../../girl/Utils"
+import { getActualHeight, getGirlPositionParrelToObj, getPositionParrelToObj, getScale } from "../../../girl/Utils"
 import { ParticleManager } from "meta3d-jiehuo-abstract"
 // import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import * as Buildings from "../Buildings"
-import { getCollisionPartCenter, getCollisionPartOBB, queryAllOBBShapesCollisionWithBox } from "../../../girl/Collision"
+import { getCollisionPartCenter, getCollisionPartOBB, queryOBBShapeCollisionWithBox } from "../../../girl/Collision"
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getVolume } from "../../../utils/SoundUtils"
 import { InstancedLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedLOD2"
@@ -63,9 +63,9 @@ import { HierachyLODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/HierachyLO
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { findArticluatedAnimationData, playArticluatedAnimation } from "../../../data/DataUtils"
 import * as HierachyLODQueueUtils from "../../../utils/HierachyLODQueueUtils"
-import { articluatedAnimationName, defenseFactor, excitement, forceSize, hp, speed } from "../../../data/DataType"
+import { armorStrength, armorRatio, articluatedAnimationName, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, excitement, forceSize, hp, speed, armorType } from "../../../data/DataType"
 import { LOD } from "meta3d-jiehuo-abstract"
-import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, setParticleNeedCollisionCheckLoopCount, getParticleNeedCollisionCheckLoopCount, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy, emitShellEmitOrExplode, deferFire, emitMissiles, getTargetBox } from "../../../utils/ArmyUtils"
+import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy, emitShellEmitOrExplode, deferFire, emitMissiles, getTargetBox, emitAllMissiles, computeAttackFrames } from "../../../utils/ArmyUtils"
 import * as Girl from "../../../girl/Girl"
 import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { getTransformData, updatePositionTween } from "../../../data/InstancedLOD2Utils"
@@ -80,8 +80,10 @@ import { getLookatQuaternion } from "meta3d-jiehuo-abstract/src/utils/TransformU
 import { getArmyValueForAttack } from "../soldier/utils/CommanderUtils"
 import { getMissileVehicleResourceId, getModelData, modelName } from "../../../army_data/MilltaryVehicleData"
 import * as MilltaryVehicle from "./MilltaryVehicle"
-import { Console } from "meta3d-jiehuo-abstract"
-import { getCurrentScene } from "meta3d-jiehuo-abstract/src/scene/Scene"
+import { getNamePrefixMissileVehicle, isMissileVehicleUtils } from "./MilltaryVehicleUtils"
+import { updateArmyValue } from "../../../difficulty/HeatImplementer"
+import { getEmitSpeedFactor } from "../../../StaticDynamicUnit"
+import { MutableMapUtils } from "meta3d-jiehuo-abstract"
 
 const _q = new Quaternion();
 const _e = new Euler();
@@ -92,7 +94,7 @@ const _v1_1 = new Vector2();
 const _v1_2 = new Vector2();
 
 
-export let getNamePrefix = () => `${MilltaryVehicle.getNamePrefix()}_missileVehicle`
+export let getNamePrefix = getNamePrefixMissileVehicle
 
 export let buildMissileVehicleCategoryName = getNamePrefix
 
@@ -170,14 +172,19 @@ export let getAllMeshData = (group: Group) => {
     ]
 }
 
-export let isMissileVehicle = (name: string) => {
-    return name.includes(getNamePrefix())
-}
+export let isMissileVehicle = isMissileVehicleUtils
 
-export let getValue = (state:state): armyValue & milltaryValue => {
-    return {
+export let getValue = (state: state) => {
+    return updateArmyValue<armyValue & milltaryValue>(state, {
         excitement: excitement.High,
-        defenseFactor: defenseFactor.High,
+        defenseFactor: defenseFactor.Middle,
+        armorType: armorType.Light,
+        armorRatio: armorRatio.Light,
+        armorStrength: armorStrength.Low,
+        attackFactor: attackFactor.VeryLow2,
+        emitSpeedFactor: emitSpeedFactor.Low,
+        critRatioFactor: critRatioFactor.Middle,
+        //missRatio: missRatio.VeryLow,
         hp: hp.Low,
         // hp: 15000,
 
@@ -187,15 +194,9 @@ export let getValue = (state:state): armyValue & milltaryValue => {
         // speed: 3,
 
 
-        // TODO update
-        // emitSpeed: emitSpeed.Middle,
-        emitSpeed: emitSpeed.Slow,
-        emitVolume: emitVolume.Middle,
+        // emitSpeed: emitSpeed.Slow,
         emitPrecision: emitPrecision.High,
-
-
-        emitterVolume: emitVolume.Big,
-    }
+    })
 }
 
 export let getMissileVehicleBodyQueue = (state: state): HierachyLODQueue => {
@@ -262,7 +263,7 @@ export let getModelAllQueues = (state: state): [HierachyLODQueue, HierachyLODQue
 // }
 
 
-let _getAllBodyNames = (state): Array<string> => {
+let _getAllBodyNames = (state) => {
     return MilltaryVehicle.getModelQueueByQueueName(state,
         buildMissileVehicleCategoryName(),
         buildBodyLODQueueName(buildMissileVehicleCategoryName())).names
@@ -286,10 +287,11 @@ export let initWhenImportScene = (state: state) => {
                 getAllMeshData,
                 MilltaryVehicle.setData,
                 setHierachy,
+                box => box
             ],
             missileVehicle.scene,
             boxFactor,
-            500,
+            getNearDistance,
             true,
             getScene(state)
         )
@@ -302,12 +304,12 @@ export let initWhenImportScene = (state: state) => {
         .then(state => {
             let abstractState = getAbstractState(state)
 
-            abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat([MilltaryVehicle.getModelQueueByQueueName(state, buildMissileVehicleCategoryName(), buildBodyLODQueueName(buildMissileVehicleCategoryName()))]))
+            // abstractState = Collision.setPlayerMoveCollisionableContainers(abstractState, Collision.getPlayerMoveCollisionableContainers(abstractState).concat([MilltaryVehicle.getModelQueueByQueueName(state, buildMissileVehicleCategoryName(), buildBodyLODQueueName(buildMissileVehicleCategoryName()))]))
 
 
             state = setAbstractState(state, abstractState)
 
-            return ArrayUtils.reducePromise(_getAllBodyNames(state), (state, name) => {
+            return MutableMapUtils.reducePromise(_getAllBodyNames(state), (state, name) => {
                 state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
                     return StateMachine.changeAndExecuteState(state, MilltaryVehicle.setStateMachine, MilltaryVehicle.getStateMachine(state, name), createFireState(), name, NullableUtils.return_(name))
                 }, 1))
@@ -315,10 +317,6 @@ export let initWhenImportScene = (state: state) => {
                 return StateMachine.execute(state, MilltaryVehicle.getStateMachine(state, name), name)
             }, state)
         })
-}
-
-let _getFullHp = (state) => {
-    return getValue(state).hp
 }
 
 
@@ -337,7 +335,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 // 	return NullableUtils.getWithDefault(
 // 		NullableUtils.map(
 // 			fireRay => {
-// 				return fireRay.intersectsBox(getGirlBox(state))
+// 				return fireRay.intersectsBox(getGirlBox(state, usedGirl))
 // 			},
 // 			_getState(state).fireRayMap.get(name),
 // 		),
@@ -354,9 +352,9 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 
 
 //     // let girlPosition = getGirlPositionParrelToArmy(state, 0, collisionPart.Torso)
-//     // let girlPosition = getCollisionPartCenter(state, targetPart).clone().setY(0)
-//     let girlPosition = getPositionParrelToObj(getCollisionPartCenter(state, targetPart).clone().setY(0), turretPosition.y)
-//     // let girlPosition = getCollisionPartCenter(state, targetPart).clone().setY(0)
+//     // let girlPosition = getCollisionPartCenter(state,usedGirl,  targetPart).clone().setY(0)
+//     let girlPosition = getPositionParrelToObj(getCollisionPartCenter(state,usedGirl,  targetPart).clone().setY(0), turretPosition.y)
+//     // let girlPosition = getCollisionPartCenter(state,usedGirl,  targetPart).clone().setY(0)
 
 //     let { emitPrecision } = getArmyValueForAttack(state, getValue(state), turretPosition)
 
@@ -383,7 +381,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 //     )
 
 
-//     let turretTransform = turretQueue.transforms[lODQueueIndex].clone()
+//     let turretTransform = turretQueue.getTransform(lODQueueIndex).clone()
 
 
 //     // let turretEuler = TransformUtils.getRotationEulerFromMatrix4(turretTransform)
@@ -405,7 +403,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 //     // )
 
 
-//     let bodyTransform = bodyQueue.transforms[lODQueueIndex].clone()
+//     let bodyTransform = bodyQueue.getTransform(lODQueueIndex).clone()
 //     // let bodyEuler = TransformUtils.getRotationEulerFromMatrix4(bodyTransform)
 
 //     // // turretLookatEuler.set(turretLookatEuler.x, turretLookatEuler.y - bodyEuler.z, turretLookatEuler.z)
@@ -464,7 +462,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 
 
 
-//         // bodyQueue.transforms[lODQueueIndex] = TransformUtils.setQuaternionToMatrix4(
+//         // bodyQueue.getTransform(lODQueueIndex) = TransformUtils.setQuaternionToMatrix4(
 //         //     bodyTransform,
 //         //     new Quaternion()
 //         // )
@@ -474,8 +472,8 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 
 
 
-//         // turretQueue.transforms[lODQueueIndex] = turretLookatLocalMatrix
-//         // turretQueue.transforms[lODQueueIndex] = TransformUtils.setQuaternionToMatrix4(
+//         // turretQueue.getTransform(lODQueueIndex) = turretLookatLocalMatrix
+//         // turretQueue.getTransform(lODQueueIndex) = TransformUtils.setQuaternionToMatrix4(
 //         //     turretTransform,
 //         //     _q.setFromEuler(_e.set(
 //         //         0,
@@ -520,7 +518,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 //         .onUpdate(() => {
 //             let state = readState()
 
-//             let box = makeBoxHeightMax(getCollisionPartOBB(state, targetPart).toBox3())
+//             let box = makeBoxHeightMax(getCollisionPartOBB(state, usedGirl,  targetPart).toBox3())
 
 
 //             if (_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, box)) {
@@ -528,7 +526,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 //             }
 
 
-//             turretQueue.transforms[lODQueueIndex] = TransformUtils.setQuaternionToMatrix4(
+//             turretQueue.getTransform(lODQueueIndex) = TransformUtils.setQuaternionToMatrix4(
 //                 turretTransform,
 //                 // _q.setFromEuler(_e.set(
 //                 // 	object.x, object.y, object.z
@@ -575,7 +573,7 @@ let _buildRoughFireRay = ([bodyQueue, turretQueue, missileQueue], lODQueueIndex)
 //             ArticluatedAnimation.removeTween(getAbstractState(state), tween)
 
 
-//             let box = makeBoxHeightMax(getCollisionPartOBB(state, targetPart).toBox3())
+//             let box = makeBoxHeightMax(getCollisionPartOBB(state, usedGirl,  targetPart).toBox3())
 
 //             // if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, box)) {
 //             //     return onFailFunc(state).then(writeState)
@@ -668,15 +666,15 @@ let _getMissilesExplodeLocalPosition = (missileQueue, lODQueueIndex, missileInde
 
 
 
-//     // let girlPosition = getGirlPosition(state).clone().setY(0)
+//     // let girlPosition = getGirlPosition(state, usedGirl).clone().setY(0)
 
 //     // let offsetFactor = 1
-//     // let targetY = offsetFactor * Math.random() * getGirlScale(state) + missilePositionY
+//     // let targetY = offsetFactor * Math.random() * getGirlScale(state, usedGirl) + missilePositionY
 
 //     // let targetY = Math.random() * getActualHeight(state) + missilePositionY
 
-//     // let girlPosition = getCollisionPartCenter(state, targetPart).clone().setY(0)
-//     let collisionPartCenter = getCollisionPartCenter(state, targetPart).clone()
+//     // let girlPosition = getCollisionPartCenter(state,usedGirl,  targetPart).clone().setY(0)
+//     let collisionPartCenter = getCollisionPartCenter(state,usedGirl,  targetPart).clone()
 
 //     let targetY = collisionPartCenter.y
 
@@ -684,7 +682,7 @@ let _getMissilesExplodeLocalPosition = (missileQueue, lODQueueIndex, missileInde
 //         Math.max(targetY - missilePositionY, 0.1) / (missilePosition.setY(0).distanceTo(collisionPartCenter.setY(0)))
 //     ), 0, Math.PI / 2)
 
-//     let missileTransform = missileQueue.transforms[lODQueueIndex].clone()
+//     let missileTransform = missileQueue.getTransform(lODQueueIndex).clone()
 
 
 //     let missileEuler = TransformUtils.getRotationEulerFromMatrix4(missileTransform)
@@ -710,7 +708,7 @@ let _getMissilesExplodeLocalPosition = (missileQueue, lODQueueIndex, missileInde
 //         }, Math.abs(missileLookatEulerZ - missileEuler.y) * 1000 * _getRotateSpeed())
 //         // }, Math.abs(missileLookatEulerZ ) * 3000)
 //         .onUpdate(() => {
-//             missileQueue.transforms[lODQueueIndex] = TransformUtils.setQuaternionToMatrix4(
+//             missileQueue.getTransform(lODQueueIndex) = TransformUtils.setQuaternionToMatrix4(
 //                 missileTransform,
 
 //                 _q.setFromEuler(_e.set(
@@ -740,7 +738,7 @@ let _getMissilesExplodeLocalPosition = (missileQueue, lODQueueIndex, missileInde
 //             // 	// let originPosition = _getTurretForwardPointInitialPosition(TransformUtils.getScaleFromMatrix4(bodyQueue.getWorldMatrix(lODQueueIndex)))
 //             // 	// 	// .applyQuaternion(
 //             // 	// 	// 	TransformUtils.getRotationQuaternionFromMatrix4(
-//             // 	// 	// 		missileQueue.transforms[lODQueueIndex]
+//             // 	// 	// 		missileQueue.getTransform(lODQueueIndex)
 //             // 	// 	// 	)
 //             // 	// 	// )
 //             // 	// 	// .add(missilePosition)
@@ -749,7 +747,7 @@ let _getMissilesExplodeLocalPosition = (missileQueue, lODQueueIndex, missileInde
 //             // 	// 	)
 
 
-//             // 	// let girlPosition = getCollisionPartCenter(state, targetPart).clone().setY(0)
+//             // 	// let girlPosition = getCollisionPartCenter(state,usedGirl,  targetPart).clone().setY(0)
 
 //             // 	// let targetPosition = new Vector3(girlPosition.x, targetY, girlPosition.z)
 
@@ -768,7 +766,7 @@ let _getMissilesExplodeLocalPosition = (missileQueue, lODQueueIndex, missileInde
 //             // }
 
 
-//             if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, getCollisionPartOBB(state, targetPart).toBox3())) {
+//             if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, getCollisionPartOBB(state, usedGirl,  targetPart).toBox3())) {
 //                 return onFailFunc(state).then(writeState)
 //             }
 
@@ -832,9 +830,9 @@ let _rotateTowardsTarget = (state, funcs, name, allModelQueues, lODQueueIndex, t
 // let _playFireAnimation = (
 //     onCompleteFunc, state: state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex
 // ) => {
-//     let missileTransform = missileQueue.transforms[lODQueueIndex]
+//     let missileTransform = missileQueue.getTransform(lODQueueIndex)
 //     let missileLocalPosition = TransformUtils.getPositionFromMatrix4(missileTransform)
-//     let missileBox = missileQueue.boxes[lODQueueIndex]
+//     let missileBox = missileQueue.getBox(lODQueueIndex)
 
 //     let articluatedAnimationData = findArticluatedAnimationData(state, articluatedAnimationName.MissileVehicle_Fire)
 //     playArticluatedAnimation(state,
@@ -893,7 +891,7 @@ let _rotateTowardsTarget = (state, funcs, name, allModelQueues, lODQueueIndex, t
 
 //     let {
 //         emitSpeed,
-//         emitVolume,
+//         emitterVolume,
 //         emitPrecision
 //     } = getArmyValueForAttack(state, getValue(state), bodyPosition)
 //     let {
@@ -903,7 +901,7 @@ let _rotateTowardsTarget = (state, funcs, name, allModelQueues, lODQueueIndex, t
 //     } = MissileRack.getValue(state)
 
 //     state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
-//         SoundManager.buildNeedToPlaySoundData(getEmmitShellSoundResourceId(), getIsDebug(state), getVolume(state, emitVolume, bodyPosition, 0.0))
+//         SoundManager.buildNeedToPlaySoundData(getEmmitShellSoundResourceId(), getIsDebug(state), getVolume(state, emitterVolume, bodyPosition, 0.0))
 //     ))
 
 //     // let fireRay = NullableUtils.getExn(_getState(state).fireRayMap.get(name))
@@ -919,7 +917,7 @@ let _rotateTowardsTarget = (state, funcs, name, allModelQueues, lODQueueIndex, t
 //         position: _getTurretForwardPointPosition(bodyQueue, missileQueue, lODQueueIndex).toArray(),
 //         direction: getShootDirection(fireRay.direction, emitPrecision).toArray()
 //     },
-//         getParticleNeedCollisionCheckLoopCount(state)
+//         getParticleNeedCollisionCheckLoopCount(state, emitterSpeed)
 //     ))
 
 //     state = emitShellEmitOrExplode(state, fireRay.origin.toArray())
@@ -944,10 +942,10 @@ let _rotateTowardsTarget = (state, funcs, name, allModelQueues, lODQueueIndex, t
 //     }
 
 //     // if (!_isAccurateTowardsTarget(state, name)) {
-//     // if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, getSmallGirlBox(state))) {
+//     // if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex(state))) {
 
-//     if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, makeBoxHeightMax(getCollisionPartOBB(state, targetPart).toBox3()))) {
-//         // let targetPartCenter = getCollisionPartCenter(state, getRandomCollisionPart())
+//     if (!_isRoughTowardsTarget(state, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, makeBoxHeightMax(getCollisionPartOBB(state, usedGirl,  targetPart).toBox3()))) {
+//         // let targetPartCenter = getCollisionPartCenter(state,usedGirl,  getRandomCollisionPart())
 //         return _rotateTowardsTarget(state, [(state, targetPart) => {
 //             // state = _fireMissiles(state, name, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, targetPart)
 
@@ -995,66 +993,67 @@ let _rotateTowardsTarget = (state, funcs, name, allModelQueues, lODQueueIndex, t
 // }
 
 let _fireMissiles = (state: state,
-    name, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, targetPart) => {
+    name, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, targetPart, targetBox) => {
     let bodyPosition = TransformUtils.getPositionFromMatrix4(bodyQueue.getWorldMatrix(lODQueueIndex))
 
+    let { emitterVolume } = MissileRack.getValue(state)
     let {
-        emitSpeed,
-        emitVolume,
         emitPrecision
     } = getArmyValueForAttack(state, getValue(state), bodyPosition)
     let {
+        emitSpeed,
         emitterSpeed,
         emitterLife,
         emitterSize,
     } = MissileRack.getValue(state)
 
-    let missileName = missileQueue.names[lODQueueIndex]
+    // let missileName = missileQueue.getName(lODQueueIndex)
 
-    LOD.setStatusForLODQueue(getAbstractState(state), missileName, buildStatus(false, false, true))
+    // LOD.setStatusForLODQueue(getAbstractState(state), missileName, buildStatus(false, false, true))
+    // missileQueue.setStatus(lODQueueIndex, buildStatus(false, false, true))
 
+    // let targetBox = getTargetBox(state, name, targetPart)
+    // if (NullableUtils.isNullable(targetBox)) {
+    //     return [state, false]
+    // }
+    // targetBox = NullableUtils.getExn(targetBox)
+    let targetPosition = targetBox.getCenter(new Vector3())
 
-    let targetPosition = getTargetBox(state, name, targetPart).getCenter(new Vector3())
+    // LOD.setStatusForLODQueue(getAbstractState(state), missileName, buildStatus(false, false, false))
+    missileQueue.setStatus(lODQueueIndex, buildStatus(false, false, false))
 
-    return deferFire(state, (state) => {
-        LOD.setStatusForLODQueue(getAbstractState(state), missileName, buildStatus(false, false, false))
+    return emitAllMissiles(state,
+        [
+            _getMissilesStartWorldPosition, state => {
+                return Promise.resolve(setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
+                    // LOD.setStatusForLODQueue(getAbstractState(state), missileName, buildStatus(false, false, true))
+                    missileQueue.setStatus(lODQueueIndex, buildStatus(false, false, true))
 
-        state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
-            SoundManager.buildNeedToPlaySoundData(getMissileRackEmitSoundResourceId(), getIsDebug(state), getVolume(state, emitVolume, bodyPosition, 0.0))
-        ))
-
-
-        state = ArrayUtils.range(0, 3).reduce((state, i) => {
-            return emitMissiles(state, _getMissilesStartWorldPosition, i,
-                missileQueue, lODQueueIndex,
-                targetPosition,
-                name,
-                [
-                    emitPrecision,
-                    emitterSpeed,
-                    emitterLife,
-                    emitterSize,
-                ]
-            )
-        }, state)
-
-
-        state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
-            LOD.setStatusForLODQueue(getAbstractState(state), missileName, buildStatus(false, false, true))
-
-            return Promise.resolve(MilltaryVehicle.fire(state,
-                [
-                    _buildRoughFireRay,
-                    _rotateTowardsTarget,
-                    _fireMissiles,
-                    getMissileVehicleBodyQueue,
-                    MissileRack.getValue
-                ],
-                name, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, targetPart))
-        }, 50, name))
-
-        return Promise.resolve(state)
-    }, name, emitSpeed)
+                    return Promise.resolve(deferFire(state, (state) => {
+                        return MilltaryVehicle.fire(state,
+                            [
+                                _buildRoughFireRay,
+                                _rotateTowardsTarget,
+                                _fireMissiles,
+                                getMissileVehicleBodyQueue,
+                                MissileRack.getValue
+                            ],
+                            name, [bodyQueue, turretQueue, missileQueue], lODQueueIndex, targetPart)
+                    }, name, computeAttackFrames(state, name, emitSpeed)))
+                }, 50, name)))
+            }
+        ],
+        missileQueue, lODQueueIndex,
+        4, getMissileRackEmitSoundResourceId(), getVolume(state, emitterVolume, bodyPosition, 0.0),
+        name,
+        targetPosition,
+        [
+            emitPrecision,
+            emitterSpeed,
+            emitterLife,
+            emitterSize,
+        ]
+    )
 }
 
 
@@ -1071,16 +1070,17 @@ export let createFireState = MilltaryVehicle.createFireState(
 )
 
 
-let _getInitialEulerForTweenToFaceNegativeX = () => {
+let _getInitialEulerForMoveTween = () => {
     // return new Euler(-Math.PI / 2, 0, 0)
-    return new Euler(0, -Math.PI / 2, 0)
+    // return new Euler(0, -Math.PI / 2, 0)
+    return NullableUtils.getEmpty()
 }
 
 export let createMoveState = (state) => {
     return MilltaryVehicle.createMoveState(
         [
             getMissileVehicleBodyQueue,
-            _getInitialEulerForTweenToFaceNegativeX
+            _getInitialEulerForMoveTween
         ],
         getValue(state),
         modelName.MissileVehicle
@@ -1091,7 +1091,7 @@ export let createMoveState = (state) => {
 //     return MilltaryVehicle.createStressingState(
 //         [
 //             getMissileVehicleBodyQueue,
-//             _getFullHp,
+//             getFullHp,
 
 //             getModelAllQueues,
 //             _buildRoughFireRay,
@@ -1107,9 +1107,12 @@ let _setStatus = (state: state, status, index) => {
     let turretQueue = MilltaryVehicle.getModelQueueByQueueName(state, buildMissileVehicleCategoryName(), buildTurretLODQueueName(buildMissileVehicleCategoryName()))
     let missileQueue = MilltaryVehicle.getModelQueueByQueueName(state, buildMissileVehicleCategoryName(), buildMissileLODQueueName(buildMissileVehicleCategoryName()))
 
-    LOD.setStatusForLODQueue(getAbstractState(state), bodyQueue.names[index], status)
-    LOD.setStatusForLODQueue(getAbstractState(state), turretQueue.names[index], status)
-    LOD.setStatusForLODQueue(getAbstractState(state), missileQueue.names[index], status)
+    // LOD.setStatusForLODQueue(getAbstractState(state), bodyQueue.getName(index), status)
+    // LOD.setStatusForLODQueue(getAbstractState(state), turretQueue.getName(index), status)
+    // LOD.setStatusForLODQueue(getAbstractState(state), missileQueue.getName(index), status)
+    bodyQueue.setStatus(index, status)
+    turretQueue.setStatus(index, status)
+    missileQueue.setStatus(index, status)
 
     return state
 }
@@ -1155,15 +1158,18 @@ export let updateQueue = (state: state) => {
 // }
 
 export let initialAttributes = (state, name, index) => {
-    return MilltaryVehicle.initialAttributes(state, [getValue, _getFullHp], name, index)
+    return MilltaryVehicle.initialAttributes(state, [getValue, getFullHp], name, index)
 }
 
 export let damage = (damageFunc) => {
-    return (state: state, forceData, fromName, damagePosition, transforms, boxes, names) => {
+    return (state: state, forceData, weaponValue_, fromName, damagePosition,
+        // critRatioFactor,
+        // attackFactor,
+        transforms, boxes, names) => {
         return damageFunc(state,
             [
                 getMissileVehicleBodyQueue,
-                _getFullHp,
+                getFullHp,
                 _setStatus,
                 MilltaryVehicle.emitBodyExplode,
 
@@ -1171,12 +1177,16 @@ export let damage = (damageFunc) => {
                 _buildRoughFireRay,
                 _rotateTowardsTarget,
                 _fireMissiles,
-                MissileRack.getValue
+                MissileRack.getValue,
+                setScaleY
             ],
             getShellGunBarretHitSoundResourceId(),
             getValue(state),
 
-            forceData, fromName, damagePosition, transforms, boxes, names
+            forceData, weaponValue_, fromName, damagePosition,
+            // critRatioFactor,
+            // attackFactor,
+            transforms, boxes, names
         )
     }
 }
@@ -1196,12 +1206,35 @@ export let update = (state: state) => {
 
 export let getPickedTransform = MilltaryVehicle.getPickedTransform(modelName.MissileVehicle)
 
+export let getUBControlledTransform = MilltaryVehicle.getUBControlledTransform(modelName.MissileVehicle)
+
+export let getPutToBreastTransform = MilltaryVehicle.getPutToBreastTransform(modelName.MissileVehicle)
+
+export let getPutToShoeTransform = MilltaryVehicle.getPutToShoeTransform(modelName.MissileVehicle)
+
 
 export let handlePickup = MilltaryVehicle.handlePickup
 
 export let updateTransform = MilltaryVehicle.updateTransform
 
 export let handlePickdown = MilltaryVehicle.handlePickdown(getMissileVehicleBodyQueue)
+
+export let handleFall = MilltaryVehicle.handleFall(getMissileVehicleBodyQueue)
+
+export let handleRepel = MilltaryVehicle.handleRepel(getMissileVehicleBodyQueue)
+
+export let handleUBControl = MilltaryVehicle.handleUBControl
+
+export let handlePutToBreast = MilltaryVehicle.handlePutToBreast
+
+export let handlePutToShoe = MilltaryVehicle.handlePutToShoe
+
+export let updateUBControlledTransform = MilltaryVehicle.updateUBControlledTransform
+
+export let updatePutToBreastTransform = MilltaryVehicle.updatePutToBreastTransform
+
+export let updatePutToShoeTransform = MilltaryVehicle.updatePutToShoeTransform
+
 
 export let getLocalTransform = MilltaryVehicle.getLocalTransform
 
@@ -1212,3 +1245,24 @@ export let getBoxForPick = MilltaryVehicle.getBoxForPick
 export let getModelQueueIndex = MilltaryVehicle.getModelQueueIndex
 
 export let getHp = MilltaryVehicle.getHp
+
+export let getHpRatio = (state, name) => {
+    return MilltaryVehicle.getHpWithDefault(state, name) / getFullHp(state)
+}
+
+export let updateHp = MilltaryVehicle.updateHp
+
+export let getFullHp = (state) => {
+    return getValue(state).hp
+}
+
+
+export let getSnapshot = () => `./resource/ui/in_game/snapshot/missile.png`
+
+export let createInitialState = MilltaryVehicle.createInitialState
+
+export let getModelName = () => modelName.MissileVehicle
+
+export let setScaleY = (scale: Vector3, factor) => {
+    return scale.setY(scale.y * factor)
+}

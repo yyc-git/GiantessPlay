@@ -14,7 +14,6 @@ import { changeToPhongMaterial } from "../../utils/MaterialUtils";
 import { LODQueue } from "../../lod/lod2/LODQueue";
 import { InstancedLOD2, add } from "../../lod/lod2/InstancedLOD2";
 import { MutableNumberMapUtils, NullableUtils, TransformUtils } from "../../Main";
-import { setStatusForLODQueue } from "../../lod/LOD";
 import * as BulletEmitter from "../BulletEmitter"
 import { addBox3Helper } from "../../utils/CollisionUtils";
 import { getCurrentScene, getScene } from "../../scene/Scene";
@@ -60,6 +59,6 @@ export let update = InstanceEmitterUtils.update([_getState, _setState])
 
 export let getBox = InstanceEmitterUtils.getBox(_getState)
 
-export let remove = InstanceEmitterUtils.remove
+export let remove = InstanceEmitterUtils.remove(_getState)
 
 export let getAllParticles = InstanceEmitterUtils.getAllParticles(_getState)

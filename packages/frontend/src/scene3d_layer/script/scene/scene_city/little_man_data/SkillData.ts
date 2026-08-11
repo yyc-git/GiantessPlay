@@ -2,13 +2,14 @@ import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../type/StateType"
 import { getConfigData } from "../CityScene"
 import { actionName } from "./DataType"
+import { getSkillData } from "../../../../mod/SkillLittleManMod"
 
 export type skillData = Array<{
     name: actionName,
     coolingTime?: number,
 }>
 
-export let getData = (): skillData => {
+export let getData = (state: state): skillData => {
     return [
         {
             name: actionName.Blink,
@@ -17,10 +18,15 @@ export let getData = (): skillData => {
         {
             name: actionName.Shoot,
         },
+        // {
+        //     name: actionName.Swiping,
+        // },
         {
-            name: actionName.Swiping,
+            name: actionName.Lock,
         },
-    ]
+    ].concat(
+        getSkillData(state) as any
+    )
 }
 
 export let getCurrentData = (state: state, name) => {

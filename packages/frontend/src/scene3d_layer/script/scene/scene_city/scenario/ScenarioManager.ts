@@ -10,9 +10,9 @@ import { updateAnimationForScenario } from "../girl/Animation"
 import { singleData } from "../data/ScenarioData"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { getIsDebug, getIsProduction, getIsSkipGameEvent, getIsSkipScenario } from "../../Scene"
-// import { exitScenario, isFinish } from "./Command"
-import { MMD } from "meta3d-jiehuo-abstract"
-import { isEnablePhysics } from "../utils/MMDUtils"
+import { isStopGameEvent } from "../game_event/GameEvent"
+import { ArrayUtils } from "meta3d-jiehuo-abstract"
+import { getCurrentUsedGirls } from "../girl/Girl"
 
 export let getState = (state: state): scenario => {
 	return CityScene.getState(state).scenario
@@ -61,7 +61,7 @@ let _parseData = (state: state, getCommandFunc, data_: Array<singleData<any>>) =
 
 		if (!isWaitToComplete) {
 			// return Promise.resolve(addCommand(state, [null, data, _getCommand(command)]))
-			state = addCommand(state, [null, data, getCommandFunc(command)])
+			state = addCommand(state, [null, data, getCommandFunc(state, command)])
 
 			return _parse(state, index + 1)
 		}
@@ -70,7 +70,7 @@ let _parseData = (state: state, getCommandFunc, data_: Array<singleData<any>>) =
 			state = _parse(state, index + 1)
 
 			return Promise.resolve(state)
-		}, data, getCommandFunc(command)])
+		}, data, getCommandFunc(state, command)])
 
 		return state
 	}
@@ -80,8 +80,8 @@ let _parseData = (state: state, getCommandFunc, data_: Array<singleData<any>>) =
 
 export let execute = <scenarioName>(state: state, getCommandFunc, scenarioName_: scenarioName, isSetToCurrent = true) => {
 	let data
-	// if (CityScene.isGiantessRoad(state)) {
-	// 	data = getDataForGiantessRoad(getCurrentMMDCharacterName(state))
+	// if (CityScene.isGiantessCharacterType(state)) {
+	// 	data = getDataForGiantessCharacterType(getCurrentMMDCharacterName(state, usedGirl))
 	// }
 	// else {
 	// 	return state
@@ -100,13 +100,18 @@ export let execute = <scenarioName>(state: state, getCommandFunc, scenarioName_:
 
 export let update = (state: state) => {
 	// if (isEnter(state)) {
-	// 	let helper = MMD.getMMDAnimationHelper(getAbstractState(state))
+	// 	let helper = MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl)
 	// 	helper.enabled.physics = true
 	// }
 	// else {
-	// 	let helper = MMD.getMMDAnimationHelper(getAbstractState(state))
+	// 	let helper = MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl)
 	// 	helper.enabled.physics = isEnablePhysics(state)
 	// }
+
+	if (isStopGameEvent(state)) {
+		return Promise.resolve(state)
+	}
+
 
 	if (getIsSkipScenario(state)) {
 		if (NullableUtils.isNullable(globalThis[getExitScenarioEventName()])) {
@@ -118,13 +123,9 @@ export let update = (state: state) => {
 			return Promise.resolve(state)
 		}
 
-		// if (isFinish(state)) {
+		// if (isFinish(state, usedGirl)) {
 		// 	return Promise.resolve(state)
 		// }
-	}
-
-	if (getIsSkipGameEvent(state)) {
-		return Promise.resolve(state)
 	}
 
 	return executeCommand(state).then(state => {
@@ -132,7 +133,9 @@ export let update = (state: state) => {
 			return state
 		}
 
-		return updateAnimationForScenario(state)
+		return ArrayUtils.reducePromise(getCurrentUsedGirls(state), (state, usedGirl) => {
+			return updateAnimationForScenario(state, usedGirl)
+		}, state)
 	})
 }
 

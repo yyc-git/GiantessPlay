@@ -1,5 +1,5 @@
 import type { Scene } from "three"
-import { Vector2, Color, SRGBColorSpace, PMREMGenerator } from "three"
+import { Vector2, Color, SRGBColorSpace, PMREMGenerator, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, ShaderChunk } from "three"
 import { WebGLRenderer } from "./three/WebGLRenderer"
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
 // import { EffectComposer } from './three/EffectComposer'
@@ -9,18 +9,24 @@ import { OutlinePass } from './three/OutlinePass'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader'
-import { crowdSize, hdLevel, physicsLevel, renderAccuracyLevel, render as renderState, shadowLevel, state } from './type/StateType'
+import { render as renderState, state } from './type/StateType'
 // import { getExn } from "./utils/NullableUtils"
 import { getCurrentCamera, getCurrentControls } from "./scene/Camera"
 import { getHeight, getWidth } from "meta3d-utils/src/View"
 import { getCurrentScene, getScene, } from "./scene/Scene"
-import { getDeviceState, getIsDebug, getIsProduction, getRenderSettingState, getRenderState, setDeviceState, setRenderSettingState, setRenderState, writeState } from "./state/State"
+import { getDeviceState, getIsDebug, getIsNotTestPerf, getIsProduction, getRenderState, readState, setDeviceState, setRenderState, writeState } from "./state/State"
 import { isAndroid, isIOS, isMac, isMobile } from "./Device"
 import { Console, NullableUtils } from "./Main"
 import { addDeferExecFuncDataByTime } from "./Flow"
+import { hdLevel } from "setting-default/src/Type"
+import { NormalizeColorShader } from "./three/NormalizeColorShader"
 
-export let createRenderer = () => {
-    let canvas = document.querySelector('#canvas')
+// export let getDomElement = (): HTMLCanvasElement => {
+//     return document.querySelector('#canvas')
+// }
+
+export let createRenderer = (canvas) => {
+    // let canvas = getDomElement()
 
     if (!isAndroid()) {
         return new WebGLRenderer({ antialias: true, canvas: canvas })
@@ -75,6 +81,11 @@ let _createComposer = (renderer, camera, scene): [EffectComposer, RenderPass, Ou
 
 
 
+    // /*! for set color > 1.0 when add ice single, ... effect 
+    // * 
+    // */
+    // let normalizeColor = new ShaderPass(NormalizeColorShader)
+    // composer.addPass(normalizeColor);
 
 
 
@@ -96,7 +107,35 @@ let _createComposer = (renderer, camera, scene): [EffectComposer, RenderPass, Ou
     return [composer, renderPass, outlinePass, gammaCorrection]
 }
 
-let _setSizeAndViewport = (state, renderer, composer) => {
+export let updateDevicePixelRatio = (state, hd) => {
+    let { renderer, composer } = getRenderState(state)
+
+    let devicePixelRatio = globalThis.devicePixelRatio
+    switch (hd) {
+        case hdLevel.High:
+            break
+        case hdLevel.Middle:
+            devicePixelRatio = devicePixelRatio / 2 > 1 ? devicePixelRatio / 2 : (1 + (devicePixelRatio - 1) / 2)
+            break
+        case hdLevel.Low:
+            devicePixelRatio = 1
+            break
+    }
+
+    renderer.setPixelRatio(devicePixelRatio)
+    composer.setPixelRatio(devicePixelRatio)
+}
+
+let _setSizeAndViewport = (state, hd) => {
+    let { renderer, composer } = getRenderState(state)
+
+    if (NullableUtils.isNullable(renderer)) {
+        return
+    }
+
+    renderer = NullableUtils.getExn(renderer)
+    composer = NullableUtils.getExn(composer)
+
     // console.log("_setSizeAndViewport")
     // if (isNeedHandleLandscape) {
     //     renderer.setSize(getHeight(), getWidth())
@@ -121,20 +160,7 @@ let _setSizeAndViewport = (state, renderer, composer) => {
     composer.setSize(getWidth(), getHeight())
 
 
-    let devicePixelRatio = globalThis.devicePixelRatio
-    switch (getRenderSettingState(state).hd) {
-        case hdLevel.High:
-            break
-        case hdLevel.Middle:
-            devicePixelRatio = devicePixelRatio / 2 > 1 ? devicePixelRatio / 2 : (1 + (devicePixelRatio - 1) / 2)
-            break
-        case hdLevel.Low:
-            devicePixelRatio = 1
-            break
-    }
-
-    renderer.setPixelRatio(devicePixelRatio)
-    composer.setPixelRatio(devicePixelRatio)
+    updateDevicePixelRatio(state, hd)
 
 
     NullableUtils.forEach(currentControls => {
@@ -153,35 +179,76 @@ let _setSizeAndViewport = (state, renderer, composer) => {
 //     return getRenderState(state).isNeedHandleLandscape
 // }
 
-let _bindResizeEvent = (state, renderer, composer) => {
-    window.addEventListener("resize", _ => {
-        // camera.aspect = getWidth() / getHeight()
-        // camera.updateProjectionMatrix()
+let _resizeHandler = (event) => {
+    let state = readState()
 
-        _setSizeAndViewport(state, renderer, composer)
-    })
+    // _setSizeAndViewport(state)
+
+    let _ = writeState(markIsNeedSetSize(state, true))
+}
+
+let _bindResizeEvent = () => {
+    window.addEventListener("resize", _resizeHandler)
+}
+
+let _unbindResizeEvent = () => {
+    window.removeEventListener("resize", _resizeHandler)
 }
 
 export let createState = (): renderState => {
     return {
         // isNeedHandleLandscape: false,
-        canvas: null,
+        // canvas: null,
         isNeedSetSize: true,
         renderer: null,
         composer: null,
         renderPass: null,
         outlinePass: null,
-        gammaCorrection: null
+        gammaCorrection: null,
+
+        webglcontextlostExtension: null,
     }
 }
 
-export let init = (state: state, renderer) => {
+export let getWebglcontextlostExtension = (state: state) => {
+    return getRenderState(state).webglcontextlostExtension
+}
+
+export let initWhenImportScene = (state: state, canvas) => {
+    let renderer = createRenderer(canvas)
+
     // let camera = getCurrentCamera(state)
     let scene = getScene(state)
 
     renderer.setPixelRatio(globalThis.devicePixelRatio)
 
     renderer.outputColorSpace = SRGBColorSpace;
+
+
+    /*! why tonemapping not work?
+    const toneMappingOptions = {
+        None: NoToneMapping,
+        Linear: LinearToneMapping,
+        Reinhard: ReinhardToneMapping,
+        Cineon: CineonToneMapping,
+        ACESFilmic: ACESFilmicToneMapping,
+        Custom: CustomToneMapping,
+    };
+
+    renderer.toneMapping = toneMappingOptions.Custom
+
+    ShaderChunk.tonemapping_pars_fragment = ShaderChunk.tonemapping_pars_fragment.replace(
+
+        'vec3 CustomToneMapping( vec3 color ) { return color; }',
+
+        `
+                    vec3 CustomToneMapping( vec3 color ) {
+                        float lengh = color.r + color.g + color.b;
+                        return color/length;
+                    }`
+
+    );
+    */
 
 
     let [composer, renderPass, outlinePass, gammaCorrection] = _createComposer(renderer, null, scene)
@@ -197,33 +264,43 @@ export let init = (state: state, renderer) => {
     // state = _setSizeAndViewport(state, renderer, composer)
 
 
-    _bindResizeEvent(state, renderer, composer)
+    _bindResizeEvent()
 
     // _setSizeAndViewport(renderer, composer)
 
     state = setRenderState(state, {
         ...getRenderState(state),
-        canvas: renderer.domElement,
+        // canvas: renderer.domElement,
         renderer,
         composer,
         renderPass,
         outlinePass,
-        gammaCorrection
+        gammaCorrection,
+        webglcontextlostExtension: NullableUtils.return_(
+            renderer.getContext().getExtension('WEBGL_lose_context')
+        )
     })
 
+    // renderer.getContext().getExtension('WEBGL_lose_context').loseContext()
 
 
 
-    if (!getIsProduction(state) && isMac()) {
-        state = setRenderSettingState(state, {
-            ...getRenderSettingState(state),
-            hd: hdLevel.Low,
-            shadow: shadowLevel.Low,
-            crowdSize: crowdSize.Small,
-            renderAccuracy: renderAccuracyLevel.Low,
-            physics: physicsLevel.VeryLow
-        })
+    // if (!getIsProduction(state) && isMac()) {
+    //     state = setRenderSettingState(state, {
+    //         ...getRenderSettingState(state),
+    //         hd: hdLevel.Low,
+    //         shadow: shadowLevel.Low,
+    //         maxUnitCount: maxUnitCount.Small,
+    //         renderAccuracy: renderAccuracyLevel.Low,
+    //         physics: physicsLevel.VeryLow
+    //     })
+    // }
+
+
+    if (getIsProduction(state) || !getIsNotTestPerf(state)) {
+        renderer.debug.checkShaderErrors = false
     }
+
 
 
     return Promise.resolve(state)
@@ -262,7 +339,7 @@ export let markIsNeedSetSize = (state, isNeedSetSize) => {
     })
 }
 
-export let render = (state: state) => {
+export let render = (state: state, hd: hdLevel) => {
     let { renderer, composer, isNeedSetSize } = getRenderState(state)
     // let deviceState = getDeviceState(state)
 
@@ -282,7 +359,7 @@ export let render = (state: state) => {
         //     _setSizeAndViewport(state, renderer, composer)
         // }, 100)
         state = addDeferExecFuncDataByTime(state, (specificState) => {
-            _setSizeAndViewport(state, renderer, composer)
+            _setSizeAndViewport(state, hd)
 
             return Promise.resolve(specificState)
         }, 0.1)
@@ -297,9 +374,9 @@ export let render = (state: state) => {
     return Promise.resolve(state)
 }
 
-export let getCanvas = (state: state) => {
-    return getRenderState(state).canvas
-}
+// export let getCanvas = (state: state) => {
+//     return getRenderState(state).canvas
+// }
 
 export let getRenderer = (state: state) => {
     return getRenderState(state).renderer
@@ -312,8 +389,30 @@ export let getRenderer = (state: state) => {
 //     })
 // }
 
+
+export let disposeRenderer = (renderer: WebGLRenderer) => {
+    renderer.dispose()
+}
+
 export let dispose = (state: state) => {
     state = markIsNeedSetSize(state, true)
 
+    let { renderer, composer, renderPass, outlinePass, gammaCorrection } = getRenderState(state)
+
+    NullableUtils.forEach(renderer => disposeRenderer(renderer), renderer)
+    NullableUtils.forEach(composer => composer.dispose(), composer)
+    NullableUtils.forEach(renderPass => renderPass.dispose(), renderPass)
+    NullableUtils.forEach(outlinePass => outlinePass.dispose(), outlinePass)
+    NullableUtils.forEach(gammaCorrection => gammaCorrection.dispose(), gammaCorrection)
+
+    _unbindResizeEvent()
+
+    // state = setRenderState(state, createState())
+    state = setRenderState(state, {
+        ...createState(),
+        webglcontextlostExtension: getRenderState(state).webglcontextlostExtension
+    })
+
     return state
 }
+

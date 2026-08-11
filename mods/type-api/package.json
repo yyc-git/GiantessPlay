@@ -1,0 +1,16 @@
+{
+  "name": "type-api",
+  "version": "0.0.1",
+  "scripts": {
+    "watch": "tsc -w -noEmit",
+    
+    "webpack:dev-server": "NODE_ENV=development webpack-dev-server  --open 'Chrome' --config webpack.config.devserver.js"
+  },
+  "dependencies": {
+    "block": "^0.0.1",
+    "type-default": "^0.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.0"
+  }
+}

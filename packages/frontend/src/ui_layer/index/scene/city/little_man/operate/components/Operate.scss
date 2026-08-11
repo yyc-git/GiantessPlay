@@ -1,4 +1,4 @@
-@import "../../../../../../../Main.scss";
+@use "../../../../../../../Main.scss" as *;
 
 .operate {
     // @mixin text{
@@ -10,8 +10,8 @@
 
         border-radius: 50%;
 
-        width: 4rem;
-        height: 4rem;
+        width: 3rem;
+        height: 3rem;
 
         pointer-events: none;
     }
@@ -30,8 +30,8 @@
     }
 
     .unusable-mask {
-        width: 4rem;
-        height: 4rem;
+        width: 3rem;
+        height: 3rem;
         position: absolute;
         top: 0;
         right: 0;
@@ -44,8 +44,8 @@
     }
 
     .using-mask {
-        width: 4rem;
-        height: 4rem;
+        width: 3rem;
+        height: 3rem;
         position: absolute;
         top: 0;
         right: 0;
@@ -58,8 +58,8 @@
     }
 
     .cooling-mask {
-        width: 4rem;
-        height: 4rem;
+        width: 3rem;
+        height: 3rem;
         position: absolute;
         top: 0;
         right: 0;
@@ -91,16 +91,16 @@
     }
 
     // .bigger {
-    //     width: 4rem;
-    //     height: 4rem;
+    //     width: 2rem;
+    //     height: 2rem;
 
     //     bottom: 7rem;
     //     right: 6rem;
     // }
 
     // .smaller {
-    //     width: 4rem;
-    //     height: 4rem;
+    //     width: 2rem;
+    //     height: 2rem;
 
     //     bottom: 7rem;
     //     right: 2rem;

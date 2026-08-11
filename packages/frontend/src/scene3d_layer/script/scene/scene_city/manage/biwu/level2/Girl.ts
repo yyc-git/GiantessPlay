@@ -2,12 +2,12 @@ import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { state } from "../../../../../../type/StateType"
 import { actionName, animationName } from "../../../data/biwu/level2/DataType"
 import { getStateMachine, setStateMachine } from "../../../girl/FSMState"
-import { collisionPart, objectStateName, result } from "../../../type/StateType"
+import { bossStateStatusName, collisionPart, damageType, objectStateName, result, usedGirlEnum } from "../../../type/StateType"
 import { Vector3 } from "three"
 import { isDestoryRelatedStates } from "../../../utils/FSMStateUtils"
-import { computeHeight, getDamagePartFactor, getForceFactor, getGirlBox, getScale, getScaleFactor, getScaleIncreaseTimes, getWeaponTypeFactor, isCanStressing } from "../../../girl/Utils"
+import { buildFakeGirlWeaponValue, computeHeight, getDamagePartFactor, getDamageTypeFactor, getForceFactor, getGirlBox, getGirlPosition, getScale, getScaleFactor, getScaleIncreaseTimes, getStressingFactorByJudgeLastStressingTime, isCanStressing } from "../../../girl/Utils"
 import { getDamagePartByCollisionPart, getDamagePartByJudge, getDamagePartByJudgeWithoutJudgeScale, handleClothDestroyed, isCloth } from "../../../girl/Cloth"
-import { getDefenseFactor, getGirlState, getHp, getLabelTime, getName, isActionTriggering, isDamageAction, isTriggerAction, setGirlState, setHp, setTriggerAction } from "../../../girl/Girl"
+import { buildNameByUsedGirl, damageUtils, getBodyHp, getDefenseData, getHp, getLabelTime, getValue, getValueByUsedGirl, isActionTriggering, isDamageAction, isTriggerAction, setHp, setTriggerAction } from "../../../girl/Girl"
 import * as DamageUtils from "../../../utils/DamageUtils"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { labelAnimation } from "meta3d-jiehuo-abstract/src/type/StateType"
@@ -19,42 +19,68 @@ import { weaponType } from "../../../data/ValueType"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { Console } from "meta3d-jiehuo-abstract"
 import { handleRemoveShoe } from "../../../data/mmd/Shoe"
-import { isShoe } from "../../../data/mmd/MMDData"
 import { phase } from "../../../data/biwu/level2/behaviour_tree_data/BehaviourTreeData"
+import * as BiwuGirl from "../Girl"
+import { generateReward } from "../../../reward/RewardGenerator"
+import { getName as getLittleName } from "../../../little_man/LittleMan"
+import { getRewardPropPosition } from "../Reward"
+import { getRewardPropOffset } from "./Reward"
+import { getNow } from "../../../Time"
+import { handleAfterComputeDamage, handleDamageForceSize } from "../../../StaticDynamic"
+import { handleLightStressing } from "../../../utils/LightStressingGiantessUtils"
+import { addHitEffectForGirl } from "../../../utils/HitEffectUtils"
+import { isHard } from "./ManageScene"
+import { addOrUpdateStatus, removeStatus } from "../../../BossStateStatus"
+import BossStatus from "../../../../../../../ui_layer/index/scene/city/boss_status/components/BossStatus"
+import { computeCrit } from "../../../utils/WeaponUtils"
+import { getAttackFactor, getCritRatioFactor } from "../../../StaticDynamicUnit"
+// import { computeMiss } from "../../../utils/ValueUtils"
+import { Event } from "meta3d-jiehuo-abstract"
+import { getAbstractState } from "../../../../../../state/State"
+import { buildAPI } from "../../../../../../mod/Mod"
+import { getLanguageTextData, languageKey } from "../../../../../../internation/Data"
+import { getDamagePositionForLabel } from "../Utils"
+import { getStompBlockService } from "../../../../../../mod/SkillGiantessMod"
 
-let _isHitLeg = (collisionPart_) => {
-    switch (collisionPart_) {
-        case collisionPart.LeftFoot:
-        case collisionPart.RightFoot:
-        case collisionPart.LeftShank:
-        case collisionPart.RightShank:
-        case collisionPart.LeftThigh:
-        case collisionPart.RightThigh:
-            return true
-        default:
-            return false
-    }
-}
+// let _isHitLeg = (collisionPart_) => {
+//     switch (collisionPart_) {
+//         case collisionPart.LeftFoot:
+//         case collisionPart.RightFoot:
+//         case collisionPart.LeftShank:
+//         case collisionPart.RightShank:
+//         case collisionPart.LeftThigh:
+//         case collisionPart.RightThigh:
+//             return true
+//         default:
+//             return false
+//     }
+// }
 
 
-let _computeForce = (force: number, collisionPart_: collisionPart) => {
+let _computeForce = (state, usedGirl, force: number, collisionPart_: collisionPart) => {
     let factor
     switch (collisionPart_) {
-        case collisionPart.LeftFoot:
+        case collisionPart.RightThigh:
+        case collisionPart.LeftThigh:
+            factor = 1.5
+            break
         case collisionPart.RightFoot:
-            // factor = 0.5
-            factor = 0.8
+        case collisionPart.LeftFoot:
+        case collisionPart.RightShank:
+        case collisionPart.LeftShank:
+            factor = 1
             break
         default:
-            factor = 1
+            factor = 0
             break
     }
 
-    return force * 5 * factor
+    // return force * 5 * factor
+    return force * factor
 }
 
 // let _isPlayLightStompAnimation = (state: state) => {
-//     switch (getCurrentAnimationName(state)) {
+//     switch (getCurrentAnimationName(state, usedGirl)) {
 //         // case animationName.KeepRightLightStomp:
 //         // case animationName.KeepLeftLightStomp:
 //         case animationName.HangRightLightStomp:
@@ -69,7 +95,7 @@ let _computeForce = (force: number, collisionPart_: collisionPart) => {
 //     }
 // }
 
-let _isCanStressing = (state: state, stateMachine) => {
+let _isCanStressing = (state: state, usedGirl, stateMachine) => {
     if (StateMachine.isState(stateMachine, objectStateName.Stressing)) {
         return false
     }
@@ -78,7 +104,7 @@ let _isCanStressing = (state: state, stateMachine) => {
         return false
     }
 
-    switch (getCurrentAnimationName(state)) {
+    switch (getCurrentAnimationName(state, usedGirl)) {
         case animationName.PickdownFromIdle:
 
         case animationName.HangRightLightStomp:
@@ -114,29 +140,30 @@ let _isCanStressing = (state: state, stateMachine) => {
     // return true
 }
 
-let _getSkillStateFactor = (state) => {
+let _getSkillStateFactor = (state, usedGirl) => {
     let lowValue = 0.4
     let highValue = 0.8
 
-    switch (getCurrentAnimationName(state)) {
+    switch (getCurrentAnimationName(state, usedGirl)) {
         case animationName.KeepLeftLightStomp:
         case animationName.KeepRightLightStomp:
             return highValue
-        case animationName.Stomp:
+        // case animationName.Stomp:
+        case getStompBlockService(state).getForceAnimationName():
             return lowValue
         default:
             return 1
     }
 }
 
-let _isStressingByRate = (state: state, damage, weaponType_: weaponType, collisionPart_: collisionPart, damagePart) => {
-    let weaponTypeFactor = getWeaponTypeFactor(weaponType_)
+let _isStressingByRate = (state: state, usedGirl, damage, damageType_: damageType, collisionPart_: collisionPart, damagePart) => {
+    let damageTypeFactor = getDamageTypeFactor(damageType_)
 
     let collisionPartFactor
     switch (collisionPart_) {
         case collisionPart.LeftThigh:
         case collisionPart.RightThigh:
-            collisionPartFactor = 2.5
+            collisionPartFactor = 2.8
             break
         case collisionPart.LeftShank:
         case collisionPart.RightShank:
@@ -144,139 +171,123 @@ let _isStressingByRate = (state: state, damage, weaponType_: weaponType, collisi
             break
         case collisionPart.LeftFoot:
         case collisionPart.RightFoot:
-            collisionPartFactor = 1.2
+            collisionPartFactor = 1.5
             break
         default:
             throw new Error("err")
     }
 
-    let forceFactor = getForceFactor(damage)
+    let forceFactor = getForceFactor(getBodyHp(state, usedGirl), damage, 0.0025)
 
 
     // let settingFactor
 
-    let scaleFactor = getScaleFactor(state)
+    let scaleFactor = getScaleFactor(state, usedGirl)
 
 
     // const factor = 0.2 * 0.3
-    const factor = 0.5
+    // const factor = 0.5
+    // const factor = 0.2
+    const factor = 0.12
 
-    let damagePartFactor = getDamagePartFactor(state, damagePart)
+    let damagePartFactor = getDamagePartFactor(state, usedGirl, damagePart)
 
+    let timeFactor = getStressingFactorByJudgeLastStressingTime(state, usedGirl)
 
-    let rate = NumberUtils.clamp(1 * scaleFactor * forceFactor * weaponTypeFactor * collisionPartFactor * factor * damagePartFactor * _getSkillStateFactor(state), 0, 1)
+    let rate = NumberUtils.clamp(1 * scaleFactor * forceFactor * damageTypeFactor * collisionPartFactor * factor * damagePartFactor * _getSkillStateFactor(state, usedGirl) * getValue(state, usedGirl).stressingRateFactor, 0, 1) * timeFactor
 
-    Console.warn(rate,
-        damage, collisionPart_, rate
-    )
+    // Console.warn(rate,
+    //     damage, collisionPart_, rate
+    // )
 
     return Math.random() < rate
 }
 
-export let damage = (state: state, [force, damageType, weaponType], collisionPart_: collisionPart, damagePosition: nullable<Vector3>) => {
-    if (state.config.isNotDamage) {
-        return Promise.resolve(state)
+let _updateDamageType = (damageType_, collisionPart_) => {
+    if (damageType_ == damageType.Range) {
+        return damageType_
     }
 
-
-    let stateMachine = getStateMachine(state)
-
-    if (isDestoryRelatedStates(stateMachine)) {
-        return Promise.resolve(state)
+    switch (collisionPart_) {
+        case collisionPart.RightThigh:
+        case collisionPart.LeftThigh:
+            return damageType.Weakness
+        default:
+            // return damageType_
+            return damageType.Normal
     }
+}
 
+export let damage = (state: state, usedGirl, [force, damageType, weaponType], fromName, collisionPart_: collisionPart, damagePosition: nullable<Vector3>,
+    weaponValue_,
+    // critRatioFactor,
+    // attackFactor,
+) => {
+    return damageUtils(state,
+        [
+            (state, collisionPart_) => {
+                let damagePartByCollisionPart, actuallyDamagePartsByCollisionPart,
+                    damagePartByJudge, actuallyDamagePartsByJudge
 
-    let box = getGirlBox(state)
+                let d1 = getDamagePartByCollisionPart(state, usedGirl, collisionPart_)
+                damagePartByCollisionPart = d1[0]
+                actuallyDamagePartsByCollisionPart = d1[1]
 
-    let actuallyDamage, damage, remainedHp, damagePartByCollisionPart, actuallyDamagePartsByCollisionPart,
-        damagePartByJudge, actuallyDamagePartsByJudge
-    if (!_isHitLeg(collisionPart_)) {
-        actuallyDamage = 0
-        damage = 0
+                let d2 = getDamagePartByJudgeWithoutJudgeScale(state, usedGirl, damagePartByCollisionPart, actuallyDamagePartsByCollisionPart)
+                damagePartByJudge = d2[0]
+                actuallyDamagePartsByJudge = d2[1]
+
+                return [damagePartByCollisionPart, damagePartByJudge, actuallyDamagePartsByJudge]
+            },
+            _updateDamageType,
+            _computeForce,
+            (state, damagePosition, height, damageType) => {
+                return getDamagePositionForLabel(damagePosition, damageType, 6)
+            },
+            (state, stateMachine, damage, weaponType, collisionPart_, damagePartByCollisionPart, fromName) => {
+                state = handleLightStressing(state, usedGirl, damage, collisionPart_, false)
+                // let isStressingByRateFunc = isGiantessCharacterType(state) ? GiantessGirl.isStressingByRate : LittleManGirl.isStressingByRate
+
+                if (
+                    // isCanStressing(state, isChangePoseState, stateMachine)
+                    _isCanStressing(state, usedGirl, stateMachine)
+                    && _isStressingByRate(state, usedGirl, damage, damageType, collisionPart_, damagePartByCollisionPart)
+                ) {
+                    return StateMachine.changeAndExecuteState(state, (state, name, stateMachine) => {
+                        return setStateMachine(usedGirl)(state, stateMachine)
+                    }, stateMachine, createStressingState(usedGirl), buildNameByUsedGirl(usedGirl), [collisionPart_, fromName, damagePosition])
+                }
+
+                return state
+            },
+            createStressingState,
+        ], usedGirl,
+        [force, damageType, weaponType],
+        fromName,
+        collisionPart_, damagePosition, weaponValue_,
+        // critRatioFactor,
+        // attackFactor,
+    )
+}
+
+export let update = BiwuGirl.update
+
+export let updateStatus = (state: state, usedGirl) => {
+    if (isHard(state, usedGirl)) {
+        state = addOrUpdateStatus(state, usedGirl,
+            bossStateStatusName.Hard,
+            NullableUtils.getEmpty(),
+            true,
+            getLanguageTextData(state, languageKey.Hard)
+        )
     }
     else {
-        let d1 = getDamagePartByCollisionPart(state, collisionPart_)
-        damagePartByCollisionPart = d1[0]
-        actuallyDamagePartsByCollisionPart = d1[1]
-
-        let d2 = getDamagePartByJudgeWithoutJudgeScale(state, damagePartByCollisionPart, actuallyDamagePartsByCollisionPart)
-        damagePartByJudge = d2[0]
-        actuallyDamagePartsByJudge = d2[1]
-
-
-        let defenseFactor = getDefenseFactor(state, getName(), damagePartByCollisionPart)
-        // let height = box.getSize(_v1).y
-        let height = computeHeight(state)
-
-        let hp = getHp(state, damagePartByJudge)
-
-        let d3 = DamageUtils.computeActuallyDamage(defenseFactor, height, _computeForce(force, collisionPart_), hp)
-        actuallyDamage = d3[0]
-        damage = d3[1]
-        remainedHp = d3[2]
-
-        state = setHp(state, damagePartByJudge, remainedHp)
+        state = removeStatus(state, usedGirl, bossStateStatusName.Hard)
     }
 
-    state = DamageUtils.addLabel(state, actuallyDamage, box,
-        DamageUtils.computeFontType(true, damageType, weaponType),
-        NullableUtils.map(
-            damagePosition => {
-                // if (isLittleRoad(state)) {
-                return new Vector3(damagePosition.x, damagePosition.y + 2, damagePosition.z)
-                // }
+    // state = addStatusFromBuffs(state, usedGirlEnum.BossGiantess)
 
-                // return new Vector3(damagePosition.x, damagePosition.y + height / 10, damagePosition.z)
-            },
-            damagePosition
-        ),
-        getName(),
-        getLabelTime(damage),
-        // getSceneChapter(state) == scene.Biwu ? true : (
-        //     isLittleRoad(state) ? true : false
-        // ),
-        NullableUtils.getEmpty(),
-        labelAnimation.None)
-
-
-    if (damage <= 0) {
-        return Promise.resolve(state)
-    }
-
-
-    state = setGirlState(state, {
-        ...getGirlState(state),
-        lastDamageTime: performance.now()
-    })
-
-
-    if (remainedHp <= 0 && isCloth(damagePartByJudge)) {
-        if (isShoe(damagePartByJudge)) {
-            state = handleRemoveShoe(state)
-        }
-
-        return handleClothDestroyed(state,
-            [createStressingState, _isCanStressing],
-            NullableUtils.getExn(damagePosition), collisionPart_, actuallyDamagePartsByJudge)
-    }
-
-
-    if (remainedHp > 0) {
-        // let isStressingByRateFunc = isGiantessRoad(state) ? GiantessGirl.isStressingByRate : LittleManGirl.isStressingByRate
-
-        if (
-            // isCanStressing(state, isChangePoseState, stateMachine)
-            _isCanStressing(state, stateMachine)
-            && _isStressingByRate(state, actuallyDamage, weaponType, collisionPart_, damagePartByCollisionPart)
-            // && true
-        ) {
-            return StateMachine.changeAndExecuteState(state, (state, name, stateMachine) => {
-                return setStateMachine(state, stateMachine)
-            }, stateMachine, createStressingState(), getName(), collisionPart_)
-        }
-
-        return Promise.resolve(state)
-    }
-
-    return Promise.resolve(state)
+    return state
 }
+
+export let initWhenImportScene = BiwuGirl.initWhenImportScene

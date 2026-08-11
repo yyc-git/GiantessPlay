@@ -1,6 +1,6 @@
 import { Console } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../../../type/StateType"
-import { actionNodeFunc, behaviourTreeNodeExecuteResult, collisionPart, difficulty, result } from "../../../type/StateType"
+import { actionNodeFunc, autoDifficulty, behaviourTreeNodeExecuteResult, collisionPart, result, usedGirl } from "../../../type/StateType"
 import { markIsRunning } from "../../../utils/BehaviourManagerUtils"
 import { getIdExn, markFinish, setId } from "../../../behaviour_tree/BehaviourTreeManager"
 import { Vector3 } from "three"
@@ -10,14 +10,12 @@ import { getAbstractState, setAbstractState, writeState } from "../../../../../.
 import { Flow } from "meta3d-jiehuo-abstract"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import * as LittleManTransform from "../../../little_man/Transform";
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
-import { getMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
+import { getMMDAnimationHelper, hasMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
 import * as BehaviourTreeDataAll from "./behaviour_tree_data_all/BehaviourTreeData"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import * as ArmyManager from "../../../manage/biwu/level3/ArmyManager"
 import { getBone } from "../../../utils/MMDUtils"
-import { getGirl, getName } from "../../../girl/Girl"
-import { getCollisionPartOBB } from "../../../girl/Collision"
 import { getPositionY } from "../../../manage/city1/Army"
 import { ArrayUtils } from "meta3d-jiehuo-abstract"
 import { getDownTarget } from "./ActionNodeUtils"
@@ -25,7 +23,9 @@ import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getAddSoundResourceId } from "../../../manage/biwu/level3/ManageScene"
 import { getIsDebug } from "../../../../Scene"
 import { getGirlVolume } from "../../../utils/SoundUtils"
-import { getBiwuSetting } from "../../../CityScene"
+import { getAutoDifficulty } from "../../../difficulty/Difficulty"
+import { addTweens } from "../../../TweenManager"
+// import { getBiwuSetting } from "../../../CityScene"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 const _v2 = /*@__PURE__*/ new Vector3();
@@ -56,7 +56,7 @@ type data = {
 
 let _getData = (state: state): data => {
     // let factor, hangFactor
-    // if (isHard(state)) {
+    // if (isHard(state, usedGirl)) {
     //     factor = 2
     //     hangFactor = 1.5
     // }
@@ -116,26 +116,37 @@ let _findArmyAddData = (state: state) => {
     )
 }
 
-let _addArmy = (state: state, { generateFuncs, count, offset, isOnBreast }: BehaviourTreeDataAll.armyAddSingleData, worldPosition) => {
-    state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getAddSoundResourceId(), getIsDebug(state), getGirlVolume(state, LittleManTransform.getWorldPosition(state)))))
+let _addArmy = (state: state, usedGirl: usedGirl, { generateFuncs, count, offset, isOnBreast }: BehaviourTreeDataAll.armyAddSingleData, worldPosition) => {
+    state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getAddSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, worldPosition))))
 
 
     let factor
-    switch (getBiwuSetting(state).difficulty) {
-        case difficulty.VeryEasy:
+    switch (getAutoDifficulty(state)) {
+        case autoDifficulty.VeryEasy:
             factor = 0.5
             break
-        case difficulty.Easy:
+        case autoDifficulty.Easy:
             factor = 0.8
             break
-        case difficulty.Middle:
+        case autoDifficulty.Middle:
             factor = 1
             break
-        case difficulty.Hard:
+        case autoDifficulty.Hard:
             factor = 1.2
             break
-        case difficulty.VeryHard:
+        case autoDifficulty.VeryHard:
+        case autoDifficulty.VeryHard1:
             factor = 1.5
+            break
+        case autoDifficulty.VeryHard2:
+        case autoDifficulty.VeryHard3:
+            factor = 2
+            break
+        case autoDifficulty.VeryHard4:
+            factor = 2.5
+            break
+        case autoDifficulty.VeryHard5:
+            factor = 3
             break
     }
     count = isOnBreast ? 1 : NumberUtils.greaterThan(Math.round(count * factor
@@ -155,11 +166,11 @@ let _downAndUp = (state,
         getOriginBoneLocalPositionFunc,
         markIsNotActionFunc,
         setCurrentTweensFunc,
-    ],
+    ], usedGirl: usedGirl,
     actionName_,
     key
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -168,10 +179,10 @@ let _downAndUp = (state,
     let armyAddSingleData = _findArmyAddData(state)
 
     let worldPosition = armyAddSingleData.position(state)
-    worldPosition = worldPosition.clone().setY(getPositionY(state, ArmyManager.getGirlPositionYKey(), worldPosition.x, worldPosition.z))
+    worldPosition = worldPosition.clone().setY(getPositionY(state, ArmyManager.getGirlPositionYKey(usedGirl), worldPosition.x, worldPosition.z))
 
 
-    let d2 = createTween(state,
+    let d2 = createTween(state, usedGirl,
         [
             isFootIKBoneFunc,
             (bone, object) => {
@@ -183,14 +194,14 @@ let _downAndUp = (state,
             },
             state => {
                 // return _addArmy(state, armyAddSingleData).then(state => {
-                return _addArmy(state, armyAddSingleData, worldPosition).then(state => {
+                return _addArmy(state, usedGirl, armyAddSingleData, worldPosition).then(state => {
                     state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
                         return Promise.resolve(_up(state,
                             [getBoneFunc, isFootIKBoneFunc,
                                 getOriginBoneLocalPositionFunc,
                                 markIsNotActionFunc,
                                 setCurrentTweensFunc,
-                            ],
+                            ], usedGirl,
                             actionName_,
                             key
                         )
@@ -207,7 +218,7 @@ let _downAndUp = (state,
             // y: boneLocalPositionBeforeDown.y,
             z: boneWorldPosition.z,
         },
-        getDownTarget(state, worldPosition, 5, "右人指３", "右腕ＩＫ"),
+        getDownTarget(state, usedGirl, worldPosition, 5, "右人指３", "右腕ＩＫ"),
         _getRandomTime(_getData(state).downTime),
         actionName_,
     )
@@ -215,6 +226,8 @@ let _downAndUp = (state,
     let tween = d2[1]
 
     state = setCurrentTweensFunc(state, [tween])
+
+    state = addTweens(state, [tween])
 
     return state
 }
@@ -224,11 +237,11 @@ let _up = (state: state,
         getOriginBoneLocalPositionFunc,
         markIsNotActionFunc,
         setCurrentTweensFunc,
-    ],
+    ], usedGirl: usedGirl,
     actionName_,
     key
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -236,7 +249,7 @@ let _up = (state: state,
 
     let boneLocalPositionBeforeDown = getOriginBoneLocalPositionFunc(state)
 
-    let d2 = createTween(state,
+    let d2 = createTween(state, usedGirl,
         [
             isFootIKBoneFunc,
             (bone, object) => {
@@ -253,10 +266,10 @@ let _up = (state: state,
                 // })
                 state = markIsNotActionFunc(state)
 
-                state = _clearIKBoneCustomData(state, actionName_)
+                state = _clearIKBoneCustomData(state, usedGirl, actionName_)
 
 
-                return markFinish(state, getIdExn(state, actionName_), behaviourTreeNodeExecuteResult.Success, key).then(writeState)
+                return markFinish(state, usedGirl, getIdExn(state, usedGirl, actionName_), behaviourTreeNodeExecuteResult.Success, key).then(writeState)
             }
         ],
         {
@@ -267,7 +280,8 @@ let _up = (state: state,
         x: boneLocalPositionBeforeDown.x,
         y: boneLocalPositionBeforeDown.y,
         z: boneLocalPositionBeforeDown.z,
-    }, _getRandomTime(_getData(state).upTime),
+    },
+        _getRandomTime(_getData(state).upTime),
         actionName_
     )
 
@@ -276,11 +290,13 @@ let _up = (state: state,
 
     state = setCurrentTweensFunc(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
-// let _getHandIKBone = (state: state) => {
-//     return getBone(state, Girl.getGirl(state), "左腕ＩＫ")
+// let _getHandIKBone = (state: state, usedGirl) => {
+//     return getBone(state,usedGirl, Girl.getGirl(state, usedGirl), "左腕ＩＫ")
 // }
 
 // let _isHandIKBone = (bone) => {
@@ -296,7 +312,7 @@ export let add = (
         markIsActionFunc,
         markIsNotActionFunc,
         setCurrentTweensFunc,
-    ],
+    ], usedGirl: usedGirl,
     actionName_,
     key): actionNodeFunc => {
     return (state, id) => {
@@ -308,11 +324,11 @@ export let add = (
         // })
         state = markIsActionFunc(state)
 
-        state = markIsRunning(state, true, key)
+        state = markIsRunning(state, usedGirl, true, key)
 
-        state = setId(state, actionName_, id)
+        state = setId(state, usedGirl, actionName_, id)
 
-        let d = getBoneFunc(state)
+        let d = getBoneFunc(state, usedGirl)
 
         state = d[0]
         let bone = d[1]
@@ -328,7 +344,7 @@ export let add = (
                 getOriginBoneLocalPositionFunc,
                 markIsNotActionFunc,
                 setCurrentTweensFunc,
-            ],
+            ], usedGirl,
             actionName_,
             key
         )
@@ -337,8 +353,10 @@ export let add = (
     }
 }
 
-let _clearIKBoneCustomData = (state: state, actionName_) => {
-    MutableMapUtils.remove(getMMDAnimationHelper(getAbstractState(state)).ikBoneCustomData, actionName_)
+let _clearIKBoneCustomData = (state: state, usedGirl, actionName_) => {
+    if (hasMMDAnimationHelper(getAbstractState(state), usedGirl)) {
+        MutableRecordUtils.remove(getMMDAnimationHelper(getAbstractState(state), usedGirl).ikBoneCustomData, actionName_)
+    }
 
     return state
 }
@@ -349,10 +367,10 @@ let _clearIKBoneCustomData = (state: state, actionName_) => {
 //     return state
 // }
 
-export let dispose = (state: state, actionName_) => {
+export let dispose = (state: state, usedGirl, actionName_) => {
     // state = setAbstractState(state, Event.off(getAbstractState(state), getTwoHandsDefaultToOneFingerEndEventName(), _twoHandsDefaultToOneFingerEndHandler))
 
-    state = _clearIKBoneCustomData(state, actionName_)
+    state = _clearIKBoneCustomData(state, usedGirl, actionName_)
 
     return state
 }

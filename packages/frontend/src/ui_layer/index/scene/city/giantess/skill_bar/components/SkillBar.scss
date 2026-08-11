@@ -1,17 +1,24 @@
-@import "../../../../../../../Main.scss";
+@use "../../../../../../../Main.scss" as *;
 
 $width: 10rem;
+$halfWidth: 5rem;
 
 .skill-bar-main {
 	@include background-unset;
 
 	position: fixed;
+    z-index: 2;
 	// bottom: -3.5rem;
 	// bottom: -2.5rem;
-	top: 3rem;
+	// bottom: 4rem;
 
-	// margin: 0 auto;
-	left: 0.5rem;
+	// // margin: 0 auto;
+	// // left: 0.5rem;
+	// left: 50%;
+	// margin-left: - $halfWidth;
+
+	top: 4rem;
+
 	// left: 12rem;
 	// right: 0;
 

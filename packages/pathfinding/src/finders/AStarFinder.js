@@ -216,4 +216,69 @@ AStarFinder.prototype.findNearstPath = function (startX, startY, endX, endY, gri
     return [];
 };
 
+
+
+let _addPath = () => {
+
+}
+
+/*! edit by meta3d */
+AStarFinder.prototype.findDirectPath = function (startX, startY, endX, endY, grid) {
+    let x = startX
+    let y = startY
+    let path = []
+
+    if (x < endX) {
+        do {
+            path.push([x, y])
+            x += 1
+        } while (x < endX)
+        path.push([x, y])
+    }
+    else if (x == endX) {
+        path.push([x, y])
+    }
+    else {
+        do {
+            path.push([x, y])
+            x -= 1
+        } while (x > endX)
+        path.push([x, y])
+    }
+
+    if (y < endY) {
+        do {
+            path.push([x, y])
+            y += 1
+        } while (y < endY)
+        path.push([x, y])
+    }
+    else if (y == endY) {
+        path.push([x, y])
+    }
+    else {
+        do {
+            path.push([x, y])
+            y -= 1
+        } while (y > endY)
+        path.push([x, y])
+    }
+
+    if (path.length == 0) {
+        return path
+    }
+
+    // path = Util.smoothenPath(grid, path)
+
+    // for (let i = 0, len = path.length; i < len; i++) {
+    //     let gridCoordinate = path[i]
+    //     if (!grid.isWalkableAt(gridCoordinate[0], gridCoordinate[1])) {
+    //         return []
+    //     }
+    // }
+    return Util.smoothenPathOptimize(grid, path)
+};
+
+
+
 module.exports = AStarFinder;

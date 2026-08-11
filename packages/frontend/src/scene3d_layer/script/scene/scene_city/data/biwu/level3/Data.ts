@@ -1,7 +1,7 @@
 import { Vector2, Vector3 } from "three"
 import { buildPickdownFromIdleWorkEventNameEventData, getBackLeftLightStompEndEventName, getBackRightLightStompEndEventName, getHangLeftLightStompEndEventName, getHangRightLightStompEndEventName, getHeavyStressingLieBeginMaxEventName, getHeavyStressingLieEndEventName, getHeavyStressingLieEndMaxEventName } from "../../../../../../utils/EventUtils"
 import { getIsDebug } from "../../../../Scene"
-import { getLastFrameIndex } from "../../../utils/DataUtils"
+import { getLateFrameIndex } from "../../../utils/DataUtils"
 import { actionData, animationBlendData, animationCollisionData, articluatedAnimationData, phaseData, track } from "../../DataType"
 import { getAnimationFrameCountWithoutState, getHeavyStressingLieBeginMaxFrameIndex, getHeavyStressingLieEndMaxFrameIndex } from "./Const"
 import { actionName, animationName, articluatedAnimationName, heavyStressingLiePhase } from "./DataType"
@@ -17,16 +17,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
     return [
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HangRightHand)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HangRightHand)
             },
             currentAnimationNames: [animationName.KeepLie],
             noBlend: true,
             nextAnimationName: animationName.HangRightHand,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HangRightHand, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HangRightHand, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.HangRightHand],
             nextAnimationName: animationName.KeepRightHandDefault,
@@ -34,16 +34,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HangTwoHands)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HangTwoHands)
             },
             currentAnimationNames: [animationName.KeepLie],
             noBlend: true,
             nextAnimationName: animationName.HangTwoHands,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HangTwoHands, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HangTwoHands, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.HangTwoHands],
             nextAnimationName: animationName.KeepTwoHandsDefault,
@@ -51,16 +51,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HangLeftHandRightHand)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HangLeftHandRightHand)
             },
             currentAnimationNames: [animationName.KeepLie],
             noBlend: true,
             nextAnimationName: animationName.HangLeftHandRightHand,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HangLeftHandRightHand, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HangLeftHandRightHand, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.HangLeftHandRightHand],
             nextAnimationName: animationName.KeepLeftHandRightHand,
@@ -69,16 +69,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.BackRightHand)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.BackRightHand)
             },
             currentAnimationNames: [animationName.KeepRightHandDefault],
             noBlend: true,
             nextAnimationName: animationName.BackRightHand,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.BackRightHand, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.BackRightHand, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.BackRightHand],
             nextAnimationName: animationName.KeepLie,
@@ -86,16 +86,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.BackTwoHands)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.BackTwoHands)
             },
             currentAnimationNames: [animationName.KeepTwoHandsDefault],
             noBlend: true,
             nextAnimationName: animationName.BackTwoHands,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.BackTwoHands, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.BackTwoHands, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.BackTwoHands],
             nextAnimationName: animationName.KeepLie,
@@ -103,16 +103,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.BackLeftHandRightHand)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.BackLeftHandRightHand)
             },
             currentAnimationNames: [animationName.KeepLeftHandRightHand],
             noBlend: true,
             nextAnimationName: animationName.BackLeftHandRightHand,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.BackLeftHandRightHand, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.BackLeftHandRightHand, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.BackLeftHandRightHand],
             nextAnimationName: animationName.KeepLie,
@@ -121,16 +121,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.RightHandDefaultToOneFinger)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.RightHandDefaultToOneFinger)
             },
             currentAnimationNames: [animationName.KeepRightHandDefault],
             noBlend: true,
             nextAnimationName: animationName.RightHandDefaultToOneFinger,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.RightHandDefaultToOneFinger, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.RightHandDefaultToOneFinger, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.RightHandDefaultToOneFinger],
             nextAnimationName: animationName.KeepRightHandOneFinger,
@@ -138,16 +138,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.RightHandDefaultToBeat)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.RightHandDefaultToBeat)
             },
             currentAnimationNames: [animationName.KeepRightHandDefault],
             noBlend: true,
             nextAnimationName: animationName.RightHandDefaultToBeat,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.RightHandDefaultToBeat, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.RightHandDefaultToBeat, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.RightHandDefaultToBeat],
             nextAnimationName: animationName.KeepRightHandBeat,
@@ -155,16 +155,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.RightHandDefaultToAdd)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.RightHandDefaultToAdd)
             },
             currentAnimationNames: [animationName.KeepRightHandDefault],
             noBlend: true,
             nextAnimationName: animationName.RightHandDefaultToAdd,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.RightHandDefaultToAdd, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.RightHandDefaultToAdd, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.RightHandDefaultToAdd],
             nextAnimationName: animationName.KeepRightHandAdd,
@@ -172,16 +172,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.TwoHandsDefaultToOneFinger)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.TwoHandsDefaultToOneFinger)
             },
             currentAnimationNames: [animationName.KeepTwoHandsDefault],
             noBlend: true,
             nextAnimationName: animationName.TwoHandsDefaultToOneFinger,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.TwoHandsDefaultToOneFinger, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.TwoHandsDefaultToOneFinger, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.TwoHandsDefaultToOneFinger],
             nextAnimationName: animationName.KeepTwoHandsOneFinger,
@@ -189,16 +189,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.TwoHandsDefaultToBeat)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.TwoHandsDefaultToBeat)
             },
             currentAnimationNames: [animationName.KeepTwoHandsDefault],
             noBlend: true,
             nextAnimationName: animationName.TwoHandsDefaultToBeat,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.TwoHandsDefaultToBeat, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.TwoHandsDefaultToBeat, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.TwoHandsDefaultToBeat],
             nextAnimationName: animationName.KeepTwoHandsBeat,
@@ -207,16 +207,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.RightHandOneFingerToDefault)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.RightHandOneFingerToDefault)
             },
             currentAnimationNames: [animationName.KeepRightHandOneFinger],
             noBlend: true,
             nextAnimationName: animationName.RightHandOneFingerToDefault,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.RightHandOneFingerToDefault, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.RightHandOneFingerToDefault, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.RightHandOneFingerToDefault],
             nextAnimationName: animationName.KeepRightHandDefault,
@@ -224,16 +224,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.RightHandBeatToDefault)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.RightHandBeatToDefault)
             },
             currentAnimationNames: [animationName.KeepRightHandBeat],
             noBlend: true,
             nextAnimationName: animationName.RightHandBeatToDefault,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.RightHandBeatToDefault, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.RightHandBeatToDefault, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.RightHandBeatToDefault],
             nextAnimationName: animationName.KeepRightHandDefault,
@@ -241,16 +241,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.RightHandAddToDefault)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.RightHandAddToDefault)
             },
             currentAnimationNames: [animationName.KeepRightHandAdd],
             noBlend: true,
             nextAnimationName: animationName.RightHandAddToDefault,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.RightHandAddToDefault, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.RightHandAddToDefault, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.RightHandAddToDefault],
             nextAnimationName: animationName.KeepRightHandDefault,
@@ -259,16 +259,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.TwoHandsOneFingerToDefault)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.TwoHandsOneFingerToDefault)
             },
             currentAnimationNames: [animationName.KeepTwoHandsOneFinger],
             noBlend: true,
             nextAnimationName: animationName.TwoHandsOneFingerToDefault,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.TwoHandsOneFingerToDefault, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.TwoHandsOneFingerToDefault, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.TwoHandsOneFingerToDefault],
             nextAnimationName: animationName.KeepTwoHandsDefault,
@@ -276,16 +276,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.TwoHandsBeatToDefault)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.TwoHandsBeatToDefault)
             },
             currentAnimationNames: [animationName.KeepTwoHandsBeat],
             noBlend: true,
             nextAnimationName: animationName.TwoHandsBeatToDefault,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.TwoHandsBeatToDefault, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.TwoHandsBeatToDefault, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.TwoHandsBeatToDefault],
             nextAnimationName: animationName.KeepTwoHandsDefault,
@@ -294,8 +294,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HeavyStressingLie)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingLie)
             },
             currentAnimationNames: [
                 animationName.KeepLie,
@@ -306,8 +306,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HeavyStressingLie, getIsDebug(state), 3)
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HeavyStressingLie, getIsDebug(state), 3)
             },
             currentAnimationNames: [animationName.HeavyStressingLie],
             nextAnimationName: animationName.KeepLie,
@@ -317,11 +317,11 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
     ]
 }
 
-export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
+export let getAnimationCollisionData = ([isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
     getShapeFunc,
     getScaleFunc,
     getHeightFunc,
-    isLittleRoadFunc
+    isLittleCharacterTypeFunc
 ]): Array<animationCollisionData<animationName>> => {
     return [
         {
@@ -339,12 +339,12 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
                     frameRange: 5,
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getHeavyStressingLieBeginMaxEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -353,25 +353,25 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
                     frameRange: 5,
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getHeavyStressingLieEndMaxEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.HeavyStressingLie)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.HeavyStressingLie)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getHeavyStressingLieEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -383,15 +383,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
         //     shapeDamage: [],
         //     timeline: [
         //         {
-        //             frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.RightHandDefaultToOneFinger)),
+        //             frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.RightHandDefaultToOneFinger)),
 
         //             track: track.Event,
-        //             value: (state, {
+        //             value: (state, usedGirl, {
         //                 force
         //             }): any => {
         //                 return {
         //                     eventName: getRightHandDefaultToOneFingerEndEventName(),
-        //                     eventData: null
+        //                     eventData: {usedGirl}
         //                 }
         //             }
         //         },
@@ -404,15 +404,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
         //     shapeDamage: [],
         //     timeline: [
         //         {
-        //             frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.TwoHandsDefaultToOneFinger)),
+        //             frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.TwoHandsDefaultToOneFinger)),
 
         //             track: track.Event,
-        //             value: (state, {
+        //             value: (state, usedGirl, {
         //                 force
         //             }): any => {
         //                 return {
         //                     eventName: getTwoHandsDefaultToOneFingerEndEventName(),
-        //                     eventData: null
+        //                     eventData: {usedGirl}
         //                 }
         //             }
         //         },

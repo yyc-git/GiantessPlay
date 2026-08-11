@@ -1,5 +1,5 @@
-import { details, state } from "../../type/StateType";
-import { Box3, Frustum, Matrix4, } from "three";
+import { details, lodQueueIndex, state } from "../../type/StateType";
+import { Box3, Color, Frustum, Matrix4, } from "three";
 import { nullable } from "../../utils/nullable";
 import { deepDispose } from "../../scene/utils/DisposeUtils";
 
@@ -21,9 +21,11 @@ export abstract class LODContainer {
 
 	abstract getAllBoxes(state: state): Array<Box3>
 
+	abstract remove(state: state, index: lodQueueIndex): state
+
 	// abstract findBoxByName(name: string): nullable<Box3>
 
-	abstract queryByFrustum(state: state, frustum: Frustum): [number, Array<Matrix4>, Array<string>]
+	abstract queryByFrustum(state: state, frustum: Frustum): [number, Array<Matrix4>, Array<string>, Array<Color>]
 	// abstract queryByFrustum(state: state, frustum: Frustum): Array<Matrix4>
 
 

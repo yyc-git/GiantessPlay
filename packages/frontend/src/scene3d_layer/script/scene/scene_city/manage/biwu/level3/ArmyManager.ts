@@ -7,9 +7,8 @@ import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
 import { getGetPositionYFuncDefaultKey, getPositionY as getPositionYArmy, setGetPositionYFunc } from "../../city1/Army";
 import { collisionPart } from "../../../data/biwu/level3/CollisionShapeData";
-import { isMilltaryBuilding } from "../../city1/milltary_building/MilltaryBuilding";
-import { isLittleMan } from "../../../little_man/LittleMan";
-import { isGirl } from "../../../girl/Girl";
+import { usedGirl } from "../../../type/StateType";
+import { getUsedGirl } from "../Utils";
 
 const _v1 = new Vector3();
 const _v2 = new Vector3();
@@ -33,13 +32,14 @@ export let getArmyOnBreastPositionYKey = () => "ArmyOnBreastPositionYKey"
 
 export let getArmyOnTorsorPositionYKey = () => "ArmyOnTorsorPositionYKey"
 
-export let getGirlPositionYKey = () => "GirlPositionYKey"
+export let getGirlPositionYKey = (usedGirl) => `${usedGirl}_GirlPositionYKey`
 
-let _getPositionY = (state: state, canOnCollisionPartFunc, x, z) => {
-    return getPositionY(state, canOnCollisionPartFunc, getAllCollisionShapeOBBData(state), x, z)
+let _getPositionY = (state: state, canOnCollisionPartFunc, usedGirl: usedGirl, x, z) => {
+    return getPositionY(state, canOnCollisionPartFunc, getAllCollisionShapeOBBData(state, usedGirl), x, z)
 }
 
 export let initWhenImportScene = (state: state) => {
+    let usedGirl = getUsedGirl()
     state = setGetPositionYFunc(state, getLittleManPositionYKey(), (state, x, z) => {
         if (
             !isClimbing(state)
@@ -47,10 +47,10 @@ export let initWhenImportScene = (state: state) => {
             return 0
         }
 
-        return _getPositionY(state, canOnCollisionPart, x, z)
+        return _getPositionY(state, canOnCollisionPart, usedGirl, x, z)
     })
-    state = setGetPositionYFunc(state, getGirlPositionYKey(), (state, x, z) => {
-        return _getPositionY(state, (state, collisionPart_) => true, x, z)
+    state = setGetPositionYFunc(state, getGirlPositionYKey(usedGirl), (state, x, z) => {
+        return _getPositionY(state, (state, collisionPart_) => true, usedGirl, x, z)
     })
     state = setGetPositionYFunc(state, getArmyOnBreastPositionYKey(), (state, x, z) => {
         return _getPositionY(state, (state, collisionPart_) => {
@@ -63,13 +63,13 @@ export let initWhenImportScene = (state: state) => {
                 default:
                     return true
             }
-        }, x, z)
+        }, usedGirl, x, z)
     })
     state = setGetPositionYFunc(state, getArmyOnTorsorPositionYKey(), (state, x, z) => {
-        return _getPositionY(state, canOnCollisionPart, x, z)
+        return _getPositionY(state, canOnCollisionPart, usedGirl, x, z)
     })
     state = setGetPositionYFunc(state, getGetPositionYFuncDefaultKey(), (state, x, z) => {
-        return _getPositionY(state, canOnCollisionPart, x, z)
+        return _getPositionY(state, canOnCollisionPart, usedGirl, x, z)
     })
 
 

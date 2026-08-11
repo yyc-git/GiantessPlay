@@ -4,24 +4,36 @@ import { getEmpty, getExn, getWithDefault, isNullable, return_ } from "../utils/
 import * as DustEmitter from "./DustEmitter"
 import * as StompDustEmitter from "./StompDustEmitter"
 import * as FlameEmitter from "./FlameEmitter"
-import * as BulletEmitter from "./BulletEmitter"
-import * as PropBulletEmitter from "./PropBulletEmitter"
+// import * as BulletEmitter from "./BulletEmitter"
+// import * as PropBulletEmitter from "./PropBulletEmitter"
 import * as ShellEmitter from "./ShellEmitter"
 import * as ShellEmitOrExplodeEmitter from "./ShellEmitOrExplodeEmitter"
-import * as BulletHitEmitter from "./BulletHitEmitter"
+// import * as BulletHitEmitter from "./BulletHitEmitter"
 import * as PropBulletHitEmitter from "./PropBulletHitEmitter"
+import * as BloodHitEmitter from "./BloodHitEmitter"
+import * as SparkLightHitEmitter from "./SparkLightHitEmitter"
+import * as SparkHeavyHitEmitter from "./SparkHeavyHitEmitter"
+import * as WeaknessHitEmitter from "./WeaknessHitEmitter"
 import * as WaterBloomEmitter from "./WaterBloomEmitter"
 import * as MilkSplashEmitter from "./MilkSplashEmitter"
 import * as ClothDestroyedEmitter from "./ClothDestroyedEmitter"
 import * as BlinkEmitter from "./BlinkEmitter"
 import * as SwipingHitEmitter from "./SwipingHitEmitter"
-import * as ProtectEmiiter from "./ProtectEmiiter"
+import * as ProtectEmitter from "./ProtectEmitter"
+import * as GemEmitter from "./GemEmitter"
+import * as CoinEmitter from "./CoinEmitter"
 import * as RocketEmitter from "./instance/RocketEmitter"
 import * as MissileVehicleMissileEmitter from "./instance/MissileVehicleMissileEmitter"
 import * as LaserBulletEmitter from "./LaserBulletEmitter"
 import * as LaserBulletHitEmitter from "./LaserBulletHitEmitter"
-import { ArrayUtils, MutableMapUtils, MutableNumberMapUtils } from "../Main"
+// import * as IcePlaneEmitter from "./plane/IcePlaneEmitter"
+// import * as SubMachineBulletEmitter from "./SubMachineBulletEmitter"
+// import * as SubMachineBulletHitEmitter from "./SubMachineBulletHitEmitter"
+// import * as FireballEmitter from "./FireballEmitter"
+// import * as FireballHitEmitter from "./FireballHitEmitter"
+import { ArrayUtils, MutableRecordUtils, MutableMapUtils } from "../Main"
 import { requireCheck, test } from "../utils/Contract"
+import * as GeometryUtils from "./GeometryUtils"
 
 export let createState = (): particle => {
 	return {
@@ -29,17 +41,23 @@ export let createState = (): particle => {
 		reallocateIds: ArrayUtils.create(),
 		allEmitParticlesForCollisionCheck: ArrayUtils.create(),
 
-		needCollisionCheckLoopCountMap: MutableNumberMapUtils.create(),
+		bulletLastPosition: MutableRecordUtils.create(),
+
+		needCollisionCheckLoopCountMap: MutableMapUtils.create(),
 
 		dustEmitter: getEmpty(),
 		stompDustEmitter: getEmpty(),
 		flameEmitter: getEmpty(),
-		bulletEmitter: getEmpty(),
-		propBulletEmitter: getEmpty(),
+		// bulletEmitter: getEmpty(),
+		// propBulletEmitter: getEmpty(),
 		shellEmitter: getEmpty(),
 		shellEmitOrExplodeEmitter: getEmpty(),
-		bulletHitEmitter: getEmpty(),
+		// bulletHitEmitter: getEmpty(),
 		propBulletHitEmitter: getEmpty(),
+		bloodHitEmitter: getEmpty(),
+		sparkLightHitEmitter: getEmpty(),
+		sparkHeavyHitEmitter: getEmpty(),
+		weaknessHitEmitter: getEmpty(),
 		waterBloomEmitter: getEmpty(),
 		milkSplashEmitter: getEmpty(),
 		clothDestroyedEmitter: getEmpty(),
@@ -50,6 +68,13 @@ export let createState = (): particle => {
 		missileVehicleMissileEmitter: getEmpty(),
 		laserBulletEmitter: getEmpty(),
 		laserBulletHitEmitter: getEmpty(),
+		// submachineBulletEmitter: getEmpty(),
+		// submachineBulletHitEmitter: getEmpty(),
+		// fireballEmitter: getEmpty(),
+		// fireballHitEmitter: getEmpty(),
+		gemEmitter: getEmpty(),
+		coinEmitter: getEmpty(),
+		// iceEmitter: getEmpty(),
 	}
 }
 
@@ -60,12 +85,24 @@ export let createState = (): particle => {
 export let update = <specificState>(specificState: specificState, [getAbstractStateFunc, setAbstractStateFunc]): Promise<specificState> => {
 	let state = getAbstractStateFunc(specificState)
 
-	let { dustEmitter, stompDustEmitter, flameEmitter, bulletEmitter, shellEmitter, shellEmitOrExplodeEmitter, bulletHitEmitter, waterBloomEmitter, milkSplashEmitter, clothDestroyedEmitter, blinkEmitter, swipingHitEmitter, protectEmitter,
-		propBulletEmitter, propBulletHitEmitter,
+	let { dustEmitter, stompDustEmitter, flameEmitter, shellEmitter, shellEmitOrExplodeEmitter, waterBloomEmitter, milkSplashEmitter, clothDestroyedEmitter, blinkEmitter, swipingHitEmitter, protectEmitter,
+		// propBulletEmitter,
+		propBulletHitEmitter,
+		bloodHitEmitter,
+		sparkLightHitEmitter,
+		sparkHeavyHitEmitter,
+		weaknessHitEmitter,
 		rocketEmitter,
 		missileVehicleMissileEmitter,
 		laserBulletEmitter,
 		laserBulletHitEmitter,
+		// submachineBulletEmitter,
+		// submachineBulletHitEmitter,
+		// fireballEmitter,
+		// fireballHitEmitter,
+		gemEmitter,
+		coinEmitter,
+		// iceEmitter,
 	} = getParticleState(state)
 
 	if (!isNullable(dustEmitter)) {
@@ -77,18 +114,18 @@ export let update = <specificState>(specificState: specificState, [getAbstractSt
 	if (!isNullable(flameEmitter)) {
 		state = FlameEmitter.update(state)
 	}
-	if (!isNullable(bulletEmitter)) {
-		state = BulletEmitter.update(state)
-	}
+	// if (!isNullable(bulletEmitter)) {
+	// 	state = BulletEmitter.update(state, specificState)
+	// }
 	if (!isNullable(shellEmitter)) {
-		state = ShellEmitter.update(state)
+		state = ShellEmitter.update(state, specificState)
 	}
 	if (!isNullable(shellEmitOrExplodeEmitter)) {
 		state = ShellEmitOrExplodeEmitter.update(state)
 	}
-	if (!isNullable(bulletHitEmitter)) {
-		state = BulletHitEmitter.update(state)
-	}
+	// if (!isNullable(bulletHitEmitter)) {
+	// 	state = BulletHitEmitter.update(state)
+	// }
 	if (!isNullable(waterBloomEmitter)) {
 		state = WaterBloomEmitter.update(state)
 	}
@@ -105,13 +142,25 @@ export let update = <specificState>(specificState: specificState, [getAbstractSt
 		state = SwipingHitEmitter.update(state)
 	}
 	if (!isNullable(protectEmitter)) {
-		specificState = ProtectEmiiter.update(specificState, [getAbstractStateFunc, setAbstractStateFunc])
+		state = ProtectEmitter.update(state, specificState)
 	}
-	if (!isNullable(propBulletEmitter)) {
-		state = PropBulletEmitter.update(state)
-	}
+	// if (!isNullable(propBulletEmitter)) {
+	// 	state = PropBulletEmitter.update(state, specificState)
+	// }
 	if (!isNullable(propBulletHitEmitter)) {
 		state = PropBulletHitEmitter.update(state)
+	}
+	if (!isNullable(bloodHitEmitter)) {
+		state = BloodHitEmitter.update(state)
+	}
+	if (!isNullable(sparkLightHitEmitter)) {
+		state = SparkLightHitEmitter.update(state)
+	}
+	if (!isNullable(sparkHeavyHitEmitter)) {
+		state = SparkHeavyHitEmitter.update(state)
+	}
+	if (!isNullable(weaknessHitEmitter)) {
+		state = WeaknessHitEmitter.update(state)
 	}
 	if (!isNullable(rocketEmitter)) {
 		state = RocketEmitter.update(state)
@@ -120,15 +169,38 @@ export let update = <specificState>(specificState: specificState, [getAbstractSt
 		state = MissileVehicleMissileEmitter.update(state)
 	}
 	if (!isNullable(laserBulletEmitter)) {
-		state = LaserBulletEmitter.update(state)
+		state = LaserBulletEmitter.update(state, specificState)
 	}
 	if (!isNullable(laserBulletHitEmitter)) {
 		state = LaserBulletHitEmitter.update(state)
 	}
+	// if (!isNullable(submachineBulletEmitter)) {
+	// 	state = SubMachineBulletEmitter.update(state, specificState)
+	// }
+	// if (!isNullable(submachineBulletHitEmitter)) {
+	// 	state = SubMachineBulletHitEmitter.update(state)
+	// }
+	// if (!isNullable(fireballEmitter)) {
+	// 	state = FireballEmitter.update(state, specificState)
+	// }
+	// if (!isNullable(fireballHitEmitter)) {
+	// 	state = FireballHitEmitter.update(state)
+	// }
+	if (!isNullable(gemEmitter)) {
+		state = GemEmitter.update(state, specificState)
+	}
+	if (!isNullable(coinEmitter)) {
+		state = CoinEmitter.update(state, specificState)
+	}
+
+	// if (!isNullable(iceEmitter)) {
+	// 	state = IcePlaneEmitter.update(state)
+	// }
 
 
 
-	let needCollisionCheckLoopCountMap = MutableNumberMapUtils.map(getParticleState(state).needCollisionCheckLoopCountMap, (loopCount) => loopCount - 1)
+
+	let needCollisionCheckLoopCountMap = MutableMapUtils.map(getParticleState(state).needCollisionCheckLoopCountMap, (loopCount) => loopCount - 1)
 
 	// let needRemoveIndices = needCollisionCheckLoopCountMap.reduce((result, loopCount, i) => {
 	// 	if (loopCount < 0) {
@@ -175,14 +247,14 @@ export let enableFlame = (state: state, scene) => {
 	return FlameEmitter.init(state, scene)
 }
 
-export let enableBullet = (state: state, scene) => {
-	state = setParticleState(state, {
-		...getParticleState(state),
-		bulletEmitter: return_(BulletEmitter.createState())
-	})
+// export let enableBullet = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		bulletEmitter: return_(BulletEmitter.createState())
+// 	})
 
-	return BulletEmitter.init(state, scene)
-}
+// 	return BulletEmitter.init(state, scene)
+// }
 
 export let enableRocket = (state: state, scene, rocket) => {
 	state = setParticleState(state, {
@@ -220,6 +292,43 @@ export let enableLaserBulletHit = (state: state, scene) => {
 	return LaserBulletHitEmitter.init(state, scene)
 }
 
+// export let enableSubMachineBullet = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		submachineBulletEmitter: return_(SubMachineBulletEmitter.createState())
+// 	})
+
+// 	return SubMachineBulletEmitter.init(state, scene)
+// }
+
+// export let enableSubMachineBulletHit = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		submachineBulletHitEmitter: return_(SubMachineBulletHitEmitter.createState())
+// 	})
+
+// 	return SubMachineBulletHitEmitter.init(state, scene)
+// }
+
+
+// export let enableFireball = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		fireballEmitter: return_(FireballEmitter.createState())
+// 	})
+
+// 	return FireballEmitter.init(state, scene)
+// }
+
+// export let enableFireballHit = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		fireballHitEmitter: return_(FireballHitEmitter.createState())
+// 	})
+
+// 	return FireballHitEmitter.init(state, scene)
+// }
+
 export let enableShell = (state: state, scene) => {
 	state = setParticleState(state, {
 		...getParticleState(state),
@@ -238,14 +347,14 @@ export let enableShellEmitOrExplode = (state: state, scene) => {
 	return ShellEmitOrExplodeEmitter.init(state, scene)
 }
 
-export let enableBulletHit = (state: state, scene) => {
-	state = setParticleState(state, {
-		...getParticleState(state),
-		bulletHitEmitter: return_(BulletHitEmitter.createState())
-	})
+// export let enableBulletHit = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		bulletHitEmitter: return_(BulletHitEmitter.createState())
+// 	})
 
-	return BulletHitEmitter.init(state, scene)
-}
+// 	return BulletHitEmitter.init(state, scene)
+// }
 
 export let enableWaterBloom = (state: state, scene) => {
 	state = setParticleState(state, {
@@ -295,20 +404,48 @@ export let enableSwipingHit = (state: state, scene) => {
 export let enableProtect = (state: state, scene) => {
 	state = setParticleState(state, {
 		...getParticleState(state),
-		protectEmitter: return_(ProtectEmiiter.createState())
+		protectEmitter: return_(ProtectEmitter.createState())
 	})
 
-	return ProtectEmiiter.init(state, scene)
+	return ProtectEmitter.init(state, scene)
 }
 
-export let enablePropBullet = (state: state, scene) => {
+export let enableGem = (state: state, scene) => {
 	state = setParticleState(state, {
 		...getParticleState(state),
-		propBulletEmitter: return_(PropBulletEmitter.createState())
+		gemEmitter: return_(GemEmitter.createState())
 	})
 
-	return PropBulletEmitter.init(state, scene)
+	return GemEmitter.init(state, scene)
 }
+
+export let enableCoin = (state: state, scene) => {
+	state = setParticleState(state, {
+		...getParticleState(state),
+		coinEmitter: return_(CoinEmitter.createState())
+	})
+
+	return CoinEmitter.init(state, scene)
+}
+
+// export let enableIce = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		iceEmitter: return_(IcePlaneEmitter.createState())
+// 	})
+
+// 	return IcePlaneEmitter.init(state, scene)
+// }
+
+
+// export let enablePropBullet = (state: state, scene) => {
+// 	state = setParticleState(state, {
+// 		...getParticleState(state),
+// 		propBulletEmitter: return_(PropBulletEmitter.createState())
+// 	})
+
+// 	return PropBulletEmitter.init(state, scene)
+// }
 
 export let enablePropBulletHit = (state: state, scene) => {
 	state = setParticleState(state, {
@@ -317,6 +454,42 @@ export let enablePropBulletHit = (state: state, scene) => {
 	})
 
 	return PropBulletHitEmitter.init(state, scene)
+}
+
+export let enableBloodHit = (state: state, scene) => {
+	state = setParticleState(state, {
+		...getParticleState(state),
+		bloodHitEmitter: return_(BloodHitEmitter.createState())
+	})
+
+	return BloodHitEmitter.init(state, scene)
+}
+
+export let enableSparkLightHit = (state: state, scene) => {
+	state = setParticleState(state, {
+		...getParticleState(state),
+		sparkLightHitEmitter: return_(SparkLightHitEmitter.createState())
+	})
+
+	return SparkLightHitEmitter.init(state, scene)
+}
+
+export let enableSparkHeavyHit = (state: state, scene) => {
+	state = setParticleState(state, {
+		...getParticleState(state),
+		sparkHeavyHitEmitter: return_(SparkHeavyHitEmitter.createState())
+	})
+
+	return SparkHeavyHitEmitter.init(state, scene)
+}
+
+export let enableWeaknessHit = (state: state, scene) => {
+	state = setParticleState(state, {
+		...getParticleState(state),
+		weaknessHitEmitter: return_(WeaknessHitEmitter.createState())
+	})
+
+	return WeaknessHitEmitter.init(state, scene)
 }
 
 export let emitDust = (state: state, param) => {
@@ -337,15 +510,15 @@ export let emitFlame = (state: state, param) => {
 	return state
 }
 
-export let emitBullet = (state: state, param, needCollisionCheckLoopCount) => {
-	state = BulletEmitter.emit(state, param)
+// export let emitBullet = (state: state, param, needCollisionCheckLoopCount) => {
+// 	state = BulletEmitter.emit(state, param)
 
-	let emittedParticle = getExn(BulletEmitter.getAllParticles(state)[BulletEmitter.getAllParticles(state).length - 1])
+// 	let emittedParticle = getExn(BulletEmitter.getAllParticles(state)[BulletEmitter.getAllParticles(state).length - 1])
 
-	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
+// 	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
 
-	return state
-}
+// 	return state
+// }
 
 export let emitRocket = (state: state, param, needCollisionCheckLoopCount) => {
 	state = RocketEmitter.emit(state, param)
@@ -377,6 +550,26 @@ export let emitLaserBullet = (state: state, param, needCollisionCheckLoopCount) 
 	return state
 }
 
+// export let emitSubMachineBullet = (state: state, param, needCollisionCheckLoopCount) => {
+// 	state = SubMachineBulletEmitter.emit(state, param)
+
+// 	let emittedParticle = getExn(SubMachineBulletEmitter.getAllParticles(state)[SubMachineBulletEmitter.getAllParticles(state).length - 1])
+
+// 	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
+
+// 	return state
+// }
+
+// export let emitFireball = (state: state, param, needCollisionCheckLoopCount) => {
+// 	state = FireballEmitter.emit(state, param)
+
+// 	let emittedParticle = getExn(FireballEmitter.getAllParticles(state)[FireballEmitter.getAllParticles(state).length - 1])
+
+// 	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
+
+// 	return state
+// }
+
 export let emitShell = (state: state, param, needCollisionCheckLoopCount: loopCount) => {
 	state = ShellEmitter.emit(state, param)
 
@@ -393,17 +586,30 @@ export let emitShellEmitOrExplode = (state: state, param) => {
 	return state
 }
 
-export let emitBulletHit = (state: state, param) => {
-	state = BulletHitEmitter.emit(state, param)
+// export let emitBulletHit = (state: state, param) => {
+// 	state = BulletHitEmitter.emit(state, param)
 
-	return state
-}
+// 	return state
+// }
 
 export let emitLaserBulletHit = (state: state, param) => {
 	state = LaserBulletHitEmitter.emit(state, param)
 
 	return state
 }
+
+// export let emitSubMachineBulletHit = (state: state, param) => {
+// 	state = SubMachineBulletHitEmitter.emit(state, param)
+
+// 	return state
+// }
+
+// export let emitFireballHit = (state: state, param) => {
+// 	state = FireballHitEmitter.emit(state, param)
+
+// 	return state
+// }
+
 
 export let emitWaterBloom = (state: state, param) => {
 	state = WaterBloomEmitter.emit(state, param)
@@ -437,20 +643,48 @@ export let emitSwipingHit = (state: state, param) => {
 }
 
 export let emitProtect = (state: state, param) => {
-	state = ProtectEmiiter.emit(state, param)
+	state = ProtectEmitter.emit(state, param)
 
 	return state
 }
 
-export let emitPropBullet = (state: state, param, needCollisionCheckLoopCount) => {
-	state = PropBulletEmitter.emit(state, param)
+export let emitGem = (state: state, param, needCollisionCheckLoopCount) => {
+	state = GemEmitter.emit(state, param)
 
-	let emittedParticle = getExn(PropBulletEmitter.getAllParticles(state)[PropBulletEmitter.getAllParticles(state).length - 1])
+	let emittedParticle = getExn(GemEmitter.getAllParticles(state)[GemEmitter.getAllParticles(state).length - 1])
 
 	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
 
+
 	return state
 }
+
+export let emitCoin = (state: state, param, needCollisionCheckLoopCount) => {
+	state = CoinEmitter.emit(state, param)
+
+	let emittedParticle = getExn(CoinEmitter.getAllParticles(state)[CoinEmitter.getAllParticles(state).length - 1])
+
+	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
+
+
+	return state
+}
+
+// export let emitIce = (state: state, param) => {
+// 	state = IcePlaneEmitter.emit(state, param)
+
+// 	return state
+// }
+
+// export let emitPropBullet = (state: state, param, needCollisionCheckLoopCount) => {
+// 	state = PropBulletEmitter.emit(state, param)
+
+// 	let emittedParticle = getExn(PropBulletEmitter.getAllParticles(state)[PropBulletEmitter.getAllParticles(state).length - 1])
+
+// 	state = setNeedCollisionCheckLoopCount(state, emittedParticle.id, needCollisionCheckLoopCount)
+
+// 	return state
+// }
 
 export let emitPropBulletHit = (state: state, param) => {
 	state = PropBulletHitEmitter.emit(state, param)
@@ -458,12 +692,76 @@ export let emitPropBulletHit = (state: state, param) => {
 	return state
 }
 
+export let emitBloodHit = (state: state, param) => {
+	state = BloodHitEmitter.emit(state, param)
+
+	return state
+}
+
+export let emitSparkLightHit = (state: state, param) => {
+	state = SparkLightHitEmitter.emit(state, param)
+
+	return state
+}
+
+export let emitSparkHeavyHit = (state: state, param) => {
+	state = SparkHeavyHitEmitter.emit(state, param)
+
+	return state
+}
+
+export let emitWeaknessHit = (state: state, param) => {
+	state = WeaknessHitEmitter.emit(state, param)
+
+	return state
+}
+
+
 export let dispose = (state: state) => {
 	return setParticleState(state, createState())
 }
 
-let _getAllEmitParticlesForCollisionCheck = (state: state, allParticles) => {
-	// return allParticles.filter(particle => {
+// let getAllEmitParticlesForCollisionCheck = (state: state, allParticles) => {
+// 	return allParticles.reduce(([index, allEmitParticlesForCollisionCheck], particle) => {
+// 		requireCheck(() => {
+// 			test("loopCount should >= 0", () => {
+// 				return MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) >= 0
+// 			})
+// 		}, getIsDebug(state))
+
+// 		if (MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) == 0) {
+// 			return [
+// 				index + 1,
+// 				ArrayUtils.set(allEmitParticlesForCollisionCheck, index, particle)
+// 			]
+// 		}
+
+// 		return [index, allEmitParticlesForCollisionCheck]
+// 	}, [0, getParticleState(state).allEmitParticlesForCollisionCheck])
+// }
+export let getAllEmitParticlesForCollisionCheck = (state: state, allParticles) => {
+	/*! perf: optimize memory cg 
+	* 
+	*/
+	return allParticles.reduce(([index, allEmitParticlesForCollisionCheck], particle) => {
+		requireCheck(() => {
+			test("loopCount should >= 0", () => {
+				return MutableMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) >= 0
+			})
+		}, getIsDebug(state))
+
+		// if (MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) == 0) {
+		if (MutableMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) <= 1) {
+			return [
+				index + 1,
+				ArrayUtils.set(allEmitParticlesForCollisionCheck, index, particle)
+			]
+		}
+
+		return [index, allEmitParticlesForCollisionCheck]
+	}, [0, ArrayUtils.create()])
+
+	// return allParticles.filter((particle) => {
 	// 	requireCheck(() => {
 	// 		test("loopCount should >= 0", () => {
 	// 			return MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) >= 0
@@ -472,47 +770,46 @@ let _getAllEmitParticlesForCollisionCheck = (state: state, allParticles) => {
 
 	// 	return MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) == 0
 	// })
-
-	return allParticles.reduce(([index, allEmitParticlesForCollisionCheck], particle) => {
-		requireCheck(() => {
-			test("loopCount should >= 0", () => {
-				return MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) >= 0
-			})
-		}, getIsDebug(state))
-
-		if (MutableNumberMapUtils.getExn(getParticleState(state).needCollisionCheckLoopCountMap, particle.id) == 0) {
-			return [
-				index + 1,
-				ArrayUtils.set(allEmitParticlesForCollisionCheck, index, particle)
-			]
-		}
-
-		return [index, allEmitParticlesForCollisionCheck]
-	}, [0, getParticleState(state).allEmitParticlesForCollisionCheck])
 }
 
-export let getAllBulletParticlesForCollisionCheck = (state: state) => {
-	return _getAllEmitParticlesForCollisionCheck(state, BulletEmitter.getAllParticles(state))
-}
+// export let getAllBulletParticlesForCollisionCheck = (state: state) => {
+// 	return getAllEmitParticlesForCollisionCheck(state, BulletEmitter.getAllParticles(state))
+// }
 
-export let getAllPropBulletParticlesForCollisionCheck = (state: state) => {
-	return _getAllEmitParticlesForCollisionCheck(state, PropBulletEmitter.getAllParticles(state))
-}
+// export let getAllPropBulletParticlesForCollisionCheck = (state: state) => {
+// 	return getAllEmitParticlesForCollisionCheck(state, PropBulletEmitter.getAllParticles(state))
+// }
 
 export let getAllRocketParticlesForCollisionCheck = (state: state) => {
-	return _getAllEmitParticlesForCollisionCheck(state, RocketEmitter.getAllParticles(state))
+	return getAllEmitParticlesForCollisionCheck(state, RocketEmitter.getAllParticles(state))
 }
 
 export let getAllMissileVehicleMissileParticlesForCollisionCheck = (state: state) => {
-	return _getAllEmitParticlesForCollisionCheck(state, MissileVehicleMissileEmitter.getAllParticles(state))
+	return getAllEmitParticlesForCollisionCheck(state, MissileVehicleMissileEmitter.getAllParticles(state))
 }
 
 export let getAllLaserBulletParticlesForCollisionCheck = (state: state) => {
-	return _getAllEmitParticlesForCollisionCheck(state, LaserBulletEmitter.getAllParticles(state))
+	return getAllEmitParticlesForCollisionCheck(state, LaserBulletEmitter.getAllParticles(state))
 }
 
+// export let getAllSubMachineBulletParticlesForCollisionCheck = (state: state) => {
+// 	return getAllEmitParticlesForCollisionCheck(state, SubMachineBulletEmitter.getAllParticles(state))
+// }
+
+// export let getAllFireballParticlesForCollisionCheck = (state: state) => {
+// 	return getAllEmitParticlesForCollisionCheck(state, FireballEmitter.getAllParticles(state))
+// }
+
 export let getAllShellParticlesForCollisionCheck = (state: state) => {
-	return _getAllEmitParticlesForCollisionCheck(state, ShellEmitter.getAllParticles(state))
+	return getAllEmitParticlesForCollisionCheck(state, ShellEmitter.getAllParticles(state))
+}
+
+export let getAllGemParticlesForCollisionCheck = (state: state) => {
+	return getAllEmitParticlesForCollisionCheck(state, GemEmitter.getAllParticles(state))
+}
+
+export let getAllCoinParticlesForCollisionCheck = (state: state) => {
+	return getAllEmitParticlesForCollisionCheck(state, CoinEmitter.getAllParticles(state))
 }
 
 export let markParticleRemove = (particle) => {
@@ -520,7 +817,26 @@ export let markParticleRemove = (particle) => {
 }
 
 export let setNeedCollisionCheckLoopCount = (state: state, id: id, loopCount: loopCount) => {
-	MutableNumberMapUtils.set(getParticleState(state).needCollisionCheckLoopCountMap, id, loopCount)
+	MutableMapUtils.set(getParticleState(state).needCollisionCheckLoopCountMap, id, loopCount)
 
 	return state
 }
+
+export let getBulletLastPosition = (state: state, id: id) => {
+	return MutableRecordUtils.get(getParticleState(state).bulletLastPosition, id)
+}
+
+export let setBulletLastPosition = (state: state, id: id, value) => {
+	MutableRecordUtils.set(getParticleState(state).bulletLastPosition, id, value)
+
+	return state
+}
+
+
+export let initGeometryAttributes = GeometryUtils.initGeometryAttributes
+
+export let initGeometryAttributesForOffset = GeometryUtils.initGeometryAttributesForOffset
+
+export let updateGeometryAttribute = GeometryUtils.updateGeometryAttribute
+
+export let updateGeometryAttributeForOffset = GeometryUtils.updateGeometryAttributeForOffset

@@ -1,4 +1,4 @@
-@import "../../../../Main.scss";
+@use "../../../../Main.scss" as *;
 
 .index-main-main {
 	@include background-unset;
@@ -21,6 +21,11 @@
 			// color: purple;
 		}
 
+		.version-update {
+			width: 2rem;
+			height: 2rem;
+		}
+
 		.ant-row {
 			height: 30%;
 		}
@@ -37,10 +42,25 @@
 		.fixed-button {
 			.active {
 				position: fixed;
-				bottom: 5rem;
+				// bottom: 4rem;
+				bottom: 6rem;
 				right: 2rem;
 				z-index: 2;
 			}
+
+			.crowdfunding {
+				position: fixed;
+				top: 12rem;
+				left: 2rem;
+				z-index: 2;
+			}
+
+			// .faq {
+			// 	position: fixed;
+			// 	bottom: 5rem;
+			// 	right: 2rem;
+			// 	z-index: 2;
+			// }
 
 			.share {
 				position: fixed;
@@ -49,6 +69,35 @@
 				z-index: 2;
 			}
 
+			.internation {
+				position: fixed;
+				top: 8rem;
+				right: 2rem;
+				z-index: 2;
+			}
+
+			.update-notice {
+				position: fixed;
+				top: 6rem;
+				left: 2rem;
+				z-index: 2;
+			}
+
+			.getreward {
+				position: fixed;
+				// bottom: 4rem;
+				top: 10rem;
+				left: 2rem;
+				z-index: 2;
+			}
+
+
+			.log-out {
+				position: fixed;
+				top: 1rem;
+				right: 2rem;
+				z-index: 2;
+			}
 
 			.ant-image {
 				width: 100%;
@@ -61,4 +110,12 @@
 		}
 
 	}
+}
+
+.update-notice-content {
+	white-space: pre-wrap;
+}
+
+.reward-content {
+	white-space: pre-wrap;
 }

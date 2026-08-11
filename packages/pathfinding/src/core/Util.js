@@ -177,6 +177,59 @@ function smoothenPath(grid, path) {
 exports.smoothenPath = smoothenPath;
 
 
+
+/*! edit by meta3d */
+function smoothenPathOptimize(grid, path) {
+    var len = path.length,
+        x0 = path[0][0],        // path start x
+        y0 = path[0][1],        // path start y
+        x1 = path[len - 1][0],  // path end x
+        y1 = path[len - 1][1],  // path end y
+        sx, sy,                 // current start coordinate
+        ex, ey,                 // current end coordinate
+        newPath,
+        i, j, coord, line, testCoord, blocked;
+
+    sx = x0;
+    sy = y0;
+    newPath = [[sx, sy]];
+
+    for (i = 2; i < len; ++i) {
+        coord = path[i];
+        ex = coord[0];
+        ey = coord[1];
+        line = interpolate(sx, sy, ex, ey);
+
+        blocked = false;
+        for (j = 1; j < line.length; ++j) {
+            testCoord = line[j];
+
+            if (!grid.isWalkableAt(testCoord[0], testCoord[1])) {
+                blocked = true;
+                break;
+            }
+        }
+        if (blocked) {
+            lastValidCoord = path[i - 1];
+
+            /*! edit by meta3d */
+            if (!grid.isWalkableAt(lastValidCoord[0], lastValidCoord[1])) {
+                return []
+            }
+
+            newPath.push(lastValidCoord);
+            sx = lastValidCoord[0];
+            sy = lastValidCoord[1];
+        }
+    }
+    newPath.push([x1, y1]);
+
+    return newPath;
+}
+exports.smoothenPathOptimize = smoothenPathOptimize;
+
+
+
 /**
  * Compress a path, remove redundant nodes without altering the shape
  * The original path is not modified

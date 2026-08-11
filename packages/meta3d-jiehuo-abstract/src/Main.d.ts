@@ -26,6 +26,7 @@ import * as LOD_ from "./lod/LOD"
 import * as Layer_ from "./Layer"
 import * as Merge_ from "./Merge"
 import * as Flow_ from "./Flow"
+import * as Optimize_ from "./Optimize"
 import * as NewThreeInstance_ from "./NewThreeInstance"
 import * as Billboard_ from "./ui_2d/Billboard"
 import * as LabelManager_ from "./ui_2d/LabelManager"
@@ -41,7 +42,15 @@ import * as AmbientLight_ from "./light/AmbientLight"
 import * as CSM_ from "./light/CSM"
 import * as Shadow_ from "./light/Shadow"
 import * as Environment_ from "./environment/Environment"
+import * as Clipboard_ from "./Clipboard"
 import * as Storage_ from "./storage/Storage"
+import * as CustomizeTree_ from "./procedural/tree/CustomizeTree"
+import * as TreeBuilder_ from "./procedural/tree/TreeBuilder"
+import * as LeafGeometry_ from "./procedural/tree/leaf_flower_fruit/LeafGeometry"
+import * as GrassInstance_ from "./procedural/grass/instance/GrassInstance"
+import * as GrassMap_ from "./procedural/grass/map/GrassMap"
+import * as Flower1_ from "./procedural/flower/flower1/Flower1"
+import * as Flower2_ from "./procedural/flower/flower2/Flower2"
 import * as SkyBox_ from "./sky/SkyBox"
 import * as Terrain_ from "./terrain/Terrain"
 
@@ -49,11 +58,11 @@ import * as Console_ from "./log/Console"
 
 import * as PathFind_ from "./ai/PathFind"
 
+import * as RenderSetting_ from "./setting/RenderSetting"
+
 import * as GPUSkin_ from "./gpu_skin/GPUSkin"
 
 import * as Version_ from "./version/Version"
-
-import * as RenderSetting_ from "./setting/RenderSetting"
 
 import * as Decal_ from "./decal/Decal"
 
@@ -69,11 +78,13 @@ import * as MMD_ from "./mmd/MMD"
 
 import * as NullableUtils_ from "./utils/NullableUtils";
 import * as ArrayUtils_ from "./utils/ArrayUtils";
+import * as QueueUtils_ from "./utils/QueueUtils";
 import * as Contract_ from "./utils/Contract";
 import * as Object3DUtils_ from "./utils/Object3DUtils";
 import * as ScreenUtils_ from "./utils/ScreenUtils";
 import * as nullable_ from "./utils/nullable";
 import * as MutableMapUtils_ from "./utils/MutableMapUtils";
+import * as MutableRecordUtils_ from "./utils/MutableRecordUtils";
 import * as MutableNumberMapUtils_ from "./utils/MutableNumberMapUtils";
 import * as NumberUtils_ from "./utils/NumberUtils";
 import * as TransformUtils_ from "./utils/TransformUtils";
@@ -123,6 +134,7 @@ export declare let LOD: typeof LOD_;
 export declare let Layer: typeof Layer_;
 export declare let Merge: typeof Merge_;
 export declare let Flow: typeof Flow_;
+export declare let Optimize: typeof Optimize_;
 export declare let NewThreeInstance: typeof NewThreeInstance_;
 export declare let State: typeof State_;
 export declare let Camera: typeof Camera_;
@@ -138,7 +150,9 @@ export declare let Shadow: typeof Shadow_;
 export declare let Environment: typeof Environment_;
 export declare let NullableUtils: typeof NullableUtils_;
 export declare let ArrayUtils: typeof ArrayUtils_;
+export declare let QueueUtils: typeof QueueUtils_;
 export declare let MutableMapUtils: typeof MutableMapUtils_;
+export declare let MutableRecordUtils: typeof MutableRecordUtils_;
 export declare let MutableNumberMapUtils: typeof MutableNumberMapUtils_;
 export declare let NumberUtils: typeof NumberUtils_;
 export declare let TransformUtils: typeof TransformUtils_;
@@ -154,7 +168,15 @@ export declare let ScreenUtils: typeof ScreenUtils_;
 export declare let nullable: typeof nullable_;
 export declare let DisposeUtils: typeof DisposeUtils_;
 export declare let SceneUtils: typeof SceneUtils_;
+export declare let Clipboard: typeof Clipboard_;
 export declare let Storage: typeof Storage_;
+export declare let CustomizeTree: typeof CustomizeTree_;
+export declare let TreeBuilder: typeof TreeBuilder_;
+export declare let LeafGeometry: typeof LeafGeometry_;
+export declare let GrassInstance: typeof GrassInstance_;
+export declare let GrassMap: typeof GrassMap_;
+export declare let Flower1: typeof Flower1_;
+export declare let Flower2: typeof Flower2_;
 
 export declare let SkyBox: typeof SkyBox_;
 export declare let Terrain: typeof Terrain_;
@@ -163,11 +185,11 @@ export declare let Console: typeof Console_;
 
 export declare let PathFind: typeof PathFind_;
 
+export declare let RenderSetting: typeof RenderSetting_;
+
 export declare let GPUSkin: typeof GPUSkin_;
 
 export declare let Version: typeof Version_;
-
-export declare let RenderSetting: typeof RenderSetting_;
 
 export declare let Decal: typeof Decal_;
 

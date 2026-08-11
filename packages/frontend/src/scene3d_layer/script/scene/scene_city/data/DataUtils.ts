@@ -12,7 +12,8 @@ export let findArticluatedAnimationData = (state: state, name) => {
 }
 
 
-export let playArticluatedAnimation = (state: state, [onUpdateFunc, getValueFunc, getParamFunc, handleTweenRepeatCompleteFunc, onStartFunc = () => Promise.resolve()], articluatedAnimationData: articluatedAnimationData<articluatedAnimationName>) => {
+// export let playArticluatedAnimation = (state: state, [onUpdateFunc, getValueFunc, getParamFunc, handleTweenRepeatCompleteFunc, onStartFunc = () => Promise.resolve()], articluatedAnimationData: articluatedAnimationData<articluatedAnimationName>) => {
+export let playArticluatedAnimation = (state: state, [onUpdateFunc, getValueFunc, getParamFunc, handleTweenRepeatCompleteFunc, onStartFunc], articluatedAnimationData: articluatedAnimationData<articluatedAnimationName>) => {
 	let object = {
 		...articluatedAnimationData.initial(state, getValueFunc)
 	}
@@ -28,7 +29,12 @@ export let playArticluatedAnimation = (state: state, [onUpdateFunc, getValueFunc
 	let tweenFirst = ArticluatedAnimation.createTween(getAbstractState(state), object)
 		.to(tweensData[0][0], tweensData[0][1],)
 		.onUpdate(onUpdateFunc)
-		.onStart(onStartFunc)
+
+	NullableUtils.forEach(onStartFunc => {
+		tweenFirst.onStart(onStartFunc)
+	}, onStartFunc)
+
+
 
 	allTweens.push(tweenFirst)
 

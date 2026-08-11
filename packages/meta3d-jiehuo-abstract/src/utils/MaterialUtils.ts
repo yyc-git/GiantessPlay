@@ -1,10 +1,10 @@
-import { Object3D, Color, FrontSide, DoubleSide, Material, Mesh, NoBlending, BackSide } from "three"
+import { Object3D, Color, FrontSide, DoubleSide, Material, Mesh, NoBlending, BackSide, MeshPhongMaterial, Texture } from "three"
 import { createMeshBasicMaterial, createMeshPhongMaterial } from "../NewThreeInstance"
 import { nullable } from "./nullable"
 import { NullableUtils } from "../Main"
 import { isNullable } from "./NullableUtils"
 
-export let fixZFighting = (material: Material) => {
+export let fixZFighting = <T extends Material>(material: T): T => {
 	material.depthTest = true
 	material.depthWrite = false
 	material.polygonOffset = true
@@ -13,20 +13,28 @@ export let fixZFighting = (material: Material) => {
 	return material
 }
 
-export let changeToPhongMaterial = (obj) => {
-	let array = [];
-
+let _handleMaterial = (material, func) => {
 	let materials
-	if (obj.material.isMaterial) {
-		materials = [obj.material]
+	if (material.isMaterial) {
+		materials = [material]
 	}
 	else {
-		materials = obj.material
+		materials = material
 	}
 
-	for (let i = 0, il = materials.length; i < il; i++) {
-		let material = materials[i]
+	let array = materials.map(func)
 
+
+	if (array.length == 1) {
+		return array[0]
+	}
+	else {
+		return array
+	}
+}
+
+export let changeToPhongMaterial = (obj) => {
+	obj.material = _handleMaterial(obj.material, material => {
 		let m = createMeshPhongMaterial({})
 		if (material.isMeshStandardMaterial) {
 			m.color = material.color
@@ -41,6 +49,8 @@ export let changeToPhongMaterial = (obj) => {
 			}
 
 			m.blending = NoBlending
+
+			m.side = material.side
 		}
 		else {
 			m.copy(material);
@@ -51,19 +61,36 @@ export let changeToPhongMaterial = (obj) => {
 
 		m.needsUpdate = true;
 
-		array.push(m);
-	}
+		return m
+	})
 
-	if (array.length == 1) {
-		obj.material = array[0]
-	}
-	else {
-		obj.material = array
-	}
 
 	return obj
 }
 
+export let makeMaterialShaderUnique = (material) => {
+	return _handleMaterial(material, material => {
+		material.defines = {
+			MY_CUSTOM_DEFINE: Math.random()
+		}
+
+		return material
+	})
+}
+
+let _cloneTexture = (map: nullable<Texture>) => {
+	return NullableUtils.getWithDefault(NullableUtils.map(map => {
+		return map.clone()
+	}, map), map)
+}
+
+export let cloneTextures = (material: MeshPhongMaterial) => {
+	material.map = _cloneTexture(material.map)
+	material.emissiveMap = _cloneTexture(material.emissiveMap)
+	material.specularMap = _cloneTexture(material.specularMap)
+
+	return material
+}
 
 
 

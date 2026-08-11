@@ -8,10 +8,10 @@ export enum animatioNameAndActionName {
     Shake = "LittleMan_Shake",
     Death = "LittleMan_Death",
     Shoot = "LittleMan_Shoot",
-    Swiping = "LittleMan_Swiping",
+    // Swiping = "LittleMan_Swiping",
     // VeryFastShoot = "LittleMan_VeryFastShoot",
 
-    Controlled = "LittleMan_Controlled",
+    PickedControlled = "LittleMan_Controlled",
 
     Lie = "LittleMan_Lie",
     Standup = "LittleMan_Standup",
@@ -26,7 +26,7 @@ export enum animatioNameAndActionName {
 //     // Walk = "Walk",
 // }
 
-export type animationName = animatioNameAndActionName
+export type animationName = animatioNameAndActionName | string
 // | extendedAnimationName
 // export const animationName = { ...animatioNameAndActionName, ...extendedAnimationName }
 export const animationName = animatioNameAndActionName
@@ -38,9 +38,11 @@ enum extendedActionName {
     Reborn = "LittleMan_Reborn",
 
     Blink = "LittleMan_Blink",
+
+    Lock = "LittleMan_Lock",
 }
 
-export type actionName = animatioNameAndActionName | extendedActionName
+export type actionName = animatioNameAndActionName | extendedActionName | string
 export const actionName = { ...animatioNameAndActionName, ...extendedActionName }
 
 
@@ -72,3 +74,16 @@ export type animationCollisionData = {
         ) => T
     }>
 }
+
+
+export type animationBlendData<animationName> = Array<{
+    condition: (state: state) => boolean,
+    // isCurrentAnimationName?: (state: state) => boolean,
+
+    // currentAnimationName?: animationName,
+    currentAnimationNames: Array<animationName | string>,
+    nextAnimationName: animationName | string,
+    weight?: number,
+    noBlend?: boolean,
+    isOnlyPlayOnce?: boolean,
+}>

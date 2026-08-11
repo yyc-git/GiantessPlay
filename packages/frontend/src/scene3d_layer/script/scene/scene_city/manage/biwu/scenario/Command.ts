@@ -3,18 +3,17 @@ import { Euler, Quaternion, Vector3 } from "three"
 import { command, targetType } from "../../../type/StateType";
 import { Console } from "meta3d-jiehuo-abstract";
 import { state } from "../../../../../../type/StateType";
-import { markWhetherNotExecuteGiantessAI, setId, setTarget } from "../../../behaviour_tree/BehaviourTreeManager";
+import { getUsedGirlData, markWhetherNotExecuteGiantessAI, setId, setTarget } from "../../../behaviour_tree/BehaviourTreeManager";
 import { PathFind } from "meta3d-jiehuo-abstract";
 import { getAbstractState, setAbstractState } from "../../../../../../state/State";
-import { computeAndSetDirectionData, convertPathPointToVec3Position, convertVec3PositionToPathPoint, isReach, optimizeFirstPathPoint, stopMove } from "../../../behaviour_tree/action_node/WalkToTarget";
-import { getPivotWorldPosition, setPivotWorldPositionAndUpdateBox, unlockGirlRotation } from "../../../girl/Utils";
+import { computeAndSetDirectionData, convertPathPointToVec3Position, convertVec3PositionToPathPoint, isFarawayFromPath, isReach, optimizeFirstPathPoint, stopMove } from "../../../behaviour_tree/action_node/WalkToTarget";
+import { getPivotWorldPosition, setGirlPosition, setPivotWorldPositionAndUpdateBox, unlockGirlRotation } from "../../../girl/Utils";
 import { getGridForGirl } from "../../../manage/city1/PathFind";
-import { getName } from "../../../girl/Girl";
 import { getIsDebug, getIsNotTestPerf } from "../../../../Scene";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { NumberUtils } from "meta3d-jiehuo-abstract";
 import { CameraControls } from "meta3d-jiehuo-abstract";
-import { road } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { characterType } from "meta3d-jiehuo-abstract/src/type/StateType";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { actionName } from "../../../data/biwu/level1/DataType";
 import { triggerAction as triggerGirlAction } from "../Girl";
@@ -25,6 +24,8 @@ import { command as commandData } from "../../../data/biwu/level1/ScenarioData";
 import { enterScenario, exitScenario, markBegin, markFinish, moveCamera, playGirlAnimation, realtimeSay, say } from "../../../scenario/Command";
 import { getCustomData, getCustomDataExn, setCustomData } from "../../../game_event/GameEvent";
 import { lookatTargetPosition } from "../../../behaviour_tree/action_node/Utils";
+import { getUsedGirl } from "../Utils";
+import { buildNameByUsedGirl } from "../../../girl/Girl";
 
 const _q1 = new Quaternion();
 const _v1 = new Vector3();
@@ -35,29 +36,29 @@ type pickdownArmyData = {
 	getIndexFunc: (state: state) => number
 }
 
-let _move = (state: state, onCompleteFunc, pathIndex, path, targetPosition) => {
+let _move = (state: state, onCompleteFunc, usedGirl, pathIndex, path, targetPosition) => {
 	// let stopMoveResult = NullableUtils.getEmpty()
 
-	// if (!hasTarget(state)) {
+	// if (!hasTarget(state, usedGirl)) {
 	//     return _stopMove(state, id, behaviourTreeNodeExecuteResult.Fail)
 	// }
 
 
 	if (pathIndex + 1 >= path.length
-		// || isInGirlAttackRange(state, targetPosition, attackRange.Small, NullableUtils.getEmpty())
+		// || isInGirlAttackRange(state, usedGirl, targetPosition, attackRange.Small, NullableUtils.getEmpty())
 		// || isMoveCollisioned(state)
 	) {
 		// stopMoveResult = NullableUtils.return_(behaviourTreeNodeExecuteResult.Success)
 
 
-		state = setAbstractState(state, CameraControls.resetDirectionData(getAbstractState(state), road.Giantess))
+		state = setAbstractState(state, CameraControls.resetGiantessDirectionData(getAbstractState(state), usedGirl))
 		// return stopMove(state, id, NullableUtils.getExn(stopMoveResult))
 		return onCompleteFunc(state)
 	}
 	// else if (
 	//     isMoveCollisioned(state)
-	//     || isChangeScaling(state)
-	//     || isStressingState(getStateMachine(state))
+	//     || isChangeScaling(state, usedGirl)
+	//     || isControlledState(state, getStateMachine(state))
 	// ) {
 	//     stopMoveResult = NullableUtils.return_(behaviourTreeNodeExecuteResult.Fail)
 	// }
@@ -70,13 +71,13 @@ let _move = (state: state, onCompleteFunc, pathIndex, path, targetPosition) => {
 
 
 
-	state = computeAndSetDirectionData(state, path[pathIndex], path[pathIndex + 1])
+	state = computeAndSetDirectionData(state, usedGirl, path[pathIndex], path[pathIndex + 1])
 
 	return Promise.resolve(setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
-		if (isReach(state, path[pathIndex + 1])) {
-			state = setPivotWorldPositionAndUpdateBox(state, convertPathPointToVec3Position(path[pathIndex + 1]))
+		if (isReach(state, usedGirl, path[pathIndex + 1])) {
+			state = setPivotWorldPositionAndUpdateBox(state, usedGirl, convertPathPointToVec3Position(path[pathIndex + 1]))
 
-			// if (!hasTarget(state)) {
+			// if (!hasTarget(state, usedGirl)) {
 			//     state = _stopMove(state, id, behaviourTreeNodeExecuteResult.Fail)
 
 			//     return Promise.resolve(state)
@@ -84,25 +85,34 @@ let _move = (state: state, onCompleteFunc, pathIndex, path, targetPosition) => {
 
 
 
-			return Promise.resolve(_move(state, onCompleteFunc, pathIndex + 1, path, targetPosition))
+			return Promise.resolve(_move(state, onCompleteFunc, usedGirl, pathIndex + 1, path, targetPosition))
 		}
-		// else if (_isFarawayFromPath(state, path[pathIndex], path[pathIndex + 1])) {
-		//     Console.warn(`far away from ${path[pathIndex + 1].toArray()}`)
+		else if (isFarawayFromPath(state, usedGirl, path[pathIndex], path[pathIndex + 1])) {
+			Console.warn(`far away from ${path[pathIndex + 1].toArray()}`)
 
-		//     // Console.warn(
-		//     //     convertVec3PositionToPathPoint(getPivotWorldPosition(state)),
-		//     //     convertVec3PositionToPathPoint(getPivotWorldPosition(state)).distanceTo(
-		//     //         path[pathIndex + 1]
-		//     //     )
-		//     // )
+			// Console.warn(
+			//     convertVec3PositionToPathPoint(getPivotWorldPosition(state, usedGirl)),
+			//     convertVec3PositionToPathPoint(getPivotWorldPosition(state, usedGirl)).distanceTo(
+			//         path[pathIndex + 1]
+			//     )
+			// )
 
 
-		//     state = _stopMove(state, id, behaviourTreeNodeExecuteResult.Fail)
+			// state = _stopMove(state, id, behaviourTreeNodeExecuteResult.Fail)
+			state = setAbstractState(state, CameraControls.resetGiantessDirectionData(getAbstractState(state), usedGirl))
+			// return stopMove(state, id, NullableUtils.getExn(stopMoveResult))
 
-		//     return Promise.resolve(state)
-		// }
 
-		return _move(state, onCompleteFunc, pathIndex, path, targetPosition)
+			if (!NullableUtils.isNullable(getUsedGirlData(state, usedGirl).initialPosition)) {
+				state = setGirlPosition(state, usedGirl, NullableUtils.getExn(getUsedGirlData(state, usedGirl).initialPosition))
+			}
+
+			return onCompleteFunc(state)
+
+			// return Promise.resolve(state)
+		}
+
+		return _move(state, onCompleteFunc, usedGirl, pathIndex, path, targetPosition)
 	}, 1)))
 }
 
@@ -116,12 +126,14 @@ export let walkToTargetPosition: command<{
 
 	let targetPosition = _v1.fromArray(data.getTargetPositionFunc(state))
 
+	let usedGirl = getUsedGirl()
 
 	let pathData = PathFind.findPath(getAbstractState(state), finder,
-		convertVec3PositionToPathPoint(getPivotWorldPosition(state)),
+		convertVec3PositionToPathPoint(getPivotWorldPosition(state, usedGirl)),
 		convertVec3PositionToPathPoint(targetPosition),
-		getGridForGirl(state),
-		getName(),
+		false,
+		getGridForGirl(state, usedGirl),
+		buildNameByUsedGirl(usedGirl),
 		getIsDebug(state),
 		NullableUtils.getEmpty(),
 		NullableUtils.return_(5)
@@ -130,8 +142,8 @@ export let walkToTargetPosition: command<{
 	let path = pathData[1]
 
 	if (path.length > 1) {
-		path = optimizeFirstPathPoint(path, state)
-		state = setPivotWorldPositionAndUpdateBox(state, convertPathPointToVec3Position(path[0]))
+		path = optimizeFirstPathPoint(path, state, usedGirl)
+		state = setPivotWorldPositionAndUpdateBox(state, usedGirl, convertPathPointToVec3Position(path[0]))
 
 
 		if (getIsDebug(state) && getIsNotTestPerf(state)) {
@@ -139,13 +151,13 @@ export let walkToTargetPosition: command<{
 		}
 
 
-		// state = markIsRunning(state, true)
+		// state = markIsRunning(state, usedGirl,true)
 
 
-		state = unlockGirlRotation(state)
+		state = unlockGirlRotation(state, usedGirl)
 
 
-		return _move(state, onCompleteFunc, 0, path, targetPosition)
+		return _move(state, onCompleteFunc, usedGirl, 0, path, targetPosition)
 	}
 
 	return onCompleteFunc(state)
@@ -170,10 +182,12 @@ export let pickdownArmy: command<pickdownArmyData> = (state: state, onCompleteFu
 
 	state = setPickdownArmyData(state, data.getIndexFunc(state), false)
 
+	let usedGirl = getUsedGirl()
+
 	return triggerAction(state,
 		[
 			triggerGirlAction,
 			onCompleteFunc,
-		],
+		], usedGirl,
 		actionName.PickdownFromIdle)
 }

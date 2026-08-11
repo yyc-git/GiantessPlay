@@ -4,22 +4,27 @@ import { Console } from "meta3d-jiehuo-abstract";
 // import { triggerAction } from "../../../../../behaviour_tree/action_node/Utils";
 import { actionName, animationName, articluatedAnimationName } from "../../DataType";
 import { lookatTarget } from "../../../../../behaviour_tree/action_node/Stomp";
-import { judgeAttackRangeAndTriggerActionWithCompleteFunc, lookatTargetPosition, triggerAction } from "../../../../../behaviour_tree/action_node/Utils";
+import { lookatTargetPosition, triggerAction } from "../../../../../behaviour_tree/action_node/Utils";
 import * as Girl from "../../../../../manage/biwu/Girl";
 import { isExcitementEnough, isZeroExcitement, subExcitement } from "../../../../../girl/Excitement";
 import { excitement } from "../../../../DataType";
-import { hasPickData } from "../../../../../girl/PickPose";
+import { hasPickData } from "../../../../../girl/PickPoseUtils";
 import { markFinish } from "../../../../../behaviour_tree/BehaviourTreeManager";
 import { getCenterPosition } from "../../Utils";
 
 const _v1 = new Vector3();
 
-export let pickdown: actionNodeFunc = (state, id) => {
+export let pickdown: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("pickdown")
+
+    if (!hasPickData(state, usedGirl)) {
+        return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    }
+
 
     let actionName_
     actionName_ = actionName.Pickdown
-    // switch (getCurrentPose(state)) {
+    // switch (getCurrentPose(state, usedGirl)) {
     //     case pose.Stand:
     //     case pose.Crawl:
     //         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
@@ -28,7 +33,7 @@ export let pickdown: actionNodeFunc = (state, id) => {
     //         break
     // }
 
-    state = lookatTargetPosition(state, (state, lookatQuaternion) => lookatQuaternion, _v1.fromArray(getCenterPosition()))
+    state = lookatTargetPosition(state, (state, lookatQuaternion) => lookatQuaternion, usedGirl, _v1.fromArray(getCenterPosition()))
 
-    return triggerAction(state, actionName_, id, Girl.triggerAction)
+    return triggerAction(state, usedGirl, actionName_, id, Girl.triggerAction)
 }

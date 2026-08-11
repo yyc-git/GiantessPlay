@@ -1,10 +1,24 @@
-@import "../../../Main.scss";
+@use "../../../Main.scss" as *;
 
 .index-main {
 	width: 100%;
 	height: 100%;
 
 	@include background;
+}
 
+.network_error_handle_modal_body {
+	overflow-x: hidden !important;
+	overflow-y: auto !important;
 
+	max-height: 25rem !important;
+
+	.adm-modal-content {
+		overflow-x: visible !important;
+		overflow-y: visible !important;
+	}
+
+	.adm-auto-center-content {
+		@include font-size;
+	}
 }

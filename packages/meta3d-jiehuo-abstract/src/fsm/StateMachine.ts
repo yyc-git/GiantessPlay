@@ -1,7 +1,9 @@
+import { NullableUtils } from "../Main"
 import { getPlayClipData } from "../gpu_skin/GPUSkinAnimation"
 import { fsm_state, stateMachine, fsmStateName } from "../type/StateType"
 import { requireCheck, test } from "../utils/Contract"
 import { getWithDefault, isNullable, map, return_ } from "../utils/NullableUtils"
+import { nullable } from "../utils/nullable"
 
 export let create = (name, currentState): stateMachine<any> => {
 	return {
@@ -11,8 +13,13 @@ export let create = (name, currentState): stateMachine<any> => {
 	}
 }
 
-export let isState = (stateMachine: stateMachine<any>, fsmStateName: fsmStateName) => {
-	return stateMachine.currentState.name == fsmStateName
+export let isState = (stateMachine: nullable<stateMachine<any>>, fsmStateName: fsmStateName) => {
+	return NullableUtils.getWithDefault(
+		NullableUtils.map(stateMachine => {
+			return stateMachine.currentState.name == fsmStateName
+		}, stateMachine),
+		false
+	)
 }
 
 export let isPreviousState = (stateMachine: stateMachine<any>, fsmStateName: fsmStateName) => {
@@ -25,10 +32,10 @@ export let isPreviousState = (stateMachine: stateMachine<any>, fsmStateName: fsm
 	)
 }
 
-export let changeState = <specificState>(specificState: specificState, stateMachine: stateMachine<specificState>, newState: fsm_state<specificState>): Promise<[specificState, stateMachine<specificState>]> => {
-	if (isState(stateMachine, newState.name)) {
-		return Promise.resolve([specificState, stateMachine])
-	}
+let _changeState = <specificState>(specificState: specificState, stateMachine: stateMachine<specificState>, newState: fsm_state<specificState>, data): Promise<[specificState, stateMachine<specificState>]> => {
+	// if (isState(stateMachine, newState.name)) {
+	// 	return Promise.resolve([specificState, stateMachine])
+	// }
 
 	stateMachine = {
 		...stateMachine,
@@ -39,13 +46,13 @@ export let changeState = <specificState>(specificState: specificState, stateMach
 	return getWithDefault(
 		map(
 			previousState => {
-				return previousState.exitFunc(specificState, stateMachine)
+				return previousState.exitFunc(specificState, stateMachine, data)
 			},
 			stateMachine.previousState
 		),
 		Promise.resolve(specificState)
 	).then(specificState => {
-		return newState.enterFunc(specificState, stateMachine).then(specificState => {
+		return newState.enterFunc(specificState, stateMachine, data).then(specificState => {
 			return [specificState, stateMachine]
 		})
 	})
@@ -62,8 +69,9 @@ export let execute = <specificState, T>(specificState: specificState, stateMachi
 	return stateMachine.currentState.executeFunc(specificState, data, stateMachine)
 }
 
-export let changeAndExecuteState = <specificState>(specificState: specificState, setStateMachineFunc, stateMachine, newState, name, data) => {
-	if (isState(stateMachine, newState.name)) {
+export let changeAndExecuteState = <specificState>(specificState: specificState, setStateMachineFunc, stateMachine: nullable<stateMachine<any>>, newState, name, data) => {
+	if (NullableUtils.isNullable(stateMachine) || isState(stateMachine, newState.name)
+	) {
 		return Promise.resolve(specificState)
 	}
 
@@ -72,8 +80,12 @@ export let changeAndExecuteState = <specificState>(specificState: specificState,
 	// 	stateMachine.currentState,
 	// 	newState
 	// )
+	// if(stateMachine.currentState.name == 16
+	// 	&& newState.name == 15){
+	// 		debugger
+	// 	}
 
-	return changeState(specificState, stateMachine, newState).then(([specificState, stateMachine]) => {
+	return _changeState(specificState, stateMachine, newState, data).then(([specificState, stateMachine]) => {
 		specificState = setStateMachineFunc(specificState, name, stateMachine)
 
 		return execute(specificState, stateMachine, data)
@@ -81,7 +93,7 @@ export let changeAndExecuteState = <specificState>(specificState: specificState,
 }
 
 export let changeAndExecuteStateWithoutName = <specificState>(specificState: specificState, setStateMachineFunc, stateMachine, newState, data) => {
-	if (isState(stateMachine, newState.name)) {
+	if (NullableUtils.isNullable(stateMachine) || isState(stateMachine, newState.name)) {
 		return Promise.resolve(specificState)
 	}
 
@@ -90,7 +102,7 @@ export let changeAndExecuteStateWithoutName = <specificState>(specificState: spe
 	// 	stateMachine.currentState,
 	// 	newState
 	// )
-	return changeState(specificState, stateMachine, newState).then(([specificState, stateMachine]) => {
+	return _changeState(specificState, stateMachine, newState, data).then(([specificState, stateMachine]) => {
 		specificState = setStateMachineFunc(specificState, stateMachine)
 
 		return execute(specificState, stateMachine, data)

@@ -1,0 +1,41 @@
+rescript = 1
+rule cp
+  command = cmd.exe /C copy /Y $i $out >NUL
+rule touch
+ command = cmd.exe /C type nul >>$out & copy $out+,, >NUL
+o Main-ProceduralCity.cmi : cp ..\bs\src\Main-ProceduralCity.cmi
+o Main-ProceduralCity.cmj : cp ..\bs\src\Main-ProceduralCity.cmj
+o Main-ProceduralCity.cmt : cp ..\bs\src\Main-ProceduralCity.cmt
+o Main.res : cp ..\..\src\Main.res
+o Type-ProceduralCity.cmi : cp ..\bs\src\Type-ProceduralCity.cmi
+o Type-ProceduralCity.cmj : cp ..\bs\src\Type-ProceduralCity.cmj
+o Type-ProceduralCity.cmt : cp ..\bs\src\Type-ProceduralCity.cmt
+o Type.res : cp ..\..\src\Type.res
+o AddProp-ProceduralCity.cmi : cp ..\bs\src\AddProp-ProceduralCity.cmi
+o AddProp-ProceduralCity.cmj : cp ..\bs\src\AddProp-ProceduralCity.cmj
+o AddProp-ProceduralCity.cmt : cp ..\bs\src\AddProp-ProceduralCity.cmt
+o AddProp.res : cp ..\..\src\AddProp.res
+o AddUtils-ProceduralCity.cmi : cp ..\bs\src\AddUtils-ProceduralCity.cmi
+o AddUtils-ProceduralCity.cmj : cp ..\bs\src\AddUtils-ProceduralCity.cmj
+o AddUtils-ProceduralCity.cmt : cp ..\bs\src\AddUtils-ProceduralCity.cmt
+o AddUtils.res : cp ..\..\src\AddUtils.res
+o RandomUtils-ProceduralCity.cmi : cp ..\bs\src\RandomUtils-ProceduralCity.cmi
+o RandomUtils-ProceduralCity.cmj : cp ..\bs\src\RandomUtils-ProceduralCity.cmj
+o RandomUtils-ProceduralCity.cmt : cp ..\bs\src\RandomUtils-ProceduralCity.cmt
+o RandomUtils.res : cp ..\..\src\RandomUtils.res
+o GenerateTile-ProceduralCity.cmi : cp ..\bs\src\GenerateTile-ProceduralCity.cmi
+o GenerateTile-ProceduralCity.cmj : cp ..\bs\src\GenerateTile-ProceduralCity.cmj
+o GenerateTile-ProceduralCity.cmt : cp ..\bs\src\GenerateTile-ProceduralCity.cmt
+o GenerateTile.res : cp ..\..\src\GenerateTile.res
+o ResourceUtils-ProceduralCity.cmi : cp ..\bs\src\ResourceUtils-ProceduralCity.cmi
+o ResourceUtils-ProceduralCity.cmj : cp ..\bs\src\ResourceUtils-ProceduralCity.cmj
+o ResourceUtils-ProceduralCity.cmt : cp ..\bs\src\ResourceUtils-ProceduralCity.cmt
+o ResourceUtils.res : cp ..\..\src\ResourceUtils.res
+o AddBuildingAndTreeAndInteraction-ProceduralCity.cmi : cp ..\bs\src\AddBuildingAndTreeAndInteraction-ProceduralCity.cmi
+o AddBuildingAndTreeAndInteraction-ProceduralCity.cmj : cp ..\bs\src\AddBuildingAndTreeAndInteraction-ProceduralCity.cmj
+o AddBuildingAndTreeAndInteraction-ProceduralCity.cmt : cp ..\bs\src\AddBuildingAndTreeAndInteraction-ProceduralCity.cmt
+o AddBuildingAndTreeAndInteraction.res : cp ..\..\src\AddBuildingAndTreeAndInteraction.res
+o ProceduralCity.cmi : cp ..\bs\ProceduralCity.cmi
+o ProceduralCity.cmj : cp ..\bs\ProceduralCity.cmj
+o ProceduralCity.cmt : cp ..\bs\ProceduralCity.cmt
+build install.stamp : touch Main-ProceduralCity.cmi Main-ProceduralCity.cmj Type-ProceduralCity.cmi Type-ProceduralCity.cmj AddProp-ProceduralCity.cmi AddProp-ProceduralCity.cmj AddUtils-ProceduralCity.cmi AddUtils-ProceduralCity.cmj RandomUtils-ProceduralCity.cmi RandomUtils-ProceduralCity.cmj GenerateTile-ProceduralCity.cmi GenerateTile-ProceduralCity.cmj ResourceUtils-ProceduralCity.cmi ResourceUtils-ProceduralCity.cmj AddBuildingAndTreeAndInteraction-ProceduralCity.cmi AddBuildingAndTreeAndInteraction-ProceduralCity.cmj ProceduralCity.cmi ProceduralCity.cmj

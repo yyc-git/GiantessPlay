@@ -2,3 +2,9 @@
 	width: 100%;
 	height: 100%;
 }
+
+canvas {
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+	/* 启用弹性滚动，同时限制下拉触发退出 */
+}

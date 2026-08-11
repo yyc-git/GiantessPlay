@@ -5,7 +5,8 @@ let LoadingSlice = createSlice<store, any, any, any, any>({
     name: 'Loading',
     initialState: {
         isLoading: false,
-        percent: 0
+        percent: 0,
+        tip:"",
     },
     reducers: {
         setIsLoading: (state: store, data) => {
@@ -18,12 +19,17 @@ let LoadingSlice = createSlice<store, any, any, any, any>({
 
             state.percent = percent
         },
+        setTip: (state: store, data) => {
+            let tip = data.payload
+
+            state.tip = tip
+        },
     },
     selectors: {
     }
 })
 
 // Action creators are generated for each case reducer function
-export let { setIsLoading, setPercent }: any = LoadingSlice.actions
+export let { setIsLoading, setPercent, setTip }: any = LoadingSlice.actions
 
 export default LoadingSlice.reducer

@@ -1,4 +1,4 @@
-import {BufferGeometry, BoxGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, Object3D, OrthographicCamera, PerspectiveCamera, PlaneGeometry, PointLight, SphereGeometry, Line, Scene, MeshPhongMaterial } from "three"
+import { BufferGeometry, BufferAttribute, BoxGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, Object3D, OrthographicCamera, PerspectiveCamera, PlaneGeometry, PointLight, SphereGeometry, Line, Scene, MeshPhongMaterial, PointsMaterial, Points } from "three"
 
 export let createObject3D = () => {
     return new Object3D()
@@ -16,6 +16,10 @@ export let createGroup = () => {
     return new Group()
 }
 
+export let createPointsMaterial = (config) => {
+    return new PointsMaterial(config)
+}
+
 export let createMeshPhysicalMaterial = (config) => {
     return new MeshPhysicalMaterial(config)
 }
@@ -31,6 +35,11 @@ export let createMeshPhongMaterial = (config) => {
 export let createBufferGeometry = () => {
     return new BufferGeometry()
 }
+
+export let createBufferAttribtue = (arg1, arg2, arg3?) => {
+    return new BufferAttribute(arg1, arg2, arg3)
+}
+
 
 export let createBoxGeometry = (...args) => {
     return new BoxGeometry(...args)
@@ -62,4 +71,8 @@ export let createOrthographicCamera = (...args) => {
 
 export let createLine = (...args) => {
     return new Line(...args)
+}
+
+export let createPoints = (...args) => {
+    return new Points(...args)
 }

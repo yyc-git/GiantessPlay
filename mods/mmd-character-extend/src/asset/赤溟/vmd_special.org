@@ -1,0 +1,24 @@
+# from vmd_166/
+    crawl_move.vmd
+    pickdown.vmd
+    pickdown_fromIdle.vmd
+    pickup.vmd
+    stand_to_crawl.vmd
+    crawl_to_stand.vmd
+
+# other from vmd_160/
+
+free_shoe
+put_to_shoe
+
+sit related
+
+
+breast_press
+breast_press_rub
+keep_breast_press
+
+crawl_beat
+crawl_lick
+
+spray_milk

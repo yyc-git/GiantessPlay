@@ -1,6 +1,6 @@
 import { TransformUtils } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../type/StateType"
-import { getPickObjectName, hasPickData, removePickData } from "../girl/PickPose"
+import { isPicked, removePickData } from "../girl/PickPoseUtils"
 import { getLittleManState, getName } from "./LittleMan"
 import { getPosition } from "./Transform"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
@@ -9,21 +9,17 @@ import { stateMachine } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { StateMachine } from "meta3d-jiehuo-abstract"
 import { objectStateName, xzRange } from "../type/StateType"
 import { isInXZRange } from "../manage/city1/soldier/utils/CommanderUtils"
-import { getCameraFar } from "../utils/LittleManCameraUtils"
+import { getCameraFar } from "../Camera"
 
 const _v1 = new Vector3();
 
-let _isPicked = (state: state) => {
-    return hasPickData(state) && getPickObjectName(state) == getName()
-}
+// export let clearPick = (state: state) => {
+//     if (isPicked(state, getName())) {
+//         state = removePickData(state, getName())
+//     }
 
-export let clearPick = (state: state) => {
-    if (_isPicked(state)) {
-        state = removePickData(state)
-    }
-
-    return state
-}
+//     return state
+// }
 
 export let getTargetPosition = (state: state) => {
     let aim = NullableUtils.getExn(getLittleManState(state).aim)
@@ -42,12 +38,8 @@ export let getLookat = (state: state) => {
     )
 }
 
-export let isLieState = (stateMachine: stateMachine<state>) => {
-    return StateMachine.isState(stateMachine, objectStateName.Lie) || StateMachine.isState(stateMachine, objectStateName.Standup)
-}
 
-
-export let isNotInMovableRanges = (boxCenter: Vector3, movableRanges: Array<xzRange>) => {
+export let isNotInMovableRanges = (position: Vector3, movableRanges: Array<xzRange>) => {
     if (movableRanges.length == 0) {
         return false
     }
@@ -57,6 +49,6 @@ export let isNotInMovableRanges = (boxCenter: Vector3, movableRanges: Array<xzRa
             return isIn
         }
 
-        return isInXZRange(boxCenter, range)
+        return isInXZRange(position, range)
     }, false)
 }

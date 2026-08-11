@@ -221,81 +221,200 @@ var now = function () { return performance.now(); };
  * Using the TWEEN singleton to manage your tweens can cause issues in large apps with many components.
  * In these cases, you may want to create your own smaller groups of tween
  */
+// var Group = /** @class */ (function () {
+//     function Group() {
+//         var tweens = [];
+//         for (var _i = 0; _i < arguments.length; _i++) {
+//             tweens[_i] = arguments[_i];
+//         }
+//         this._tweens = {};
+//         this._tweensAddedDuringUpdate = {};
+//         this.add.apply(this, tweens);
+//     }
+//     Group.prototype.getAll = function () {
+//         var _this = this;
+//         return Object.keys(this._tweens).map(function (tweenId) { return _this._tweens[tweenId]; });
+//     };
+//     Group.prototype.removeAll = function () {
+//         this._tweens = {};
+//     };
+//     Group.prototype.add = function () {
+//         var _a;
+//         var tweens = [];
+//         for (var _i = 0; _i < arguments.length; _i++) {
+//             tweens[_i] = arguments[_i];
+//         }
+//         for (var _b = 0, tweens_1 = tweens; _b < tweens_1.length; _b++) {
+//             var tween = tweens_1[_b];
+//             // Remove from any other group first, a tween can only be in one group at a time.
+//             // @ts-expect-error library internal access
+//             (_a = tween._group) === null || _a === void 0 ? void 0 : _a.remove(tween);
+//             // @ts-expect-error library internal access
+//             tween._group = this;
+//             this._tweens[tween.getId()] = tween;
+//             this._tweensAddedDuringUpdate[tween.getId()] = tween;
+//         }
+//     };
+
+//     /*! edit by meta3d */
+//     // Group.prototype.remove = function () {
+//     //     var tweens = [];
+//     //     for (var _i = 0; _i < arguments.length; _i++) {
+//     //         tweens[_i] = arguments[_i];
+//     //     }
+//     //     for (var _a = 0, tweens_2 = tweens; _a < tweens_2.length; _a++) {
+//     //         var tween = tweens_2[_a];
+//     //         // @ts-expect-error library internal access
+//     //         tween._group = undefined;
+//     //         delete this._tweens[tween.getId()];
+//     //         delete this._tweensAddedDuringUpdate[tween.getId()];
+//     //     }
+//     // };
+//     Group.prototype.remove = function (tween) {
+//         // var tweens = [];
+//         // for (var _i = 0; _i < arguments.length; _i++) {
+//         //     tweens[_i] = arguments[_i];
+//         // }
+//         // for (var _a = 0, tweens_2 = tweens; _a < tweens_2.length; _a++) {
+//         //     var tween = tweens_2[_a];
+//         // @ts-expect-error library internal access
+//         tween._group = undefined;
+//         delete this._tweens[tween.getId()];
+//         delete this._tweensAddedDuringUpdate[tween.getId()];
+//         // }
+//     };
+
+
+
+//     /** Return true if all tweens in the group are not paused or playing. */
+//     Group.prototype.allStopped = function () {
+//         return this.getAll().every(function (tween) { return !tween.isPlaying(); });
+//     };
+//     /*! edit by meta3d:
+//     set async, await */
+//     // Group.prototype.update = function (time, preserve) {
+//     Group.prototype.update = async function (time, preserve) {
+//         if (time === void 0) { time = now(); }
+//         if (preserve === void 0) { preserve = true; }
+//         var tweenIds = Object.keys(this._tweens);
+//         if (tweenIds.length === 0)
+//             return;
+//         // Tweens are updated in "batches". If you add a new tween during an
+//         // update, then the new tween will be updated in the next batch.
+//         // If you remove a tween during an update, it may or may not be updated.
+//         // However, if the removed tween was added during the current batch,
+//         // then it will not be updated.
+//         while (tweenIds.length > 0) {
+//             // console.log(tweenIds.length);
+//             this._tweensAddedDuringUpdate = {};
+//             for (var i = 0; i < tweenIds.length; i++) {
+//                 var tween = this._tweens[tweenIds[i]];
+//                 var autoStart = !preserve;
+//                 /*!edit by meta3d */
+//                 if (tween && await tween.update(time, autoStart) === false && !preserve) {
+//                     this.remove(tween)
+//                     tween.dispose()
+//                 }
+
+//             }
+//             tweenIds = Object.keys(this._tweensAddedDuringUpdate);
+//         }
+//     };
+//     return Group;
+// }());
 var Group = /** @class */ (function () {
     function Group() {
         var tweens = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             tweens[_i] = arguments[_i];
         }
-        this._tweens = {};
-        this._tweensAddedDuringUpdate = {};
+        // 使用 Map 替代 Object
+        this._tweens = new Map();
+        this._tweensAddedDuringUpdate = new Map();
         this.add.apply(this, tweens);
     }
     Group.prototype.getAll = function () {
-        var _this = this;
-        return Object.keys(this._tweens).map(function (tweenId) { return _this._tweens[tweenId]; });
+        return Array.from(this._tweens.values());
     };
     Group.prototype.removeAll = function () {
-        this._tweens = {};
+        this._tweens.clear();
     };
     Group.prototype.add = function () {
-        var _a;
         var tweens = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             tweens[_i] = arguments[_i];
         }
-        for (var _b = 0, tweens_1 = tweens; _b < tweens_1.length; _b++) {
-            var tween = tweens_1[_b];
-            // Remove from any other group first, a tween can only be in one group at a time.
-            // @ts-expect-error library internal access
-            (_a = tween._group) === null || _a === void 0 ? void 0 : _a.remove(tween);
-            // @ts-expect-error library internal access
+        for (var _a = 0, tweens_1 = tweens; _a < tweens_1.length; _a++) {
+            var tween = tweens_1[_a];
+            // 从原组中移除
+            if (tween._group) {
+                tween._group.remove(tween);
+            }
+
+            // 添加到当前组
             tween._group = this;
-            this._tweens[tween.getId()] = tween;
-            this._tweensAddedDuringUpdate[tween.getId()] = tween;
+            var id = tween.getId();
+            this._tweens.set(id, tween);
+            this._tweensAddedDuringUpdate.set(id, tween);
         }
     };
-    Group.prototype.remove = function () {
-        var tweens = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            tweens[_i] = arguments[_i];
-        }
-        for (var _a = 0, tweens_2 = tweens; _a < tweens_2.length; _a++) {
-            var tween = tweens_2[_a];
-            // @ts-expect-error library internal access
-            tween._group = undefined;
-            delete this._tweens[tween.getId()];
-            delete this._tweensAddedDuringUpdate[tween.getId()];
-        }
+    Group.prototype.remove = function (tween) {
+        if (!this._tweens.has(tween.getId())) return;
+
+        tween._group = undefined;
+        var id = tween.getId();
+        this._tweens.delete(id);
+        this._tweensAddedDuringUpdate.delete(id);
     };
-    /** Return true if all tweens in the group are not paused or playing. */
     Group.prototype.allStopped = function () {
-        return this.getAll().every(function (tween) { return !tween.isPlaying(); });
+        // 使用 Map 的 values() 迭代器
+        for (var _i = 0, _a = this._tweens.values(); _i < _a.length; _i++) {
+            var tween = _a[_i];
+            if (tween.isPlaying()) {
+                return false;
+            }
+        }
+        return true;
     };
-    /*! edit by meta3d:
-    set async, await */
-    // Group.prototype.update = function (time, preserve) {
     Group.prototype.update = async function (time, preserve) {
         if (time === void 0) { time = now(); }
         if (preserve === void 0) { preserve = true; }
-        var tweenIds = Object.keys(this._tweens);
-        if (tweenIds.length === 0)
-            return;
-        // Tweens are updated in "batches". If you add a new tween during an
-        // update, then the new tween will be updated in the next batch.
-        // If you remove a tween during an update, it may or may not be updated.
-        // However, if the removed tween was added during the current batch,
-        // then it will not be updated.
-        while (tweenIds.length > 0) {
-            this._tweensAddedDuringUpdate = {};
-            for (var i = 0; i < tweenIds.length; i++) {
-                var tween = this._tweens[tweenIds[i]];
-                var autoStart = !preserve;
-                /*!edit by meta3d */
-                if (tween && await tween.update(time, autoStart) === false && !preserve)
-                    this.remove(tween);
+
+        // 空组直接返回
+        if (this._tweens.size === 0) return;
+
+        // 使用 Set 存储当前批次ID
+        let currentBatch = new Set(this._tweens.keys());
+
+        while (currentBatch.size > 0) {
+            // 重置新增tween集合
+            this._tweensAddedDuringUpdate = new Map();
+
+            // 创建移除队列
+            const removalQueue = [];
+
+            // 处理当前批次
+            for (let id of currentBatch) {
+                const tween = this._tweens.get(id);
+                if (!tween) continue;
+
+                const autoStart = !preserve;
+                const shouldRemove = await tween.update(time, autoStart);
+
+                // 检查是否需要移除
+                if (shouldRemove === false && !preserve) {
+                    removalQueue.push(tween);
+                }
             }
-            tweenIds = Object.keys(this._tweensAddedDuringUpdate);
+
+            // 批量移除
+            for (let tween of removalQueue) {
+                this.remove(tween);
+                tween.dispose();
+            }
+
+            // 准备下一批次
+            currentBatch = new Set(this._tweensAddedDuringUpdate.keys());
         }
     };
     return Group;
@@ -447,6 +566,20 @@ var Tween = /** @class */ (function () {
 
 
     /*! edit by meta3d */
+    Tween.prototype.dispose = function () {
+        // this._chainedTweens = [];
+        // this._onStartCallbackFired = false;
+        // this._onEveryStartCallbackFired = false;
+
+        this._onStartCallback = null
+        this._onEveryStartCallback = null
+        this._onUpdateCallback = null
+        this._onRepeatCallback = null
+        this._onCompleteCallback = null
+        this._onStopCallback = null
+
+        return this
+    }
     Tween.prototype.reset = function (object, group) {
         this._isPaused = false;
         this._pauseStart = 0;

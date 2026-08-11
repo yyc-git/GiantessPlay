@@ -7,6 +7,7 @@
         "watch": "tsc -w -noEmit",
         "generate_type": "tsc --declaration --emitDeclarationOnly",
         "webpack:watch": "cross-env NODE_ENV=development webpack --watch --config webpack.config.js",
+        "webpack_demo": "cross-env NODE_ENV=debug webpack --config webpack.config.js",
         "webpack": "cross-env NODE_ENV=production webpack --config webpack.config.js",
         "test:watch": "jest --maxWorkers=4 --watch --config jest.json"
     },
@@ -22,7 +23,8 @@
         "three": "0.159.0",
         "nipplejs": "0.10.2",
         "howler": "^2.2.4",
-        "pathfinding": "0.4.18"
+        "pathfinding": "0.4.18",
+        "setting-protocol": "^0.0.1"
     },
     "devDependencies": {
         "@babel/node": "^7.8.7",

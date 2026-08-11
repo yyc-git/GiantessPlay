@@ -11,15 +11,15 @@ export let load = (state: state, texturePath: string, notFlipY): Promise<[state,
         promise = new Promise<Texture>((resolve, reject) => {
             new TextureLoader().load(texturePath, resolve)
         }).then(map => {
-            if (notFlipY) {
-                map.flipY = false
-            }
-
             state = setResource(state, texturePath, map)
 
             return [state, map]
         })
     }
 
-    return promise
+    return promise.then(([state, map]) => {
+        map.flipY = !notFlipY
+
+        return [state, map]
+    })
 }

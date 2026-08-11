@@ -110,6 +110,10 @@ export class MMDAnimationHelper {
 
 
 
+	/*! edit by meta3d */
+	clearCache(mesh: SkinnedMesh): void;
+
+
 
 	/*!edit by meta3d */
 	play(mesh: SkinnedMesh, animationName: string, loop: boolean): this;
@@ -122,7 +126,12 @@ export class MMDAnimationHelper {
 
 
 
-	remove(object: SkinnedMesh | Camera | Audio): this;
+	// remove(object: SkinnedMesh | Camera | Audio): this;
+	/*! edit by meta3d */
+	remove(object: SkinnedMesh | Camera | Audio, disposeClipAndMixerFunc: any): this;
+
+
+
 	update(delta: number): this;
 	pose(mesh: SkinnedMesh, vpd: object, params?: MMDAnimationHelperPoseParameter): this;
 	enable(key: string, enabled: boolean): this;

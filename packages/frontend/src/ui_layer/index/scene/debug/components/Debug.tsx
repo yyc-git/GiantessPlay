@@ -10,52 +10,93 @@ import * as  CityScene3D from '../../../../../business_layer/CityScene3D';
 import { renderButton } from "../../../../utils/ButtonUtils";
 import { renderSwitch, renderSwitchPromise } from "../../../../utils/SwitchUtils";
 import { getAbstractState, readState, setAbstractState, writeState } from "../../../../../business_layer/State";
-import { Vector3 } from "three";
+import { Matrix4, Vector3 } from "three";
 import { PathFind } from "meta3d-jiehuo-abstract";
 import { setIsDebug } from "../../../../../business_layer/Scene3D";
 import { getIsDebug } from "../../../../../scene3d_layer/script/scene/Scene";
 import { getCurrentCamera } from "meta3d-jiehuo-abstract/src/scene/Camera";
 import { setExcitement } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Excitement";
-import { getCustomDuration, playSmallerToHalfSizeAnimation, removeCustomDuration, setCustomDuration } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Animation";
-import { getCurrentMMDCharacterName, triggerAction } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Girl";
-import { setNeedUpdateSkillBar } from "../../../../../scene3d_layer/script/scene/scene_city/UI";
-import { getBreastTransformPrefix, getLittleHandTransformPrefix, getPickTransformPrefix } from "../../../../../scene3d_layer/script/scene/scene_city/utils/SkeletonUtils";
+import { getCustomDuration, playSmallerAnimation, removeCustomDuration, setCustomDuration } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Animation";
+import { getCurrentMMDCharacterName, isGirl, isUseGirl, triggerAction, getCurrentUsedGirls, getFirstUsedGirl, hasUsedGirl, buildNameByUsedGirl, getSpecificUsedGirl } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Girl";
+// import { setNeedShowSkillBar } from "../../../../../scene3d_layer/script/scene/scene_city/UI";
+import { getBreastTransformPrefix, getLittleHandTransformPrefix, getPickTransformPrefix, getPutToBreastTransformPrefix, getPutToShoeTransformPrefix, getUBControlledTransformPrefix } from "../../../../../scene3d_layer/script/scene/scene_city/utils/SkeletonUtils";
 import { getGrid, getGridForGirl } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/PathFind";
 import { actionName } from "../../../../../scene3d_layer/script/scene/scene_city/data/DataType";
+import { actionName as littleManActionName } from "../../../../../scene3d_layer/script/scene/scene_city/little_man_data/DataType"
 import { NullableUtils } from "meta3d-jiehuo-abstract";
-import { generateCommanders, generateFlameVehicles, generateInfantrys, generateLaserers, generateMelees, generateMissileVehicles, generateRocketeers, generateSoldiers, generateTanks, getCrowdPositions } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/ArmyManager";
-import { getConfigData, getSceneChapter, isGiantessRoad, isLittleRoad, setConfigData } from "../../../../../scene3d_layer/script/scene/scene_city/CityScene";
+import { generateCommanders, generateFlameVehicles, generateInfantrys, generateLaserers, generateMelees, generateMissileVehicles, generateRocketeers, generateTanks } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/ArmyManager";
+import { getConfigData, getSceneChapter, isGiantessCharacterType, isLittleCharacterType, setConfigData } from "../../../../../scene3d_layer/script/scene/scene_city/CityScene";
 import { getHpData } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Cloth";
 import { genImageMaskStyle } from "antd/es/image/style";
 import * as ShellTurret from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/milltary_building/ShellTurret";
 import * as MissileTurret from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/milltary_building/MissileTurret";
-import { scene } from "../../../../global/store/GlobalStoreType";
-import { attackTarget, camp, collisionPart, pose } from "../../../../../scene3d_layer/script/scene/scene_city/type/StateType";
-import { getMaxVisibleCount, getCrowdCount, getOffsetFactor } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/ArmyManager";
+import { scene, sceneData } from "../../../../global/store/GlobalStoreType";
+import { attackTarget, autoDifficulty, camp, collisionPart, damageType, missionFinishStatus, pose } from "../../../../../scene3d_layer/script/scene/scene_city/type/StateType";
 import * as BehaviourUtils from "./../../../../../scene3d_layer/script/scene/scene_city/behaviour_tree/action_node/Utils"
 import { getTuple2First } from "meta3d-jiehuo-abstract/src/utils/TupleUtils";
 import { isPose } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Pose";
-import { getAllCollisionParts } from "../../../../../scene3d_layer/script/scene/scene_city/utils/CollisionUtils";
-import { axis, getSizeFactor, multiplyScalar } from "../../../../../scene3d_layer/script/scene/scene_city/data/CollisionShapeData";
+import { getAllCollisionParts, getNearestUsedGirl } from "../../../../../scene3d_layer/script/scene/scene_city/utils/CollisionUtils";
 import { ArrayUtils } from "meta3d-jiehuo-abstract";
 import { TupleUtils } from "meta3d-jiehuo-abstract";
-import { getWorldPosition, setPositionAndComputeBox } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/Transform";
+import { getPosition, getWorldMatrix, getWorldPosition, setPositionAndComputeBox } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/Transform";
 import { StateMachine } from "meta3d-jiehuo-abstract";
-import { getStateMachine, setHp, setStateMachine } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/LittleMan";
+import { getStateMachine, setHp, getHp, setStateMachine, getName as getLittleManName, getBox, handleExitControlled } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/LittleMan";
 import { createClimbState } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/FSMState";
 import { getClimbState, setClimbState } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/climb/ClimbManager";
 import { climbPlane } from "../../../../../scene3d_layer/script/scene/scene_city/manage/biwu/level3/ManageScene";
-import { hideAim } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/Shoot";
+import { triggerMainEvent } from "../../../../../scene3d_layer/script/scene/scene_city/game_event/GameEvent";
+import { eventName } from "../../../../../scene3d_layer/script/scene/scene_city/data/GameEventData";
+import { generateMilltaryBuildings, generateMilltaryVehicles, generateSoldiers } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/generator/ArmyGenerator";
+import { handleMissionComplete, handleMissionFail, setIsMissionFinish } from "../../../../../scene3d_layer/script/scene/scene_city/manage/mission/Mission";
+import { addGemInLevel } from "../../../../../scene3d_layer/script/scene/scene_city/reward/Gem";
+import { applyUpgradeFuncs, applyUpgradeFuncsByRandomLevel, getGiantessExperienceValue, getLittleManExperienceValue, getOneLevelExperienceValue, setExperienceValue } from "../../../../../scene3d_layer/script/scene/scene_city/build/Upgrade";
+import { List } from "immutable";
+import { getSavedStudyActions, setCurrentStudyActions, setMaxBiggerCount, setSavedStudyActions } from "../../../../../scene3d_layer/script/scene/scene_city/girl/player/Girl";
+import { getNow } from "../../../../../scene3d_layer/script/scene/scene_city/Time";
+import { computeArmyCount } from "../../../../../scene3d_layer/script/scene/scene_city/difficulty/HeatImplementer";
+import { set } from "../../../../utils/SettingUtils";
+import { Device } from "meta3d-jiehuo-abstract";
+import { damageGiantess, destroyGiantess, getMaxForce } from "../../../../../scene3d_layer/script/scene/scene_city/utils/DamageUtils";
+import { weaponType } from "../../../../../scene3d_layer/script/scene/scene_city/data/ValueType";
+import { hideAim } from "../../../../../scene3d_layer/script/scene/scene_city/little_man/AimUtils";
+import { AppState } from "../../../../store/AppStore";
+import { buildFakeGirlWeaponValue, getGirlWeaponType, getPivotWorldPosition } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Utils";
+import { getPlayerPosition } from "../../../../../scene3d_layer/script/scene/scene_city/utils/PlayerUtils";
+import { generateArmyInSpecificPosition } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/generator/utils/ArmyGeneratorUtils";
+import { getSizeFactor, multiplyScalar } from "../../../../../scene3d_layer/mod/Mod";
 // import { off, on } from "../../../../../business_layer/Event";
 // import { Event } from "meta3d-jiehuo-abstract";
 // import { NullableUtils } from "meta3d-jiehuo-abstract";
 // import { markEnter } from "../../../../../scene3d_layer/script/scene/scene_city/scenario/ScenarioManager";
+import { generateEliteGiantesses, generateMagicGiantesses, generateMeleeGiantesses } from "../../../../../scene3d_layer/mod/EliteGiantessMod";
+import { showDoor } from "../../../../../scene3d_layer/script/scene/scene_city/manage/city1/Mission";
+import { setAttribute } from "../../../../../scene3d_layer/script/scene/scene_city/utils/build/GiantessBuildUtils";
+import { buildFuncData } from "../../../../../scene3d_layer/script/scene/scene_city/data/FuncData";
+import { usedGirlEnum } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { studyActions } from "../../../../../scene3d_layer/script/scene/scene_city/utils/build/LittleManBuildUtils";
+import { getFastRunBlockService, getSwipBlockService } from "../../../../../scene3d_layer/mod/SkillLittleManMod";
+import { getUpgradeFuncsByName } from "../../../../../scene3d_layer/mod/UpgradeMod";
+import { getBody } from "../../../../../scene3d_layer/script/scene/scene_city/data/mmd/MMDData";
+import { partialScaleBreast, partialScaleTorsor } from "../../../../../scene3d_layer/script/scene/scene_city/utils/PartialScaleGiantessUtils";
+import { NumberUtils } from "meta3d-jiehuo-abstract";
+import { getStompBlockService, getStompRubBlockService, getLeftStompBlockService, getJumpStompBlockService, getStandToSitBlockService, getSitToStandBlockService, getSitRubBlockService, getSitTightenLegBlockService, getPickToUBBlockService, getUBToPickBlockService, getThrustBlockService, getInsertBlockService, getFreeUBBlockService, getPutToBreastBlockService, getPutToShoeBlockService, getFreeBreastBlockService, getFreeShoeBlockService, getBreastPressBlockService, getBreastPressRubBlockService, getCrawlBeatBlockService, getCrawlLickBlockService, getSprayMilkBlockService } from "../../../../../scene3d_layer/mod/SkillGiantessMod";
+import { destoryAllUnits } from "../../../../../scene3d_layer/script/scene/scene_city/Debug";
+import { insertUBHandler, pickupHandler, putToBreastHandler, putToShoeHandler } from "../../../../../scene3d_layer/script/scene/scene_city/girl/PickPose";
+import { getAllFlattenAliveArmyData } from "../../../../../scene3d_layer/script/scene/scene_city/utils/ArmyUtils";
+import { getCollisionPartOBB } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Collision";
+import { apply, getAllCareerData } from "../../../../../scene3d_layer/mod/CareerMod";
+import { getCharacterType } from "meta3d-jiehuo-abstract/src/scene/Scene";
+import { Scene } from "meta3d-jiehuo-abstract";
+import { setSelectedCareerData } from "../../../../../scene3d_layer/script/scene/scene_city/build/Career";
+import { setAutoDifficulty } from "../../../../../scene3d_layer/script/scene/scene_city/difficulty/Difficulty";
 
 enum zone {
     Instruction,
     LittleManInstruction,
     GiantessInstruction,
+    AttackCityInstruction,
     BiwuInstruction,
+    ProtectInstruction,
     Transform,
     CollisionShape,
 }
@@ -70,9 +111,18 @@ enum armyCategory {
     Tank,
     MissileVehicle,
     FlameVehicle,
+
+    ShellTurret,
+    MissileTurret,
+
+
+    MeleeGiantess,
+    MagicGiantess,
 }
 
 let Debug: React.FC = ({ setIsShowDebug }) => {
+    let currentSceneData: any = useSelector<AppState>((state) => state.global.currentSceneData)
+
     // let [zone_, setZone] = useState(zone.Instruction)
     // let [current, setCurrent] = useState(zone.Instruction)
 
@@ -91,6 +141,9 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
     let [size, setSize] = useState(_ => [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()])
     let [isUseGirlRotation, setIsUseGirlRotation] = useState(_ => false)
     let [rotation, setRotation] = useState(_ => [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()])
+    let [upgradeBlockName, setUpgradeBlockName] = useState(_ => "")
+    let [careerName, setCareerName] = useState(_ => "")
+    let [usedGirlIndex, setUsedGirlIndex] = useState(0)
 
     let _getPoseData = (arr) => {
         return _getValue(
@@ -113,26 +166,78 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
     }
 
     let _renderCollisionShape = (className) => {
-        return <section key={className} className={className}>
-            {/* <span>{title}</span> */}
-            {
-                renderButton((state) => {
-                    state = setConfigData(state, {
-                        ...getConfigData(state),
-                        collisionShapeData: getConfigData(state).collisionShapeData.map(d => {
-                            if (d.mmds.includes(getCurrentMMDCharacterName(state))
-                                && d.collisionPart == collisionPart_
-                            ) {
-                                // if (isTwoBone) {
-                                if (!NullableUtils.isNullable(
-                                    d.twoBones
-                                )) {
+        return hasUsedGirl(readState()) ?
+            <section key={className} className={className}>
+                {/* <span>{title}</span> */}
+                {
+                    renderButton((state) => {
+                        state = setConfigData(state, {
+                            ...getConfigData(state),
+                            collisionShapeData: getConfigData(state).collisionShapeData.map(d => {
+                                if (d.mmds.includes(getCurrentMMDCharacterName(state, getSpecificUsedGirl(state, usedGirlIndex)))
+                                    && d.collisionPart == collisionPart_
+                                ) {
+                                    // if (isTwoBone) {
+                                    if (!NullableUtils.isNullable(
+                                        d.twoBones
+                                    )) {
+                                        return {
+                                            ...d,
+                                            twoBones: {
+                                                ...d.twoBones,
+                                                centerFactor: centerFactor == _getDefaultValue() ? d.twoBones.centerFactor : centerFactor,
+                                                frontDirectionScalar: frontDirectionScalar == _getDefaultValue() ? d.twoBones.frontDirectionScalar : [
+                                                    {
+                                                        pose: pose.All,
+                                                        value: frontDirectionScalar
+                                                    },
+                                                    {
+                                                        pose: pose_,
+                                                        value: frontDirectionScalar
+                                                    }
+                                                ],
+                                                upDirectionScalar: upDirectionScalar == _getDefaultValue() ? d.twoBones.upDirectionScalar : [
+                                                    {
+                                                        pose: pose.All,
+                                                        value: upDirectionScalar
+                                                    },
+                                                    {
+                                                        pose: pose_,
+                                                        value: upDirectionScalar
+                                                    }
+                                                ],
+                                                rightDirectionScalar: rightDirectionScalar == _getDefaultValue() ? d.twoBones.rightDirectionScalar : [
+                                                    {
+                                                        pose: pose.All,
+                                                        value: rightDirectionScalar
+                                                    },
+                                                    {
+                                                        pose: pose_,
+                                                        value: rightDirectionScalar
+                                                    }
+                                                ],
+                                                size: ArrayUtils.isArraysEqual(size, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.twoBones.size : [
+                                                    {
+                                                        pose: pose.All,
+                                                        value: multiplyScalar(size, getSizeFactor(state))
+                                                    },
+                                                    {
+                                                        pose: pose_,
+                                                        value: multiplyScalar(size, getSizeFactor(state))
+                                                    }
+                                                ],
+                                                rotation: ArrayUtils.isArraysEqual(rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.twoBones.rotation : rotation,
+
+                                                isUseGirlRotation,
+                                            }
+                                        }
+                                    }
+
                                     return {
                                         ...d,
-                                        twoBones: {
-                                            ...d.twoBones,
-                                            centerFactor: centerFactor == _getDefaultValue() ? d.twoBones.centerFactor : centerFactor,
-                                            frontDirectionScalar: frontDirectionScalar == _getDefaultValue() ? d.twoBones.frontDirectionScalar : [
+                                        oneBone: {
+                                            ...d.oneBone,
+                                            frontDirectionScalar: frontDirectionScalar == _getDefaultValue() ? d.oneBone.frontDirectionScalar : [
                                                 {
                                                     pose: pose.All,
                                                     value: frontDirectionScalar
@@ -142,7 +247,7 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                                                     value: frontDirectionScalar
                                                 }
                                             ],
-                                            upDirectionScalar: upDirectionScalar == _getDefaultValue() ? d.twoBones.upDirectionScalar : [
+                                            upDirectionScalar: upDirectionScalar == _getDefaultValue() ? d.oneBone.upDirectionScalar : [
                                                 {
                                                     pose: pose.All,
                                                     value: upDirectionScalar
@@ -152,7 +257,7 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                                                     value: upDirectionScalar
                                                 }
                                             ],
-                                            rightDirectionScalar: rightDirectionScalar == _getDefaultValue() ? d.twoBones.rightDirectionScalar : [
+                                            rightDirectionScalar: rightDirectionScalar == _getDefaultValue() ? d.oneBone.rightDirectionScalar : [
                                                 {
                                                     pose: pose.All,
                                                     value: rightDirectionScalar
@@ -162,7 +267,7 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                                                     value: rightDirectionScalar
                                                 }
                                             ],
-                                            size: ArrayUtils.isArraysEqual(size, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.twoBones.size : [
+                                            size: ArrayUtils.isArraysEqual(size, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.oneBone.size : [
                                                 {
                                                     pose: pose.All,
                                                     value: multiplyScalar(size, getSizeFactor(state))
@@ -172,232 +277,101 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                                                     value: multiplyScalar(size, getSizeFactor(state))
                                                 }
                                             ],
-                                            rotation: ArrayUtils.isArraysEqual(rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.twoBones.rotation : rotation,
+
+                                            rotation: ArrayUtils.isArraysEqual(rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.oneBone.rotation : rotation,
 
                                             isUseGirlRotation,
                                         }
                                     }
                                 }
 
-                                return {
-                                    ...d,
-                                    oneBone: {
-                                        ...d.oneBone,
-                                        frontDirectionScalar: frontDirectionScalar == _getDefaultValue() ? d.oneBone.frontDirectionScalar : [
-                                            {
-                                                pose: pose.All,
-                                                value: frontDirectionScalar
-                                            },
-                                            {
-                                                pose: pose_,
-                                                value: frontDirectionScalar
-                                            }
-                                        ],
-                                        upDirectionScalar: upDirectionScalar == _getDefaultValue() ? d.oneBone.upDirectionScalar : [
-                                            {
-                                                pose: pose.All,
-                                                value: upDirectionScalar
-                                            },
-                                            {
-                                                pose: pose_,
-                                                value: upDirectionScalar
-                                            }
-                                        ],
-                                        rightDirectionScalar: rightDirectionScalar == _getDefaultValue() ? d.oneBone.rightDirectionScalar : [
-                                            {
-                                                pose: pose.All,
-                                                value: rightDirectionScalar
-                                            },
-                                            {
-                                                pose: pose_,
-                                                value: rightDirectionScalar
-                                            }
-                                        ],
-                                        size: ArrayUtils.isArraysEqual(size, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.oneBone.size : [
-                                            {
-                                                pose: pose.All,
-                                                value: multiplyScalar(size, getSizeFactor(state))
-                                            },
-                                            {
-                                                pose: pose_,
-                                                value: multiplyScalar(size, getSizeFactor(state))
-                                            }
-                                        ],
-
-                                        rotation: ArrayUtils.isArraysEqual(rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]) ? d.oneBone.rotation : rotation,
-
-                                        isUseGirlRotation,
-                                    }
-                                }
-                            }
-
-                            return d
+                                return d
+                            })
                         })
-                    })
 
-                    return Promise.resolve(state)
-                }, "commit_collision_shape", "提交")
-            }
+                        return Promise.resolve(state)
+                    }, "commit_collision_shape", "提交")
 
-            <Select
-                style={{ width: 160 }}
-                defaultValue={String(pose_)}
-                onChange={value => {
-                    setPose(_ => value)
-                }}
-                options={
-                    [
-                        { value: String(pose.All), label: String(pose.All) },
-
-                        { value: String("HeavyStressingLie"), label: String("HeavyStressingLie") }
-                    ]
                 }
-            />
-            <Select
-                style={{ width: 160 }}
-                defaultValue={String(collisionPart_)}
-                onChange={value => {
-                    setCollisionPart(_ => value)
 
-                    let state = readState()
+                <Select
+                    style={{ width: 160 }}
+                    defaultValue={String(pose_)}
+                    onChange={value => {
+                        setPose(_ => value)
+                    }}
+                    options={
+                        [
+                            { value: String(pose.All), label: String(pose.All) },
+                            { value: String(pose.Stand), label: String(pose.Stand) },
+                            { value: String(pose.Pick), label: String(pose.Pick) },
+                            { value: String(pose.Crawl), label: String(pose.Crawl) },
+                            { value: String(pose.Sit), label: String(pose.Sit) },
 
-                    let data = NullableUtils.getExn(getConfigData(state).collisionShapeData.find(d => {
-                        return d.mmds.includes(getCurrentMMDCharacterName(state)) && d.collisionPart == value
-                    }))
-
-                    setIsTwoBone(_ => !NullableUtils.isNullable(data.twoBones))
-
-                    NullableUtils.forEach(oneBone => {
-                        setFrontDirectionScalar(_ => _getPoseData(oneBone.frontDirectionScalar))
-                        setUpDirectionScalar(_ => _getPoseData(oneBone.upDirectionScalar))
-                        setRightDirectionScalar(_ => _getPoseData(oneBone.rightDirectionScalar))
-
-                        setSize(_ => _getPoseData(oneBone.size))
-
-                        setRotation(_ => _getValue(oneBone.rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]))
-                        setIsUseGirlRotation(_ => _getValue(oneBone.isUseGirlRotation, false))
-                    }, data.oneBone)
-
-                    NullableUtils.forEach(twoBones => {
-                        setCenterFactor(_ => _getValue(twoBones.centerFactor))
-                        setFrontDirectionScalar(_ => _getPoseData(twoBones.frontDirectionScalar))
-                        setUpDirectionScalar(_ => _getPoseData(twoBones.upDirectionScalar))
-                        setRightDirectionScalar(_ => _getPoseData(twoBones.rightDirectionScalar))
-
-                        setSize(_ => _getPoseData(twoBones.size))
-
-                        setRotation(_ => _getValue(twoBones.rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]))
-                        setIsUseGirlRotation(_ => _getValue(twoBones.isUseGirlRotation, false))
-                    }, data.twoBones)
-                }}
-                options={
-                    getAllCollisionParts(readState()).map(collisionPart_ => {
-                        return { value: String(collisionPart_), label: String(collisionPart_) }
-                    })
-                }
-            />
-            {
-                renderSwitch((state, isTwoBone) => {
-                    setIsTwoBone(_ => isTwoBone)
-
-                    return state
-                }, isTwoBone, "单骨骼", "双骨骼", "two_bone")
-            }
-            {
-                isTwoBone ? <>
-                    <span>c</span>
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="centerFactor" onChange={(value) => {
-                            setCenterFactor(_ => value)
-                        }} value={centerFactor}
-                    />
-                    <span>f-r-u</span>
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="frontDirectionScalar" onChange={(value) => {
-                            setFrontDirectionScalar(_ => value)
-                        }} value={frontDirectionScalar}
-                    />
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="rightDirectionScalar" onChange={(value) => {
-                            setRightDirectionScalar(_ => value)
-                        }} value={rightDirectionScalar}
-                    />
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="upDirectionScalar" onChange={(value) => {
-                            setUpDirectionScalar(_ => value)
-                        }} value={upDirectionScalar}
-                    />
-                    <span>size</span>
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setSize(_ => [value, size[1], size[2]])
-                        }} value={size[0]}
-                    />
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setSize(_ => [size[0], value, size[2]])
-                        }} value={size[1]}
-                    />
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setSize(_ => [size[0], size[1], value])
-                        }} value={size[2]}
-                    />
-
-                    <span>r</span>
-                    {
-                        renderSwitch((state, isUseGirlRotation) => {
-                            setIsUseGirlRotation(_ => isUseGirlRotation)
-
-                            return state
-                        }, isUseGirlRotation, "not use", "use", "isUseGirlRotation")
+                            { value: String("HeavyStressingLie"), label: String("HeavyStressingLie") }
+                        ]
                     }
-                    {/* <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setRotation(_ => value)
-                        }} value={rotation}
-                    /> */}
+                />
+                <Select
+                    style={{ width: 160 }}
+                    defaultValue={String(collisionPart_)}
+                    onChange={value => {
+                        setCollisionPart(_ => value)
 
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setRotation(_ => [value, rotation[1], rotation[2]])
-                        }} value={rotation[0]}
-                    />
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setRotation(_ => [rotation[0], value, rotation[2]])
-                        }} value={rotation[1]}
-                    />
-                    <InputNumber
-                        defaultValue={_getDefaultValue()}
-                        step="0.01"
-                        placeholder="" onChange={(value) => {
-                            setRotation(_ => [rotation[0], rotation[1], value])
-                        }} value={rotation[2]}
-                    />
-                </>
-                    :
-                    <>
+                        let state = readState()
+
+                        let data = NullableUtils.getExn(getConfigData(state).collisionShapeData.find(d => {
+                            return d.mmds.includes(getCurrentMMDCharacterName(state, getSpecificUsedGirl(state, usedGirlIndex))) && d.collisionPart == value
+                        }))
+
+                        setIsTwoBone(_ => !NullableUtils.isNullable(data.twoBones))
+
+                        NullableUtils.forEach(oneBone => {
+                            setFrontDirectionScalar(_ => _getPoseData(oneBone.frontDirectionScalar))
+                            setUpDirectionScalar(_ => _getPoseData(oneBone.upDirectionScalar))
+                            setRightDirectionScalar(_ => _getPoseData(oneBone.rightDirectionScalar))
+
+                            setSize(_ => _getPoseData(oneBone.size))
+
+                            setRotation(_ => _getValue(oneBone.rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]))
+                            setIsUseGirlRotation(_ => _getValue(oneBone.isUseGirlRotation, false))
+                        }, data.oneBone)
+
+                        NullableUtils.forEach(twoBones => {
+                            setCenterFactor(_ => _getValue(twoBones.centerFactor))
+                            setFrontDirectionScalar(_ => _getPoseData(twoBones.frontDirectionScalar))
+                            setUpDirectionScalar(_ => _getPoseData(twoBones.upDirectionScalar))
+                            setRightDirectionScalar(_ => _getPoseData(twoBones.rightDirectionScalar))
+
+                            setSize(_ => _getPoseData(twoBones.size))
+
+                            setRotation(_ => _getValue(twoBones.rotation, [_getDefaultValue(), _getDefaultValue(), _getDefaultValue()]))
+                            setIsUseGirlRotation(_ => _getValue(twoBones.isUseGirlRotation, false))
+                        }, data.twoBones)
+                    }}
+                    options={
+                        getAllCollisionParts(readState(), getFirstUsedGirl(readState())).map(collisionPart_ => {
+                            return { value: String(collisionPart_), label: String(collisionPart_) }
+                        })
+                    }
+                />
+                {
+                    renderSwitch((state, isTwoBone) => {
+                        setIsTwoBone(_ => isTwoBone)
+
+                        return state
+                    }, isTwoBone, "单骨骼", "双骨骼", "two_bone")
+                }
+                {
+                    isTwoBone ? <>
+                        <span>c</span>
+                        <InputNumber
+                            defaultValue={_getDefaultValue()}
+                            step="0.01"
+                            placeholder="centerFactor" onChange={(value) => {
+                                setCenterFactor(_ => value)
+                            }} value={centerFactor}
+                        />
                         <span>f-r-u</span>
                         <InputNumber
                             defaultValue={_getDefaultValue()}
@@ -443,7 +417,6 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                             }} value={size[2]}
                         />
 
-
                         <span>r</span>
                         {
                             renderSwitch((state, isUseGirlRotation) => {
@@ -482,8 +455,106 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                             }} value={rotation[2]}
                         />
                     </>
-            }
-        </section>
+                        :
+                        <>
+                            <span>f-r-u</span>
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="frontDirectionScalar" onChange={(value) => {
+                                    setFrontDirectionScalar(_ => value)
+                                }} value={frontDirectionScalar}
+                            />
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="rightDirectionScalar" onChange={(value) => {
+                                    setRightDirectionScalar(_ => value)
+                                }} value={rightDirectionScalar}
+                            />
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="upDirectionScalar" onChange={(value) => {
+                                    setUpDirectionScalar(_ => value)
+                                }} value={upDirectionScalar}
+                            />
+                            <span>size</span>
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="" onChange={(value) => {
+                                    setSize(_ => [value, size[1], size[2]])
+                                }} value={size[0]}
+                            />
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="" onChange={(value) => {
+                                    setSize(_ => [size[0], value, size[2]])
+                                }} value={size[1]}
+                            />
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="" onChange={(value) => {
+                                    setSize(_ => [size[0], size[1], value])
+                                }} value={size[2]}
+                            />
+
+
+                            <span>r</span>
+                            {
+                                renderSwitch((state, isUseGirlRotation) => {
+                                    setIsUseGirlRotation(_ => isUseGirlRotation)
+
+                                    return state
+                                }, isUseGirlRotation, "not use", "use", "isUseGirlRotation")
+                            }
+                            {/* <InputNumber
+                        defaultValue={_getDefaultValue()}
+                        step="0.01"
+                        placeholder="" onChange={(value) => {
+                            setRotation(_ => value)
+                        }} value={rotation}
+                    /> */}
+
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="" onChange={(value) => {
+                                    setRotation(_ => [value, rotation[1], rotation[2]])
+                                }} value={rotation[0]}
+                            />
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="" onChange={(value) => {
+                                    setRotation(_ => [rotation[0], value, rotation[2]])
+                                }} value={rotation[1]}
+                            />
+                            <InputNumber
+                                defaultValue={_getDefaultValue()}
+                                step="0.01"
+                                placeholder="" onChange={(value) => {
+                                    setRotation(_ => [rotation[0], rotation[1], value])
+                                }} value={rotation[2]}
+                            />
+                        </>
+                }
+
+                {
+                    renderButton((state) => {
+                        return Promise.resolve(partialScaleTorsor(state, getSpecificUsedGirl(state, usedGirlIndex), NumberUtils.getRandomFloat(0, 1)))
+                    }, "", "躯干变大")
+                }
+                {
+                    renderButton((state) => {
+                        return Promise.resolve(partialScaleBreast(state, getSpecificUsedGirl(state, usedGirlIndex), NumberUtils.getRandomFloat(0, 2)))
+                    }, "", "胸部变大")
+                }
+            </section>
+            : null
     }
 
     let _renderTransform = (className, title, prefix, key) => {
@@ -691,10 +762,19 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                         _renderTransform("pick", "Pick", getPickTransformPrefix(), "1")
                     }
                     {
-                        _renderTransform("breast", "Breast", getBreastTransformPrefix(), "2")
+                        _renderTransform("ubControlled", "UBControlled", getUBControlledTransformPrefix(), "2")
                     }
                     {
-                        _renderTransform("little_hand", "Little_hand", getLittleHandTransformPrefix(), "3")
+                        _renderTransform("putToBreasst", "PutToBreasst", getPutToBreastTransformPrefix(), "3")
+                    }
+                    {
+                        _renderTransform("putToShoe", "PutToShoe", getPutToShoeTransformPrefix(), "4")
+                    }
+                    {
+                        _renderTransform("breast", "Breast", getBreastTransformPrefix(), "5")
+                    }
+                    {
+                        _renderTransform("little_hand", "Little_hand", getLittleHandTransformPrefix(), "6")
                     }
                 </>
             case zone.Instruction:
@@ -736,15 +816,64 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                     }
                     {
                         renderButton((state) => {
-                            // return Promise.resolve(CityScene3D.setGirlHp(state, getBody(), 1))
+                            return destoryAllUnits(state)
+                        }, "object_destory", "干掉物体")
+                    }
 
-                            state = getHpData(state).reduce((state, d) => {
-                                return CityScene3D.setGirlHp(state, d.damagePart, 1)
-                            }, state)
+                    {
+                        renderButton((state) => {
+                            if (isUseGirl(state, getSpecificUsedGirl(state, usedGirlIndex))) {
+                                state = getHpData(state, getSpecificUsedGirl(state, usedGirlIndex)).reduce((state, d) => {
+                                    return CityScene3D.setGirlHp(state, getSpecificUsedGirl(state, usedGirlIndex), d.damagePart, 1)
+                                    // return CityScene3D.setGirlHp(state, d.damagePart, 10000)
+                                }, state)
+                            }
 
                             return Promise.resolve(state)
                         }, "girl_hp_min", "巨大娘HP最小")
                     }
+                    {
+                        renderButton((state) => {
+                            state = getHpData(state, getSpecificUsedGirl(state, usedGirlIndex)).reduce((state, d) => {
+                                if (d.damagePart != getBody()) {
+                                    return CityScene3D.setGirlHp(state, getSpecificUsedGirl(state, usedGirlIndex), d.damagePart, 1)
+                                }
+
+                                return state
+                            }, state)
+
+                            return Promise.resolve(state)
+                        }, "girl_cloth_hp_min", "巨大娘衣服HP最小")
+                    }
+                    {
+                        renderButton((state) => {
+                            // state = getHpData(state, usedGirl).reduce((state, d) => {
+                            //     return CityScene3D.setGirlHp(state, d.damagePart, 1)
+                            // }, state)
+                            // return damageGiantess(state, [getMaxForce(), damageType.Direct, weaponType.Heavy], getLittleManName(), collisionPart.RightHand, NullableUtils.getEmpty(), buildFakeGirlWeaponValue())
+                            // return damageGiantess(state, [getMaxForce(), damageType.Direct, weaponType.Heavy], getLittleManName(), collisionPart.RightHand, NullableUtils.return_(getPivotWorldPosition(state, getSpecificUsedGirl(state, usedGirlIndex))), buildFakeGirlWeaponValue())
+                            return destroyGiantess(state, getSpecificUsedGirl(state, usedGirlIndex))
+                        }, "girl_destroy", "干掉巨大娘")
+                    }
+                    {
+                        renderButton((state) => {
+                            return CityScene3D.triggerAction(state, getSpecificUsedGirl(state, usedGirlIndex), actionName.SmallerToLastBiggerCount)
+                            // state = playSmallerAnimation(state, (state) => {
+                            //     state = setLastScaleChangeTime(state, scaleState.Normal)
+                            //     state = setNeedShowSkillBar(state, getSpecificUsedGirl(state, usedGirlIndex), false)
+
+                            //     return Promise.resolve(state)
+                            // })
+
+                            // return Promise.resolve(state)
+                        }, "smaller", "变小")
+                    }
+                    {
+                        renderButton((state) => {
+                            return CityScene3D.triggerAction(state, getSpecificUsedGirl(state, usedGirlIndex), actionName.Bigger)
+                        }, "bigger", "变大")
+                    }
+
                     {
                         renderSwitch((state, isPickRangeMax) => {
                             if (isPickRangeMax) {
@@ -778,18 +907,18 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                     }
                     {
                         renderButton((state) => {
-                            return Promise.resolve(setAbstractState(state, PathFind.showGrid(getAbstractState(state), getGrid(state))))
+                            return Promise.resolve(setAbstractState(state, PathFind.showGrid(getAbstractState(state), getGrid(state, getSpecificUsedGirl(state, usedGirlIndex), isUseGirl(state, getSpecificUsedGirl(state, usedGirlIndex)) ? attackTarget.Giantess : attackTarget.LittleMan, getPlayerPosition(state), getPlayerPosition(state)))))
                         }, "show_pathfind_grid", "显示PathFind->Grid")
                     }
                     {
                         renderButton((state) => {
-                            return Promise.resolve(setAbstractState(state, PathFind.showGrid(getAbstractState(state), getGridForGirl(state))))
-                        }, "show_pathfind_grid_forgirl", "显示PathFind->GridForGirl")
+                            return Promise.resolve(setAbstractState(state, PathFind.showGrid(getAbstractState(state), getGrid(state, getSpecificUsedGirl(state, usedGirlIndex), isUseGirl(state, getSpecificUsedGirl(state, usedGirlIndex)) ? attackTarget.Giantess : attackTarget.LittleMan, new Vector3(-100, -100, -100), new Vector3(1000, 1000, 1000)))))
+                        }, "show_pathfind_big_grid", "显示PathFind->Big Grid")
                     }
                     {
-                        renderSwitch((state, isDebug) => {
-                            return setIsDebug(state, isDebug)
-                        }, getIsDebug(readState()), "关闭Debug", "开启Debug", "debug")
+                        renderButton((state) => {
+                            return Promise.resolve(setAbstractState(state, PathFind.showGrid(getAbstractState(state), getGridForGirl(state, getSpecificUsedGirl(state, usedGirlIndex)))))
+                        }, "show_pathfind_grid_forgirl", "显示PathFind->GridForGirl")
                     }
                     {
                         renderSwitch((state, isNotMoveCollision) => {
@@ -861,114 +990,175 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                     }
                     {
                         renderButton((state) => {
-                            return CityScene3D.triggerAction(state, actionName.Smaller)
-                            // state = playSmallerToHalfSizeAnimation(state, (state) => {
-                            //     state = setScaleState(state, scaleState.Normal)
-                            //     state = setNeedUpdateSkillBar(state, false)
-
-                            //     return Promise.resolve(state)
-                            // })
-
-                            // return Promise.resolve(state)
-                        }, "smaller", "变小")
-                    }
-                    {
-                        renderButton((state) => {
-                            return CityScene3D.triggerAction(state, actionName.Bigger, false, false)
-                        }, "bigger", "变大")
-                    }
-                    {
-                        renderButton((state) => {
-                            let count = NullableUtils.getWithDefault(
+                            let count
+                            switch (NullableUtils.getWithDefault(
                                 globalThis["army_count"],
                                 0.1
-                            )
-
-                            let camp_ = globalThis["army_camp"]
-                            let attackTarget_
-                            switch (camp_) {
-                                case camp.Giantess:
-                                    attackTarget_ = attackTarget.LittleMan
+                            )) {
+                                case 0.1:
+                                    count = 1
                                     break
-                                case camp.LittleMan:
-                                    attackTarget_ = attackTarget.Giantess
+                                default:
+                                    count = 20
                                     break
                             }
+                            count = computeArmyCount(state, count)
+
+                            let camp_ = globalThis["army_camp"]
+                            // let attackTarget_
+                            // switch (camp_) {
+                            //     case camp.Enemy:
+                            //         attackTarget_ = attackTarget.LittleMan
+                            //         break
+                            //     case camp.LittleMan:
+                            //         attackTarget_ = attackTarget.Giantess
+                            //         break
+                            // }
+
+                            let minRange = 10
+                            let maxRange = 1000
+                            let maxCountOfOneCrowd = 5
+                            let offset = 10
+                            // let offset = 0
 
                             switch (globalThis["army_category"]) {
                                 case armyCategory.Rocketeer:
-                                    return generateRocketeers(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateSoldiers,
+                                            funcs: [
+                                                generateRocketeers
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                                 case armyCategory.Commander:
-                                    return generateCommanders(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateSoldiers,
+                                            funcs: [
+                                                generateCommanders
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                                 case armyCategory.Laser:
-                                    return generateLaserers(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateSoldiers,
+                                            funcs: [
+                                                generateLaserers
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                                 case armyCategory.Melee:
-                                    return generateMelees(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateSoldiers,
+                                            funcs: [
+                                                generateMelees
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
+                                case armyCategory.ShellTurret:
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateMilltaryBuildings,
+                                            funcs: [
+                                                ShellTurret.generateTurrets
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
+                                case armyCategory.MissileTurret:
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateMilltaryBuildings,
+                                            funcs: [
+                                                MissileTurret.generateTurrets
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                                 case armyCategory.Tank:
-                                    return generateTanks(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateMilltaryVehicles,
+                                            funcs: [
+                                                generateTanks
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                                 case armyCategory.MissileVehicle:
-                                    return generateMissileVehicles(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateMilltaryVehicles,
+                                            funcs: [
+                                                generateMissileVehicles
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                                 case armyCategory.FlameVehicle:
-                                    return generateFlameVehicles(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateMilltaryVehicles,
+                                            funcs: [
+                                                generateFlameVehicles
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
+
+
+                                case armyCategory.MeleeGiantess:
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateEliteGiantesses,
+                                            funcs: [
+                                                generateMeleeGiantesses(state)
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
+                                case armyCategory.MagicGiantess:
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateEliteGiantesses,
+                                            funcs: [
+                                                generateMagicGiantesses(state)
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
+
+
                                 case armyCategory.Infantry:
                                 default:
-                                    return generateInfantrys(state,
-                                        [
-                                            getMaxVisibleCount,
-                                            getCrowdCount,
-                                            getOffsetFactor
-                                        ],
-                                        getCrowdPositions(state),
-                                        count, camp_, attackTarget_)
+                                    return generateArmyInSpecificPosition(state, [
+                                        {
+                                            generateFunc: generateSoldiers,
+                                            funcs: [
+                                                generateInfantrys
+                                            ],
+                                            count,
+                                            offset: offset, camp_: camp_
+                                        },
+                                    ], getPlayerPosition(state))
                             }
                         }, "generate_army", "创建军队")
                     }
@@ -992,16 +1182,17 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                     <Selector
                         defaultValue={String(NullableUtils.getWithDefault(
                             globalThis["army_camp"],
-                            camp.LittleMan
+                            camp.Player
                         ))}
                         onChange={arr => {
-                            let value = arr.length > 0 ? Number(arr[0]) : camp.LittleMan
+                            let value = arr.length > 0 ? Number(arr[0]) : camp.Player
 
                             globalThis["army_camp"] = value
                         }}
                         options={
                             [
-                                { value: camp.LittleMan, label: "小人" },
+                                { value: camp.Player, label: "玩家" },
+                                { value: camp.Enemy, label: "敌人" },
                                 { value: camp.Giantess, label: "巨大娘" },
                             ]
                         }
@@ -1027,6 +1218,13 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                                 { value: armyCategory.Tank, label: "坦克" },
                                 { value: armyCategory.MissileVehicle, label: "导弹车" },
                                 { value: armyCategory.FlameVehicle, label: "喷火车" },
+                                { value: armyCategory.ShellTurret, label: "炮塔" },
+                                { value: armyCategory.MissileTurret, label: "导弹塔" },
+
+
+
+                                { value: armyCategory.MeleeGiantess, label: "精英近战巨大娘" },
+                                { value: armyCategory.MagicGiantess, label: "精英魔法巨大娘" },
                             ]
                         }
                     />
@@ -1127,9 +1325,278 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                             return Promise.resolve(state)
                         }, "log_position", "打印位置")
                     }
+
+                    {/* {
+                        renderButton((state) => {
+                            return triggerMainEvent(state, eventName.CallGiantess)
+                        }, "trigger_call_giantess", "触发召唤巨大娘事件")
+                    } */}
+                    {/* {
+                        renderButton((state) => {
+                            return triggerMainEvent(state, eventName.EnemyAddRandomBuff)
+                        }, "trigger_addrandombuff", "触发敌人加随机Buff事件")
+                    } */}
+
+
+
+                    {
+                        renderButton((state) => {
+                            return handleMissionComplete(state, 0)
+                        }, "mission_complete", "胜利")
+                    }
+                    {
+                        renderButton((state) => {
+                            return handleMissionFail(state, missionFinishStatus.Fail)
+                        }, "mission_fail", "失败")
+                    }
+                    {
+                        renderButton((state) => {
+                            return Promise.resolve(addGemInLevel(state, 100))
+                        }, "get_gem", "获得宝石")
+                    }
+                    {
+                        renderButton((state) => {
+                            return Promise.resolve(setExcitement(state, getSpecificUsedGirl(state, usedGirlIndex), 100))
+                        }, "max_excitement", "最大兴奋")
+                    }
+                    {
+                        renderButton((state) => {
+                            return Promise.resolve(setExcitement(state, getSpecificUsedGirl(state, usedGirlIndex), 0))
+                        }, "zero_excitement", "0兴奋")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = setAttribute(state, buildFuncData(state), (value) => {
+                                return {
+                                    ...value,
+                                    // maxScale: Infinity,
+                                    initialScale: 8
+                                }
+                            }, usedGirlEnum.PlayerGirl)
+
+                            state = CityScene3D.setGirlScale(state, getSpecificUsedGirl(state, usedGirlIndex), 8)
+
+                            return Promise.resolve(state)
+                        }, "super_big", "十米大")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = setAttribute(state, buildFuncData(state), (value) => {
+                                return {
+                                    ...value,
+                                    maxScale: Infinity,
+                                    initialScale: 170
+                                }
+                            }, usedGirlEnum.PlayerGirl)
+
+                            state = CityScene3D.setGirlScale(state, getSpecificUsedGirl(state, usedGirlIndex), 170)
+
+                            return Promise.resolve(state)
+                        }, "super_big", "百米大")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = setAttribute(state, buildFuncData(state), (value) => {
+                                return {
+                                    ...value,
+                                    maxScale: Infinity,
+                                    initialScale: 1000
+                                }
+                            }, usedGirlEnum.PlayerGirl)
+
+                            state = CityScene3D.setGirlScale(state, getSpecificUsedGirl(state, usedGirlIndex), 1000)
+
+                            return Promise.resolve(state)
+                        }, "super_big", "超大")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = setAttribute(state, buildFuncData(state), (value) => {
+                                return {
+                                    ...value,
+                                    maxScale: Infinity,
+                                    initialScale: 10000
+                                }
+                            }, usedGirlEnum.PlayerGirl)
+
+                            state = CityScene3D.setGirlScale(state, getSpecificUsedGirl(state, usedGirlIndex), 10000)
+
+                            return Promise.resolve(state)
+                        }, "super_big", "超大2")
+                    }
+
+
+
+                    <Selector
+                        defaultValue={String(autoDifficulty.VeryEasy)}
+                        onChange={arr => {
+                            let value = arr.length > 0 ? Number(arr[0]) : autoDifficulty.VeryEasy
+
+                            // globalThis["debug_autoDifficulty"] = value
+                            let state = readState()
+                            state = setAutoDifficulty(state, value)
+                            writeState(state)
+                        }}
+                        options={
+                            [
+                                { value: autoDifficulty.VeryEasy, label: "VeryEasy" },
+                                { value: autoDifficulty.Middle, label: "Middle" },
+                                { value: autoDifficulty.VeryHard, label: "VeryHard" },
+                                { value: autoDifficulty.VeryHard1, label: "VeryHard1" },
+                                { value: autoDifficulty.VeryHard2, label: "VeryHard2" },
+                                { value: autoDifficulty.VeryHard3, label: "VeryHard3" },
+                                { value: autoDifficulty.VeryHard4, label: "VeryHard4" },
+                                { value: autoDifficulty.VeryHard5, label: "VeryHard5" },
+                            ]
+                        }
+                    />
+
+                    <Input placeholder="选择升级" onChange={(e) => {
+                        setUpgradeBlockName(_ => e.target.value)
+
+                        e.preventDefault()
+                        e.stopPropagation()
+                    }} value={upgradeBlockName} size={"small"} />
+                    {
+                        renderButton((state) => {
+                            return applyUpgradeFuncs(state, getUpgradeFuncsByName(state, upgradeBlockName), isGiantessCharacterType(state) ? usedGirlEnum.PlayerGirl : usedGirlEnum.None)
+                        }, "选择升级", "确定")
+                    }
+
+                    <Input placeholder="选择职业" onChange={(e) => {
+                        setCareerName(_ => e.target.value)
+
+                        e.preventDefault()
+                        e.stopPropagation()
+                    }} value={careerName} size={"small"} />
+                    {
+                        renderButton((state) => {
+                            return NullableUtils.getWithDefault(
+                                NullableUtils.map(data => {
+                                    state = setSelectedCareerData(state, Scene.getCharacterType(getAbstractState(state)), [data])
+                                    return apply(state)
+                                }, getAllCareerData(state, Scene.getCharacterType(getAbstractState(state))).find(d => d.name.toLocaleLowerCase().includes(careerName.toLocaleLowerCase()))),
+                                Promise.resolve(state)
+                            )
+                        }, "选择职业", "确定")
+                    }
+
+                    {
+                        renderSwitch((state, isDebug) => {
+                            return setIsDebug(state, isDebug)
+                        }, getIsDebug(readState()), "关闭Debug", "开启Debug", "debug")
+                    }
+
                 </>
             case zone.LittleManInstruction:
                 return <>
+                    <InputNumber
+                        key={Math.random()}
+                        defaultValue={0}
+                        step="1"
+                        placeholder="usedGirl Index" onChange={(value) => {
+                            setUsedGirlIndex(_ => Number(value))
+                        }} value={usedGirlIndex}
+                    />
+                    {
+                        renderButton((state) => {
+                            state = handleExitControlled(state, getPosition(state))
+                            return pickupHandler(state, {
+                                userData: {
+                                    usedGirl: getNearestUsedGirl(state, getPlayerPosition(state)),
+                                    box: getCollisionPartOBB(state, getSpecificUsedGirl(state, usedGirlIndex), collisionPart.RightHand).toBox3().expandByScalar(1000)
+                                }
+                            })
+                        }, "pickup", "Pick")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = handleExitControlled(state, getPosition(state))
+                            return insertUBHandler(state, {
+                                userData: {
+                                    usedGirl: getNearestUsedGirl(state, getPlayerPosition(state)),
+                                    data: [
+                                        [
+                                            NullableUtils.getEmpty(),
+                                            -1,
+                                            getLittleManName(),
+                                            getWorldMatrix(state),
+                                            getBox(state)
+                                        ]
+                                    ].concat(
+                                        getAllFlattenAliveArmyData(state).map(data => {
+                                            return [
+                                                data.queue,
+                                                data.index,
+                                                data.name,
+                                                data.queue.getTransform(data.index),
+                                                data.queue.getBox(data.index)
+                                            ]
+                                        })
+                                    )
+                                }
+                            })
+                        }, "ub_controlled", "UB Controlled")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = handleExitControlled(state, getPosition(state))
+
+                            return putToBreastHandler(state, {
+                                userData: {
+                                    usedGirl: getNearestUsedGirl(state, getPlayerPosition(state)),
+                                    data: [
+                                        [
+                                            NullableUtils.getEmpty(),
+                                            -1,
+                                            getLittleManName(),
+                                            getWorldMatrix(state),
+                                            getBox(state)
+                                        ]
+                                    ].concat(
+                                        getAllFlattenAliveArmyData(state).map(data => {
+                                            return [
+                                                data.queue,
+                                                data.index,
+                                                data.name,
+                                                data.queue.getTransform(data.index),
+                                                data.queue.getBox(data.index)
+                                            ]
+                                        })
+                                    )
+                                }
+                            })
+                        }, "put_to_breast", "put_to_breast")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = handleExitControlled(state, getPosition(state))
+                            return putToShoeHandler(state, {
+                                userData: {
+                                    usedGirl: getNearestUsedGirl(state, getPlayerPosition(state)),
+                                    data: [
+                                        [
+                                            NullableUtils.getEmpty(),
+                                            -1,
+                                            getLittleManName(),
+                                            getWorldMatrix(state),
+                                            getBox(state)
+                                        ]
+                                    ].concat(
+                                        getAllFlattenAliveArmyData(state).map(data => {
+                                            return [
+                                                data.queue,
+                                                data.index,
+                                                data.name,
+                                                data.queue.getTransform(data.index),
+                                                data.queue.getBox(data.index)
+                                            ]
+                                        })
+                                    )
+                                }
+                            })
+                        }, "put_to_shoe", "put_to_shoe")
+                    }
                     {
                         // renderSwitch((state, isSelectLittleMan) => {
                         //     if (isSelectLittleMan) {
@@ -1157,7 +1624,7 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                         //     }
                         // }, readState().config.littleManConfig.isSelectLittleMan, "开启选择小人", "关闭选择小人", "select_little_man")
                     }
-                    {
+                    {/* {
                         renderSwitch((state, isOnlyStomp) => {
                             if (isOnlyStomp) {
                                 return {
@@ -1185,13 +1652,51 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                         }, readState().config.littleManConfig.isOnlyStomp, "开启只踩踏", "关闭只踩踏", "only_stomp")
                     }
                     {
-                        renderSwitchPromise((state, changeToCrawl) => {
-                            if (changeToCrawl) {
-                                return triggerAction(state, actionName.StandToCrawl).then(getTuple2First)
+                        renderSwitch((state, isOnlyPickup) => {
+                            if (isOnlyPickup) {
+                                return {
+                                    ...state,
+                                    config: {
+                                        ...state.config,
+                                        littleManConfig: {
+                                            ...state.config.littleManConfig,
+                                            isOnlyPickup: true
+                                        }
+                                    }
+                                }
                             }
 
-                            return triggerAction(state, actionName.CrawlToStand).then(getTuple2First)
+                            return {
+                                ...state,
+                                config: {
+                                    ...state.config,
+                                    littleManConfig: {
+                                        ...state.config.littleManConfig,
+                                        isOnlyPickup: false
+                                    }
+                                }
+                            }
+                        }, readState().config.littleManConfig.isOnlyPickup, "开启只抓", "关闭只抓", "only_pickup")
+                    } */}
+                    {/* {
+                        renderSwitchPromise((state, changeToCrawl) => {
+                            if (changeToCrawl) {
+                                return triggerAction(state, getSpecificUsedGirl(state, usedGirlIndex), actionName.StandToCrawl).then(getTuple2First)
+                            }
+
+                            return triggerAction(state, getSpecificUsedGirl(state, usedGirlIndex), actionName.CrawlToStand).then(getTuple2First)
                         }, isPose(readState(), pose.Crawl), "切换到爬行", "切换到站立", "changeToPose")
+                    } */}
+                    {
+                        renderButton((state) => {
+                            state = studyActions(state, buildFuncData(state), [
+                                getSwipBlockService(state).getActionName(),
+                                getFastRunBlockService(state).getActionName(),
+                                littleManActionName.Blink
+                            ])
+
+                            return Promise.resolve(state)
+                        }, "learn_all", "所有技能")
                     }
                     {
                         renderSwitch((state, isNotExecuteGiantessAI) => {
@@ -1229,16 +1734,268 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                     }
                     {
                         renderButton((state) => {
-                            state = setHp(state, 1)
+                            if (getHp(state) > 1) {
+                                state = setHp(state, 1)
+                            }
 
                             return Promise.resolve(state)
                         }, "littleMan_hp_min", "小人HP最小")
                     }
+                    {
+                        renderButton((state) => {
+                            state = setHp(state, 0)
+
+                            return Promise.resolve(state)
+                        }, "destory_littleman", "干掉小人")
+                    }
+                    {
+                        renderButton((state) => {
+                            // state = setExperienceValue(state, getLittleManName(), getLittleManExperienceValue(state) + getOneLevelExperienceValue(state) * 100)
+                            state = setExperienceValue(state, getSpecificUsedGirl(state, usedGirlIndex), getLittleManName(), getOneLevelExperienceValue(state) * 3)
+
+                            return Promise.resolve(state)
+                        }, "upgrade_little", "升级")
+                    }
+                    {/* {
+                        renderButton((state) => {
+                            state = setExperienceValue(state, getLittleManName(), getOneLevelExperienceValue(state))
+
+                            return Promise.resolve(state)
+                        }, "upgrade_little_one", "升1级")
+                    } */}
+                    {/* <Selector
+                        defaultValue={String(getLittleManSettingInGame(readState()).selectTargetPrior)}
+                        onChange={arr => {
+                            set(setLittleManSettingInGameIsSelectLittleManPrior, arr, targetPrior.None)
+                        }}
+                        options={
+                            [
+                                { value: String(targetPrior.None), label: "默认" },
+                                { value: String(targetPrior.LittleMan), label: "玩家" },
+                                { value: String(targetPrior.Building), label: "建筑" },
+                                { value: String(targetPrior.Cityzen), label: "市民" },
+                                { value: String(targetPrior.Soldier), label: "士兵" },
+                                { value: String(targetPrior.MilltaryVehicle), label: "军车" },
+                                { value: String(targetPrior.MilltaryBuilding), label: "军事建筑" },
+                            ]
+                        }
+                    /> */}
                 </>
 
             case zone.GiantessInstruction:
                 return <>
                     {
+                        renderButton((state) => {
+                            state = handleExitControlled(state, getPosition(state))
+                            return insertUBHandler(state, {
+                                userData: {
+                                    usedGirl: getNearestUsedGirl(state, getPlayerPosition(state)),
+                                    data: [
+                                        [
+                                            NullableUtils.getEmpty(),
+                                            -1,
+                                            getLittleManName(),
+                                            getWorldMatrix(state),
+                                            getBox(state)
+                                        ]
+                                    ].concat(
+                                        getAllFlattenAliveArmyData(state).map(data => {
+                                            return [
+                                                data.queue,
+                                                data.index,
+                                                data.name,
+                                                data.queue.getTransform(data.index),
+                                                data.queue.getBox(data.index)
+                                            ]
+                                        })
+                                    )
+                                }
+                            })
+                        }, "ub_controlled", "UB Controlled")
+                    }
+                    {
+                        renderButton((state) => {
+                            state = handleExitControlled(state, getPosition(state))
+
+                            return putToBreastHandler(state, {
+                                userData: {
+                                    usedGirl: getNearestUsedGirl(state, getPlayerPosition(state)),
+                                    data: [
+                                        [
+                                            NullableUtils.getEmpty(),
+                                            -1,
+                                            getLittleManName(),
+                                            getWorldMatrix(state),
+                                            getBox(state)
+                                        ]
+                                    ].concat(
+                                        getAllFlattenAliveArmyData(state).map(data => {
+                                            return [
+                                                data.queue,
+                                                data.index,
+                                                data.name,
+                                                data.queue.getTransform(data.index),
+                                                data.queue.getBox(data.index)
+                                            ]
+                                        })
+                                    )
+                                }
+                            })
+                        }, "put_to_breast", "put_to_breast")
+                    }
+                    {
+                        renderButton((state) => {
+                            // state = setCurrentStudyActions(state, List([
+                            state = setSavedStudyActions(state, [
+                                {
+                                    name: actionName.Run,
+                                    time: getNow(state)
+                                },
+                                {
+                                    // name: actionName.Stomp,
+                                    name: getStompBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.StandToCrawl,
+                                    time: getNow(state)
+                                },
+                                // {
+                                //     name: actionName.BreastPress,
+                                //     time: getNow(state)
+                                // },
+                                {
+                                    name: actionName.CrawlToStand,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.Pickup,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.Eat,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.Pinch,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.Pickdown,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.Bigger,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.SmallerToLastBiggerCount,
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: actionName.Reborn,
+                                    time: getNow(state)
+                                },
+
+                                {
+                                    name: getStompRubBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getLeftStompBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getJumpStompBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getStandToSitBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getSitToStandBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getSitRubBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getSitTightenLegBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getPickToUBBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getUBToPickBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getThrustBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getInsertBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getPutToBreastBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getPutToShoeBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getFreeUBBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getFreeBreastBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getFreeShoeBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getBreastPressBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getBreastPressRubBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getCrawlBeatBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getCrawlLickBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                                {
+                                    name: getSprayMilkBlockService(state).getActionName(),
+                                    time: getNow(state)
+                                },
+                            ])
+
+                            state = setCurrentStudyActions(state, getSavedStudyActions(state))
+
+
+                            state = setMaxBiggerCount(state, 10)
+
+                            // state = setBiggerWay(state, biggerWay.Active)
+                            state = studyActions(state, buildFuncData(state), [actionName.Bigger])
+
+                            return Promise.resolve(state)
+                        }, "learn_all", "所有技能")
+                    }
+
+                    {/* {
                         renderButton((state) => {
                             return Promise.resolve(CityScene3D.transportGirl(state, new Vector3(50, 0, 50)))
                         }, "move_zone1", "传送到区域1")
@@ -1252,27 +2009,60 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                         renderButton((state) => {
                             return Promise.resolve(CityScene3D.transportGirl(state, new Vector3(1500, 0, 620)))
                         }, "move_zone3", "传送到区域3")
+                    } */}
+                    {
+                        renderButton((state) => {
+                            // state = setExperienceValue(state, getGirlName(), getGiantessExperienceValue(state) + getOneLevelExperienceValue(state) * 100)
+                            state = setExperienceValue(state, getSpecificUsedGirl(state, usedGirlIndex), buildNameByUsedGirl(getSpecificUsedGirl(state, usedGirlIndex)), getOneLevelExperienceValue(state) * 3)
+
+                            return Promise.resolve(state)
+                        }, "upgrade_giantess", "升级")
+                    }
+
+                </>
+            case zone.AttackCityInstruction:
+                return <>
+                    {
+                        renderButton((state) => {
+                            return triggerMainEvent(state, eventName.WildGiantessAppear)
+                        }, "trigger_wild_giantess_appear", "触发野生巨大娘出现事件")
                     }
                     {
                         renderButton((state) => {
-                            return Promise.resolve(setExcitement(state, 100))
-                        }, "max_excitement", "最大兴奋")
+                            return triggerMainEvent(state, eventName.EnemyGiantessAppear)
+                        }, "trigger_enemy_giantess_appear", "触发敌人巨大娘出现事件")
                     }
                     {
                         renderButton((state) => {
-                            return Promise.resolve(setExcitement(state, 0))
-                        }, "zero_excitement", "0兴奋")
+                            return triggerMainEvent(state, eventName.EnemyReinforceReach)
+                        }, "EnemyReinforceReach", "触发敌人增援事件")
+                    }
+                    {
+                        renderButton((state) => {
+                            return triggerMainEvent(state, eventName.EnemyFireSupport)
+                        }, "trigger_firesupport", "触发敌人火力支援事件")
+                    }
+                    {
+                        renderButton((state) => {
+                            switch (getSceneChapter(state)) {
+                                case scene.Biwu:
+                                    return handleMissionComplete(state, 0)
+                                default:
+                                    state = setIsMissionFinish(state, true)
+                                    return Promise.resolve(showDoor(state))
+                            }
+                        }, "show_door", "门")
                     }
                 </>
             case zone.BiwuInstruction:
                 return <>
-                    {
+                    {/* {
                         renderButton((state) => {
                             return ShellTurret.generateTurrets(state, [
                                 new Vector3(
                                     -140, 0, 30
                                 )
-                            ], camp.Giantess, attackTarget.LittleMan).then(TupleUtils.getTuple2First)
+                            ], camp.Enemy).then(TupleUtils.getTuple2First)
                         }, "generate_shellturret", "创建炮塔")
                     }
                     {
@@ -1283,18 +2073,22 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                                     -140, 0, 40
                                 )
                                 // ], camp.LittleMan, attackTarget.Giantess)
-                            ], camp.Giantess, attackTarget.LittleMan).then(TupleUtils.getTuple2First)
+                            ], camp.Enemy).then(TupleUtils.getTuple2First)
                         }, "generate_missileturret", "创建导弹塔")
-                    }
+                    } */}
                     {
                         renderSwitch((state, isFastDuration) => {
                             if (isFastDuration) {
-                                return setCustomDuration(state, 0.5)
+                                return ArrayUtils.reduce(getCurrentUsedGirls(state), (state, usedGirl) => {
+                                    return setCustomDuration(state, usedGirl, 0.5)
+                                }, state)
                             }
 
-                            return removeCustomDuration(state)
+                            return ArrayUtils.reduce(getCurrentUsedGirls(state), (state, usedGirl) => {
+                                return removeCustomDuration(state, usedGirl)
+                            }, state)
                         }, !NullableUtils.isNullable(
-                            getCustomDuration(readState())
+                            getCustomDuration(readState(), getFirstUsedGirl(readState()))
                         ), "常速动画", "快速动画", "fast_duration")
                     }
                     {
@@ -1328,6 +2122,19 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                         }, "transportToTorsor", "传送到肚子")
                     }
                 </>
+            case zone.ProtectInstruction:
+                return <>
+                    {
+                        renderButton((state) => {
+                            return triggerMainEvent(state, "Event_Game_Protect_Level_Giantess1")
+                        }, "trigger_boss1_appear", "触发boss1出现事件")
+                    }
+                    {
+                        renderButton((state) => {
+                            return triggerMainEvent(state, "Event_Game_Protect_Level_Giantess2")
+                        }, "trigger_boss2_appear", "触发boss2出现事件")
+                    }
+                </>
         }
     }
 
@@ -1340,6 +2147,15 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
 
     let _setZone = (zone) => {
         globalThis["debug_zone"] = zone
+    }
+
+    let _getStyle = () => {
+        return Device.isMobile() ? {
+            "overflow-y": "auto",
+            "height": "50%"
+        } : {
+            "height": "0"
+        }
     }
 
     // let _keydownEventHandler = (state, { userData }) => {
@@ -1362,7 +2178,7 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
     //     };
     // }, []);
 
-    return <Layout className="debug">
+    return <Layout className="debug" style={_getStyle()}>
         <Menu onClick={e => {
             let key = Number(e.key)
 
@@ -1376,20 +2192,30 @@ let Debug: React.FC = ({ setIsShowDebug }) => {
                 label: '指令',
                 key: zone.Instruction,
             },
-            isLittleRoad(readState()) ?
+            isLittleCharacterType(readState()) ?
                 {
                     label: '小人指令',
                     key: zone.LittleManInstruction,
                 } : null,
-            isGiantessRoad(readState()) ?
+            isGiantessCharacterType(readState()) ?
                 {
                     label: '巨大娘指令',
                     key: zone.GiantessInstruction,
                 } : null,
-            getSceneChapter(readState()) == scene.Biwu ?
+            NullableUtils.getExn(currentSceneData).scene == scene.Play ?
+                {
+                    label: '进攻城市指令',
+                    key: zone.AttackCityInstruction,
+                } : null,
+            NullableUtils.getExn(currentSceneData).scene == scene.Biwu ?
                 {
                     label: '比武指令',
                     key: zone.BiwuInstruction,
+                } : null,
+            NullableUtils.getExn(currentSceneData).scene == "Scene_Protect" ?
+                {
+                    label: '防御城市指令',
+                    key: zone.ProtectInstruction,
                 } : null,
             {
                 label: '位移',

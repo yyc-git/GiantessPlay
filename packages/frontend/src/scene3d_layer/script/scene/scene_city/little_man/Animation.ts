@@ -1,7 +1,7 @@
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { Quaternion, Matrix4, Vector3, Vector2, AxesHelper, Box3, Object3D, SkinnedMesh, Mesh, MeshPhongMaterial, LoopRepeat, Euler } from "three";
 import { state } from "../../../../type/StateType";
-import { getState, setState, getName as getCitySceneName, getScene, getConfigData, isLittleRoad, getOrbitControlsTarget, getLittleManSetting } from "../CityScene";
+import { getState, setState, getName as getCitySceneName, getScene, getConfigData, isLittleCharacterType, getOrbitControlsTarget } from "../CityScene";
 import { littleMan, littleManActionState, littleManStrength, objectStateName } from "../type/StateType";
 import { ModelLoader } from "meta3d-jiehuo-abstract";
 import { getAbstractState, setAbstractState } from "../../../../state/State";
@@ -33,11 +33,10 @@ import { getCurrentCamera } from "meta3d-jiehuo-abstract/src/scene/Camera";
 import { getHeight, getWidth } from "meta3d-utils/src/View";
 import { buildLittleManAnimationChangeEventData, getLittleManAnimationChangeEventName, getLittleManShootStartEventName, getMissionFailEventName } from "../../../../utils/EventUtils";
 import { Event } from "meta3d-jiehuo-abstract";
-import { getGirlPositionParrelToArmy, getParticleNeedCollisionCheckLoopCount, } from "../utils/ArmyUtils";
-import { isNotDamageState } from "../utils/FSMStateUtils"
+import { isDestoryRelatedStates, isNotDamageState } from "../utils/FSMStateUtils"
 import { getRandomCollisionPart } from "../utils/CollisionUtils";
 import { ParticleManager } from "meta3d-jiehuo-abstract";
-import { emitPrecision, emitterLife, emitterSize, emitterSpeed } from "../data/ValueType";
+import { emitPrecision, emitSpeed, emitterLife, emitterSize, emitterSpeed } from "../data/ValueType";
 import { updateAnimationCollision } from "./Collision";
 import { Map } from "immutable";
 import * as DamageUtils from "../utils/DamageUtils"
@@ -45,34 +44,40 @@ import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { getDeathAnimationResourcePath } from "../data/Const";
 import { hp } from "../data/DataType";
-import { computeBox, getCurrentModelData, getFullHp, getLittleMan, getLittleManState, getName, getStateMachine, setGunInititalTransform, setHp, setLittleManState, setStateMachine } from "./LittleMan";
+import { computeBox, getCurrentModelData, getFullHp, getLittleMan, getLittleManState, getName, getStateMachine, getValue, setGunInititalTransform, setHp, setLittleManState, setStateMachine } from "./LittleMan";
 import { isTriggerAction, resetIsTriggerAction } from "./Action";
-import { createClimbState, createControlledState, createInitialState, createShootState, createSwipingState } from "./FSMState";
-import { isCurrentGunNeedUpdateAnimationDuration } from "./Gun";
+import { createClimbState, createInitialState, createShootState, createSwipingState } from "./FSMState";
+import { getCurrentGunValue } from "./Gun";
 import { setBonePositionYOffset } from "../utils/BoneUtils";
 import { isClimbing } from "./climb/ClimbManager";
+import * as SwipingWeapon from "../weapon/SwipingWeapon"
+import { NumberUtils } from "meta3d-jiehuo-abstract";
+import { getCrazyLevel, getEmitSpeedIncreaseRatio } from "../StaticDynamic";
+import { getAllAnimationNames as getAllAnimationNamesMod, getAllAttackAnimationNames, getSwipBlockService } from "../../../../mod/SkillLittleManMod";
 
-export let getAllAnimationNames = () => [
+export let getAllAnimationNames = (state: state) => [
     animationName.Idle,
     animationName.Run,
     animationName.Shoot,
-    animationName.Swiping,
+    // animationName.Swiping,
     animationName.Shake,
     animationName.Death,
 
-    animationName.Controlled,
+    animationName.PickedControlled,
 
     animationName.Lie,
     animationName.Standup,
 
     animationName.ClimbToTop,
     animationName.ClimbToDown,
-]
+].concat(
+    getAllAnimationNamesMod(state)
+)
 
-export let initWeights = (abstractState) => {
-    abstractState = SkinBlendAnimation.setWeights(abstractState, SkinBlendAnimation.getWeights(abstractState).set(getAllAnimationNames()[0], 1))
+export let initWeights = (abstractState, state: state) => {
+    abstractState = SkinBlendAnimation.setWeights(abstractState, SkinBlendAnimation.getWeights(abstractState).set(getAllAnimationNames(state)[0], 1))
 
-    return getAllAnimationNames().slice(1).reduce((abstractState, name) => {
+    return getAllAnimationNames(state).slice(1).reduce((abstractState, name) => {
         return SkinBlendAnimation.setWeights(abstractState, SkinBlendAnimation.getWeights(abstractState).set(name, 0))
     }, abstractState)
 }
@@ -103,10 +108,10 @@ export let isEnd = (state, animationName_, isDebug: boolean) => {
             // MMD.findAnimationAction(getAbstractState(state), getLittleMan(state), animationName_),
             SkinAnimation.getAction(getAbstractState(state), getName(), animationName_),
 
-            getAnimationFrameCount(animationName_)
+            getAnimationFrameCount(state, animationName_)
         ),
-        getAnimationFrameCount(animationName_),
-        getAnimationFrameCount(animationName_),
+        getAnimationFrameCount(state, animationName_),
+        getAnimationFrameCount(state, animationName_),
         0,
         isDebug
     )
@@ -115,7 +120,6 @@ export let isEnd = (state, animationName_, isDebug: boolean) => {
 export let isCompletelyPlayingAnimation = (state, animationName) => {
     return isPlayingAnimationByWeight(state, animationName, 1)
 }
-
 
 export let isPlayingAnimationByWeight = (state, animationName, weight) => {
     return SkinBlendAnimation.getWeightForNotMMD(SkinAnimation.getAction(getAbstractState(state), getName(), animationName)) >= weight
@@ -138,7 +142,7 @@ let _updateAnimationBlendAndFSMState = (state) => {
             // 				return isCurrentAnimationName(state)
             // 			}, data.isCurrentAnimationName
             // 		),
-            // 		getGirlState(state).currentAnimationName == NullableUtils.getExn( data.currentAnimationName)
+            // 		getUsedGirlData(state, usedGirl).currentAnimationName == NullableUtils.getExn( data.currentAnimationName)
             // 	)
             // )
             && data.currentAnimationNames.reduce((result, animationName_) => {
@@ -147,7 +151,7 @@ let _updateAnimationBlendAndFSMState = (state) => {
                 }
 
                 return isPlayingAnimationByWeight(state, animationName_, NullableUtils.getWithDefault(data.weight, 1))
-                // return isPlayingAnimation(state, animationName_)
+                // return isPlayingAnimation(state, usedGirl,  animationName_)
             }, false)
 
         ) {
@@ -191,7 +195,7 @@ let _updateAnimationBlendAndFSMState = (state) => {
 
                 // )
 
-                // let helper = MMD.getMMDAnimationHelper(getAbstractState(state))
+                // let helper = MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl)
 
                 if (noBlend) {
                     SkinBlendAnimation.executeCrossFade(
@@ -237,13 +241,14 @@ let _updateAnimationBlendAndFSMState = (state) => {
                     case animationName.Shoot:
                         fsmState = createShootState()
                         break
-                    case animationName.Swiping:
+                    // case animationName.Swiping:
+                    case getSwipBlockService(state).getAnimationName():
                         fsmState = createSwipingState()
                         break
 
-                    case animationName.Controlled:
-                        fsmState = createControlledState()
-                        break
+                    // case animationName.PickedControlled:
+                    //     fsmState = createControlledState()
+                    //     break
 
 
                     default:
@@ -259,7 +264,9 @@ let _updateAnimationBlendAndFSMState = (state) => {
 
 
                 let promise
-                if (NullableUtils.isNullable(fsmState)) {
+                if (NullableUtils.isNullable(fsmState)
+                    || isDestoryRelatedStates(getStateMachine(state))
+                ) {
                     promise = Promise.resolve(state)
                 }
                 else {
@@ -289,7 +296,7 @@ let _handlePlayOnce = (state: state) => {
             getIsDebug(state)
         )
     ) {
-        // MMD.getMMDAnimationHelper(getAbstractState(state)).pause()
+        // MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).pause()
         SkinAnimation.getAction(getAbstractState(state), getName(), currentAnimationName).paused = true
         // state = setAbstractState(state, SkinAnimation.stopSkinAnimation(getAbstractState(state), currentAnimationName, getName()))
     }
@@ -313,25 +320,30 @@ let _updateSpecificAnimationDuration = (state, factor, animationName_) => {
     return state
 }
 
-let _updateAnimationDuration = (state: state) => {
+let _getAnimationDurationFactor = (state: state, emitSpeed_) => {
+    const minFactor = 0.1
+
     let factor
-    switch (getLittleManSetting(state).littleManStrength) {
-        case littleManStrength.Low:
-            factor = 1
-            break
-        case littleManStrength.Middle:
-            factor = 0.5
-            break
-        case littleManStrength.High:
-            factor = 0.1
-            break
+    if (getIsDebug(state)) {
+        factor = minFactor
+    }
+    else {
+        factor = (emitSpeed_ / emitSpeed.Middle * 0.5 * getValue(state).emitSpeedFactor) / getEmitSpeedIncreaseRatio(getCrazyLevel(state))
     }
 
-    if (isCurrentGunNeedUpdateAnimationDuration(state)) {
-        state = _updateSpecificAnimationDuration(state, factor, animationName.Shoot)
-    }
+    return NumberUtils.greaterThan(factor, minFactor)
+}
 
-    state = _updateSpecificAnimationDuration(state, factor, animationName.Swiping)
+let _updateAnimationDuration = (state: state) => {
+    // TODO move to skill service->Event
+
+    // if (isCurrentGunNeedUpdateAnimationDuration(state)) {
+    state = _updateSpecificAnimationDuration(state, _getAnimationDurationFactor(state, getCurrentGunValue(state).emitSpeed), animationName.Shoot)
+    // }
+
+    state = _updateSpecificAnimationDuration(state, _getAnimationDurationFactor(state, SwipingWeapon.getValue(state).emitSpeed),
+        getSwipBlockService(state).getAnimationName()
+    )
 
     return state
 }
@@ -370,3 +382,13 @@ export let isPlayingAnimation = (state, animationName) => {
 
 //     return Promise.resolve(state)
 // }
+
+
+export let resetAnimation = (state: state, defaultAnimationName) => {
+    return setLittleManState(state, {
+        ...getLittleManState(state),
+        currentAnimationName: NullableUtils.return_(defaultAnimationName),
+        previousAnimationName: NullableUtils.getEmpty(),
+        nextBlendingAnimationName: NullableUtils.getEmpty(),
+    })
+}

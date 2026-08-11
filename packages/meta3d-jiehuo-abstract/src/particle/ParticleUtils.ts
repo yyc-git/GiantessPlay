@@ -1,24 +1,28 @@
-import { protectParticle, shellEmitOrExplodeParticle, state } from "../type/StateType"
+import { bulletParticle, protectParticle, shellEmitOrExplodeParticle, state } from "../type/StateType"
 import { BufferAttribute, BufferGeometry, Euler, Points, PointsMaterial, Texture, TextureLoader, Vector3 } from "three";
 import { isMobile } from "../Device";
 import { clamp, getRandomValue1, toFloatString } from "../utils/NumberUtils";
 import { load } from "./LoadParticlTextureUtils";
-import { NullableUtils } from "../Main";
+import { MutableRecordUtils, NullableUtils, ParticleManager } from "../Main";
+import { initGeometryAttributesForOffset, updateGeometryAttributeForOffset as updateGeometryAttributeForOffsetUtils, updateGeometryAttributeForRepeatOffset as updateGeometryAttributeForRepeatOffsetUtils } from "./GeometryUtils";
+import { getParticleState } from "../state/State";
 
 export let initForOffset = (state: state, setGeometryFunc, scene, texturePath, color,
 	depthTest = true,
-	notFlipY=true,
+	notFlipY = true,
 ) => {
 	let promise = load(state, texturePath, notFlipY)
 
 	return promise.then(([state, map]) => {
 		// 先创建一个空的缓冲几何体
 		const geometry = new BufferGeometry();
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
-		geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
-		geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
-		geometry.setAttribute('a_offset', new BufferAttribute(new Float32Array([]), 2));
-		geometry.setAttribute('a_repeat', new BufferAttribute(new Float32Array([]), 2));
+		// geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
+		// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
+		// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
+		// geometry.setAttribute('a_offset', new BufferAttribute(new Float32Array([]), 2));
+		// geometry.setAttribute('a_repeat', new BufferAttribute(new Float32Array([]), 2));
+
+		let _ = initGeometryAttributesForOffset(geometry, 1000)
 
 		// 创建材质
 		const material = new PointsMaterial({
@@ -193,7 +197,7 @@ export let buildOffsetParticle = ({ speed, life, size, position, offset, repeat 
 		position,
 
 		offset,
-		repeat
+		repeat,
 	}
 }
 
@@ -216,7 +220,7 @@ export let buildRepeatOffsetParticle = ({ speed, life, size, getPositionFunc, ge
 	}
 }
 
-export let getCurrentFrameImageData = (frameIndex: number, colCount, rowCount): { offset: [number, number] } => {
+export let getCurrentFrameImageData = (frameIndex: number, colCount, rowCount, uvOffset = [0, 0]): { offset: [number, number] } => {
 	// requireCheck(() => {
 	// 	test("frameIndex should be valid", () => {
 	// 		return frameIndex >= 0 && frameIndex < 8 * 6
@@ -228,16 +232,17 @@ export let getCurrentFrameImageData = (frameIndex: number, colCount, rowCount): 
 	let rowIndex = Math.floor(frameIndex / colCount)
 
 	return {
-		offset: [colIndex * 1 / colCount, rowIndex * 1 / rowCount],
+		offset: [colIndex * 1 / colCount + uvOffset[0], rowIndex * 1 / rowCount + uvOffset[1]],
 	}
 }
 
-export let updateOffsetParticle = (particle: shellEmitOrExplodeParticle, now, colCount, rowCount) => {
+export let updateOffsetParticle = (particle: shellEmitOrExplodeParticle, now, colCount, rowCount, uvOffset = [0, 0]) => {
 	let passedTime = now - particle.createTime
 
 	let { offset } = getCurrentFrameImageData(
 		Math.floor((passedTime * particle.speed) / particle.life * (colCount * rowCount - 1)),
-		colCount, rowCount
+		colCount, rowCount,
+		uvOffset
 	)
 
 	particle.offset = offset
@@ -270,59 +275,47 @@ export let updateRepeatOffsetParticle = <specificState>(specificState: specificS
 
 
 export let updateGeometryAttributeForOffset = (filteredParticles, geometry) => {
-	// 遍历粒子,收集属性
-	let [positionList, opacityList, sizeList, offsetList, repeatList] = filteredParticles.reduce(([positionList, opacityList, sizeList, offsetList, repeatList], particle,) => {
-		// positionList = positionList.concat(particle.position)
-		positionList.push(particle.position[0], particle.position[1], particle.position[2])
-		opacityList.push(particle.opacity)
-		sizeList.push(particle.size)
-
-		// offsetList = offsetList.concat(particle.offset)
-		// repeatList = repeatList.concat(particle.repeat)
-		offsetList.push(particle.offset[0], particle.offset[1])
-		repeatList.push(particle.repeat[0], particle.repeat[1])
-
-		return [positionList, opacityList, sizeList, offsetList, repeatList]
-	}, [[], [], [], [], []])
-
-	// 粒子属性写入
-	geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
-	geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
-	geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
-
-	geometry.setAttribute('a_offset', new BufferAttribute(new Float32Array(offsetList), 2));
-	geometry.setAttribute('a_repeat', new BufferAttribute(new Float32Array(repeatList), 2));
+	let _ = updateGeometryAttributeForOffsetUtils(geometry, filteredParticles)
 }
 
-export let updateGeometryAttributeForRepeatOffset = <specificState>(specificState: specificState) => {
-	return (filteredParticles, geometry) => {
-		// 遍历粒子,收集属性
-		let [positionList, opacityList, sizeList, offsetList, repeatList] = filteredParticles.reduce(([positionList, opacityList, sizeList, offsetList, repeatList], particle: protectParticle,) => {
-			// positionList = positionList.concat(particle.position)
-			let position = particle.getPositionFunc(specificState)
+// export let updateGeometryAttributeForRepeatOffset = <specificState>(specificState: specificState) => {
+export let updateGeometryAttributeForRepeatOffset = <specificState>(specificState: specificState, filteredParticles, geometry) => {
+	// // 遍历粒子,收集属性
+	// let [positionList, opacityList, sizeList, offsetList, repeatList] = filteredParticles.reduce(([positionList, opacityList, sizeList, offsetList, repeatList], particle: protectParticle,) => {
+	// 	// positionList = positionList.concat(particle.position)
+	// 	let position = particle.getPositionFunc(specificState)
 
-			positionList.push(position[0], position[1], position[2])
-			opacityList.push(particle.opacity)
-			sizeList.push(particle.size)
+	// 	positionList.push(position[0], position[1], position[2])
+	// 	opacityList.push(particle.opacity)
+	// 	sizeList.push(particle.size)
 
-			// offsetList = offsetList.concat(particle.offset)
-			// repeatList = repeatList.concat(particle.repeat)
-			offsetList.push(particle.offset[0], particle.offset[1])
-			repeatList.push(particle.repeat[0], particle.repeat[1])
+	// 	// offsetList = offsetList.concat(particle.offset)
+	// 	// repeatList = repeatList.concat(particle.repeat)
+	// 	offsetList.push(particle.offset[0], particle.offset[1])
+	// 	repeatList.push(particle.repeat[0], particle.repeat[1])
 
-			return [positionList, opacityList, sizeList, offsetList, repeatList]
-		}, [[], [], [], [], []])
+	// 	return [positionList, opacityList, sizeList, offsetList, repeatList]
+	// }, [[], [], [], [], []])
 
-		// 粒子属性写入
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
-		geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
-		geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
+	// // 粒子属性写入
+	// geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
+	// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
+	// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
 
-		geometry.setAttribute('a_offset', new BufferAttribute(new Float32Array(offsetList), 2));
-		geometry.setAttribute('a_repeat', new BufferAttribute(new Float32Array(repeatList), 2));
-	}
+	// geometry.setAttribute('a_offset', new BufferAttribute(new Float32Array(offsetList), 2));
+	// geometry.setAttribute('a_repeat', new BufferAttribute(new Float32Array(repeatList), 2));
+
+	let _ = updateGeometryAttributeForRepeatOffsetUtils(geometry, specificState, filteredParticles)
 }
 
 export let hasId = (particle: any) => {
 	return !NullableUtils.isNullable(particle.id)
+}
+
+export let removeBulletParticle = (state: state, particle: bulletParticle) => {
+	if (hasId(particle)) {
+		MutableRecordUtils.remove(getParticleState(state).bulletLastPosition, particle.id)
+	}
+
+	return state
 }

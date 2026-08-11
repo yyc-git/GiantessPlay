@@ -1,8 +1,10 @@
 import { state } from "../../../../../type/StateType"
 import { getState, setState, getScene } from "../../CityScene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
-import { tile } from "../../type/StateType"
+import { camp, tile } from "../../type/StateType"
 import { push } from "meta3d-jiehuo-abstract/src/utils/ArrayUtils"
+import { changeToFrontSide } from "./map/Map"
+import { setCamp } from "./Army"
 
 let _getState = (state: state) => {
 	return NullableUtils.getExn(getState(state).tile)
@@ -29,6 +31,10 @@ export let addStaticLODContainerData = (state: state,
 	staticLODContainer,
 	details,
 ) => {
+	details.forEach(d => {
+		changeToFrontSide(d.group.children[0])
+	})
+
 	return _setState(state, {
 		..._getState(state),
 		tiles: push(_getState(state).tiles, [
@@ -47,6 +53,8 @@ export let createState = (): tile => {
 }
 
 export let initialAttributes = (state, name) => {
+	state = setCamp(state, name, camp.None)
+
 	return state
 }
 

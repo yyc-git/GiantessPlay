@@ -7,6 +7,7 @@ import { push, pushArrs, range, } from "../utils/ArrayUtils";
 import { BufferAttribute, Vector3 } from "three";
 import { getDeltaFactor } from "../Device";
 import { NumberUtils } from "../Main";
+import { updateGeometryAttributeForColor } from "./GeometryUtils";
 
 const _v1 = new Vector3();
 const _v2 = new Vector3();
@@ -187,21 +188,23 @@ export let update = (state: state) => {
 			return particle
 		},
 		(filteredParticles, geometry) => {
-			// 遍历粒子,收集属性
-			let [positionList, opacityList, sizeList, colorList] = filteredParticles.reduce(([positionList, opacityList, sizeList, colorList], particle,) => {
-				positionList.push(particle.position[0], particle.position[1], particle.position[2])
-				opacityList.push(particle.opacity)
-				sizeList.push(particle.size)
-				colorList.push(particle.color[0], particle.color[1], particle.color[2])
+			// // 遍历粒子,收集属性
+			// let [positionList, opacityList, sizeList, colorList] = filteredParticles.reduce(([positionList, opacityList, sizeList, colorList], particle,) => {
+			// 	positionList.push(particle.position[0], particle.position[1], particle.position[2])
+			// 	opacityList.push(particle.opacity)
+			// 	sizeList.push(particle.size)
+			// 	colorList.push(particle.color[0], particle.color[1], particle.color[2])
 
-				return [positionList, opacityList, sizeList, colorList]
-			}, [[], [], [], []])
+			// 	return [positionList, opacityList, sizeList, colorList]
+			// }, [[], [], [], []])
 
-			// 粒子属性写入
-			geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
-			geometry.setAttribute('a_color', new BufferAttribute(new Float32Array(colorList), 3));
-			geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
-			geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
+			// // 粒子属性写入
+			// geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
+			// geometry.setAttribute('a_color', new BufferAttribute(new Float32Array(colorList), 3));
+			// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
+			// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
+
+			let _ = updateGeometryAttributeForColor(geometry, filteredParticles)
 		},
 	], getExn(_getState(state).geometry))
 }

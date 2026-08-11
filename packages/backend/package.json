@@ -1,0 +1,12 @@
+{
+    "name": "backend",
+    "version": "0.0.1",
+    "scripts": {
+        "watch": "tsc -w -noEmit",
+        "webpack:watch": "cross-env NODE_ENV=development webpack --watch --config webpack.config.js"
+    },
+    "dependencies": {
+        "meta3d-jiehuo-abstract": "^0.0.1"
+    },
+    "devDependencies": {}
+}

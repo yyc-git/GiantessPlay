@@ -14,30 +14,30 @@ import { attackType, getCustomData } from "../BehaviourTreeData"
 import { getAbstractState, setAbstractState } from "../../../../../../../../state/State"
 import { Flow } from "meta3d-jiehuo-abstract"
 
-let _waitForFinish = (state: state) => {
+let _waitForFinish = (state: state, usedGirl) => {
     let { rightHandAttackType, isRightHandAction } = getCustomData(state)
     if (rightHandAttackType == attackType.None && !isRightHandAction) {
-        return markFinish(state, getIdExn(state, actionName.RightHand), behaviourTreeNodeExecuteResult.Success, getKey())
+        return markFinish(state, usedGirl, getIdExn(state, usedGirl, actionName.RightHand), behaviourTreeNodeExecuteResult.Success, getKey())
     }
 
     return Promise.resolve(setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
-        return _waitForFinish(state)
+        return _waitForFinish(state, usedGirl)
     }, 5)))
 }
 
-export let keepRightHandAdd: actionNodeFunc = (state, id) => {
+export let keepRightHandAdd: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("keepRightHandAdd")
 
-    return triggerAction(state, actionName.KeepRightHandAdd as any).then(([state, result_]) => {
+    return triggerAction(state, usedGirl, actionName.KeepRightHandAdd as any).then(([state, result_]) => {
         if (result_ == result.Fail) {
             return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
         }
 
-        state = setId(state, actionName.RightHand, id)
+        state = setId(state, usedGirl, actionName.RightHand, id)
 
-        state = markIsRunning(state, true, getKey())
+        state = markIsRunning(state, usedGirl,true, getKey())
 
-        return _waitForFinish(state).then(state => {
+        return _waitForFinish(state, usedGirl).then(state => {
             return [state, behaviourTreeNodeExecuteResult.Success]
         })
     })

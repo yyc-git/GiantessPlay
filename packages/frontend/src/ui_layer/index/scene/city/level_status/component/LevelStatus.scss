@@ -1,0 +1,130 @@
+@use "../../../../../../Main.scss" as *;
+
+// $width: 10rem;
+
+.level_status-main {
+
+	// .row .ant-row {
+	// 	margin-bottom: 0.5rem;
+	// }
+
+	// .task_title {
+	// 	position: fixed;
+	// 	top: 2rem;
+	// 	left: 1rem;
+	// 	z-index: 2;
+
+	// 	@include font-size-level1;
+	// }
+
+
+	.gem,
+	.coin {
+		position: fixed;
+		// top: // rem;
+		left: 1rem;
+		z-index: 2;
+
+		// @include font-size-level1;
+
+		// & {
+		// 	text-align: center
+		// }
+
+		.image {
+			width: 2rem;
+			height: 2rem;
+		}
+
+		.text {
+			font-size: 1.5rem;
+
+			margin-left: 1rem;
+			margin-top: -0.2rem;
+			color: white;
+		}
+	}
+
+	.time {
+		position: fixed;
+		left: 1rem;
+		z-index: 2;
+
+
+		.time_text_normal {
+			font-size: 1rem;
+			margin-top: 0.2rem;
+			color: yellow;
+		}
+
+		.time_text_sepecial {
+			font-size: 1rem;
+			margin-top: 0.2rem;
+			color: red;
+		}
+	}
+
+
+	.orange {
+		color: orange !important;
+	}
+
+	.orangered {
+		color: orangered !important;
+	}
+
+	.red {
+		color: red !important;
+	}
+
+	.white {
+		color: white !important;
+	}
+
+	.green {
+		color: green !important;
+	}
+
+	.blue {
+		color: blue !important;
+	}
+
+	.purple {
+		color: purple !important;
+	}
+
+	.autodifficulty {
+		position: fixed;
+		left: 5rem;
+		z-index: 2;
+
+		.autodifficulty_description {
+			font-size: 1rem;
+			margin-top: 0.2rem;
+			color: white;
+		}
+
+		.autodifficulty_value {
+			font-size: 1rem;
+			font-weight: 700;
+			margin-top: 0.2rem;
+		}
+	}
+
+
+
+	.height_title {
+		position: fixed;
+		// top: 10rem;
+		// left: 1rem;
+		top: 1.5rem;
+		left: 9rem;
+		z-index: 2;
+
+		@include font-size-level3;
+
+		& {
+			text-align: center
+		}
+	}
+}

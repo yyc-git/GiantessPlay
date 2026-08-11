@@ -1,6 +1,6 @@
 import { Object3D } from "three";
-import { physicsLevel, state } from "../type/StateType";
-import { getRenderSetting } from "../setting/RenderSetting";
+import { physicsLevel } from "setting-default/src/Type"
+// import { getRenderSetting } from "../setting/RenderSetting";
 
 export let setShadow = <T extends Object3D>(object: T, castShadow, receiveShadow): T => {
     object.traverse(child => {
@@ -11,8 +11,8 @@ export let setShadow = <T extends Object3D>(object: T, castShadow, receiveShadow
     return object
 }
 
-export let decideReceiveShadow = (state: state) => {
-    switch (getRenderSetting(state).physics) {
+export let decideReceiveShadow = (physics: physicsLevel) => {
+    switch (physics) {
         case physicsLevel.VeryHigh:
             return true
         default:

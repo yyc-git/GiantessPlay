@@ -1,4 +1,4 @@
-@import "../../../../Main.scss";
+@use "../../../../Main.scss" as *;
 
 .share-main {
 	@include background-unset;
@@ -13,11 +13,27 @@
 
 	.level1 {
 		@include font-size-level1;
+		text-align: center;
+	}
+
+	.level2 {
+		@include font-size-level2;
+		text-align: center;
+	}
+
+
+	.input {
+		@include font-size-large;
+		color: red !important;
+		text-align: center;
+		// height: 10rem;
+		// width: 15rem;
 	}
 
 
 	.col {
 		width: 100%;
+		text-align: center;
 
 		.ant-image {
 			width: 100%;

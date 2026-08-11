@@ -1,16 +1,16 @@
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { Quaternion, Matrix4, Vector3, Vector2, AxesHelper, Box3, Object3D, SkinnedMesh, Mesh, MeshPhongMaterial, LoopRepeat, Euler } from "three";
 import { cameraType, state } from "../../../../type/StateType";
-import { getState, setState, getName as getCitySceneName, getScene, getConfigData, isLittleRoad, getOrbitControlsTarget, getGirlScale, getLittleManSetting, setLittleManSettingLittleManStrength } from "../CityScene";
-import { bulletPropName, climbPlane, damageType, littleMan, littleManActionState, littleManStrength, objectStateName, propType } from "../type/StateType";
+import { getState, setState, getName as getCitySceneName, getScene, getConfigData, isLittleCharacterType, getOrbitControlsTarget, getGirlScale, getSceneChapter, isBossLevel } from "../CityScene";
+import { autoDifficulty, bulletPropName, camp, climbPlane, damageType, fireWay, littleMan, littleManActionState, littleManStrength, millisecondUnit, objectStateName, propType, studyAction, waterPropName } from "../type/StateType";
 import { ModelLoader } from "meta3d-jiehuo-abstract";
 import { getAbstractState, readState, setAbstractState } from "../../../../state/State";
 import { Loader } from "meta3d-jiehuo-abstract";
 import { actionName, animationName } from "../little_man_data/DataType";
 import { SkinAnimation } from "meta3d-jiehuo-abstract";
 import { StateMachine } from "meta3d-jiehuo-abstract";
-import { fsm_state, labelAnimation, name } from "meta3d-jiehuo-abstract/src/type/StateType";
-import { requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract";
+import { characterType, fsm_state, labelAnimation, name } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract";
 import { getIsDebug } from "../../Scene";
 import { SkinBlendAnimation } from "meta3d-jiehuo-abstract";
 import { changeToPhongMaterial } from "meta3d-jiehuo-abstract/src/utils/MaterialUtils";
@@ -25,51 +25,80 @@ import { move } from "./Move";
 import { ThirdPersonControls } from "meta3d-jiehuo-abstract";
 import { Shadow } from "meta3d-jiehuo-abstract";
 import { Render } from "meta3d-jiehuo-abstract";
-import { getLittleHandTransform, getLittleHandTransformForDebug, getLittleHandTransformPrefix, getGiantessTransformFunc, getPickTransformPrefix } from "../utils/SkeletonUtils";
+import { getLittleHandTransform, getLittleHandTransformForDebug, getLittleHandTransformPrefix, getGiantessTransformFunc, getPickTransformPrefix, getGiantessUBControlledTransformFunc, getUBControlledTransformPrefix, getPutToBreastTransformPrefix, getGiantessPutToBreastTransformFunc, getGiantessPutToShoeTransformFunc, getPutToShoeTransformPrefix } from "../utils/SkeletonUtils";
 import { TransformUtils } from "meta3d-jiehuo-abstract";
 import { Billboard } from "meta3d-jiehuo-abstract";
 import { ScreenUtils } from "meta3d-jiehuo-abstract";
 import { getCurrentCamera } from "meta3d-jiehuo-abstract/src/scene/Camera";
 import { getHeight, getWidth } from "meta3d-utils/src/View";
-import { getLittleManShootEmitEventName, getLittleManShootStartEventName, getLittleManStandupEndEventName, getLittleManStatusUpdateEventName, getLittleManSwipingEmitEventName, getLittleManSwipingStartEventName, getMissionFailEventName } from "../../../../utils/EventUtils";
+import { getGetLittleManValueEventName, getLittleManShootEmitEventName, getLittleManShootStartEventName, getLittleManStandupEndEventName, getLittleManStatusUpdateEventName, getSwitchWeaponEventName } from "../../../../utils/EventUtils";
 import { Event } from "meta3d-jiehuo-abstract";
-import { getGirlPositionParrelToArmy, getParticleNeedCollisionCheckLoopCount, } from "../utils/ArmyUtils";
-import { isControlledState, isDestoryRelatedStates, isNotDamageState, isStressingState } from "../utils/FSMStateUtils"
+import { isArmy } from "../utils/ArmyUtils";
+import { isPickedControlledState, isDestoryRelatedStates, isNotDamageState, isControlledState, isLieState, isControlledStateExceptStressing, isFallState, isRepelState } from "../utils/FSMStateUtils"
 import { getRandomCollisionPart } from "../utils/CollisionUtils";
 import { ParticleManager } from "meta3d-jiehuo-abstract";
-import { emitPrecision, emitSpeed, emitVolume, emitterLife, emitterSize, emitterSpeed, weaponType } from "../data/ValueType";
+import { emitPrecision, emitSpeed, emitterVolume, emitterLife, emitterSize, emitterSpeed, weaponType } from "../data/ValueType";
 import { updateAnimationCollision } from "./Collision";
 import { List, Map } from "immutable";
-import { buildCameraFar, getCameraPosition, getCameraType, getControlsTarget, getDistance, hasNeedRestoreData, keepDistance, saveNeedRestoreData, updateCamera, updateControlsWhenRestore, updateControlsWhenZoomOutToThirdPersonControls, updateControlsWhenZoomOutToThirdPersonControls2, updateThirdPersonControls, useThirdPersonControls } from "../LittleManCamera";
+import { buildCameraFar, getCameraPosition, getCameraType, getControlsTarget, getDistance, hasNeedRestoreData, updatePosition, saveNeedRestoreData, updateCamera, restoreControlsForNotChangePosition, updateControlsWhenZoomOutToThirdPersonControls, updateControlsWhenZoomOutToThirdPersonControls2, useThirdPersonControls, restoreControlsForChangePosition, isThirdPersonCamera } from "../LittleManCamera";
 import * as DamageUtils from "../utils/DamageUtils"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { getDeathAnimationResourcePath } from "../data/Const";
-import { defenseFactor, excitement, hp, speed } from "../data/DataType";
+import { animatioNameAndActionName, defenseFactor, excitement, hp, speed, stressingRateFactor, animationName as giantessAnimationName } from "../data/DataType";
 import * as InitWhenImportScene from "./InitWhenImportScene"
-import { isPlayingAnimationByWeight, updateAnimation } from "./Animation";
+import { isPlayingAnimation, isPlayingAnimationByWeight, updateAnimation } from "./Animation";
 import { shootEmitHandler, shootStartHandler, updateAimHud } from "./Shoot";
-import { createControlledState, createDestroyingState, createInitialState, createLieState, createStandupState, createStressingState, isProtected, standupEndHandler } from "./FSMState";
+import { createBreastControlledState, createDestroyingState, createInitialState, createLieState, createPickedControlledState, createShoeControlledState, createStandupState, createStressingState, createUBControlledState, isProtected, standupEndHandler } from "./FSMState";
 import * as Transform from "./Transform";
 import { PathFind } from "meta3d-jiehuo-abstract";
-import { getGrid } from "../manage/city1/PathFind";
+import { findValidPosition, getGrid } from "../manage/city1/PathFind";
 // import { getBone } from "../utils/MMDUtils";
 import { getGirlPickBone } from "../girl/PickPose";
-import { triggerAction } from "./Action";
+import { resetAction, resetIsTriggerAction, triggerAction } from "./Action";
 import { Vector3Utils } from "meta3d-jiehuo-abstract";
-import { clearPick, isLieState } from "./Utils";
-import { getForceFactor, getGirlBox, getBoxSizeForCompute as getGirlBoxSizeForCompute, getWeaponTypeFactor } from "../girl/Utils";
-import { getName as getGirlName, isGirl } from "../girl/Girl";
-import { createBloodData } from "../utils/CharacterUtils";
+import { computeHeight, getDamageTypeFactor, getForceFactor, getGirlBox, getBoxSizeForCompute as getGirlBoxSizeForCompute } from "../girl/Utils";
+import { getUsedGirlByName, isGirl, isPlayerGiantess, isPlayerGoddess, isUseGirl } from "../girl/Girl";
+import { createBloodData, isChangeToLieState } from "../utils/CharacterUtils";
 import { Console } from "meta3d-jiehuo-abstract";
 import { getLoadData, getModelRelatedLoadData, modelName } from "../little_man_data/ModelData";
-import { swipingEmitHandler, swipingStartHandler } from "./Swiping";
-import { addGunToHand, getCurrentGun, getCurrentGunName, dispose as disposeGun } from "./Gun";
+// import { swipingEmitHandler, swipingStartHandler } from "./Swiping";
+import { addGunToHand, getCurrentGun, getCurrentGunName, dispose as disposeGun, update as updateGun } from "./Gun";
 import { NumberUtils } from "meta3d-jiehuo-abstract";
 import { buildDownDirection } from "../../../../utils/DirectionUtils";
 import { getClimbState } from "./climb/ClimbManager";
 import { ArrayUtils } from "meta3d-jiehuo-abstract";
-import { getCameraFar, getCameraNear } from "../utils/LittleManCameraUtils";
+import { getNow } from "../Time";
+import { handleAfterComputeDamage, handleLittleManDamage } from "../StaticDynamic";
+import { getCampWithDefault, getCampExn } from "../manage/city1/Army";
+import { queryOBBShapeCollisionWithBox } from "../girl/Collision";
+import { getPropValue } from "../reward/Prop";
+import { computeCrit } from "../utils/WeaponUtils";
+import { getAttackFactor, getCritRatioFactor } from "../StaticDynamicUnit";
+// import { computeMiss } from "../utils/ValueUtils";
+import { getPlayerCamp } from "../utils/PlayerUtils";
+import { startQTE } from "../data/biwu/level2/behaviour_tree_data/action_node/utils/QTEUtils";
+import { scene } from "../../../../../ui_layer/global/store/GlobalStoreType";
+import { getWeaponBasicBulletBlockService } from "../../../../mod/PropBulletMod";
+import { setStressingRateFactor } from "../utils/build/LittleManBuildUtils";
+import { buildFuncData } from "../data/FuncData";
+import { addBuff } from "../buff/Buff";
+import { buffName } from "../data/buff/BuffData";
+import { buildAPI } from "../../../../mod/Mod";
+import { getAllAttackAnimationNames, getFastRunBlockService, getSwipBlockService, isAllAttackAnimationNamesAreOr } from "../../../../mod/SkillLittleManMod";
+import { getBox as getBoxLODQueueObjectUtils } from "../utils/LODQueueObjectUtils";
+import { isEnteringNextLevel } from "../manage/mission/Mission";
+import { getModAPI } from "../Mod";
+import { deepDispose, removeAndDispose } from "meta3d-jiehuo-abstract/src/scene/utils/DisposeUtils";
+import { getAutoDifficulty } from "../difficulty/Difficulty";
+import { getLittleManFallBlockService, getLittleManRepelBlockService } from "../../../../mod/FSMMod";
+import { getGirlUBBone } from "../girl/UBUtils";
+import { removePickData } from "../girl/PickPoseUtils";
+import { getGirlPutToBreastBone, getGirlPutToShoeBone } from "../girl/PutUtils";
+import { clearTargetByName } from "../utils/BehaviourManagerUtils";
+import { getCurrentAnimationName } from "../girl/Animation";
+import { getCameraFar, getCameraNear } from "../Camera";
+import { isChangeToFallState } from "../utils/FallUtils";
 
 const _q = new Quaternion();
 const _e = new Euler();
@@ -203,70 +232,131 @@ export let setGunInititalTransform = (state: state, gun, isDebug) => {
     Object3DUtils.markNeedsUpdate(gun)
 }
 
-export let updateFsmState = (state: state) => {
+let _getLieKeepTime = (state: state) => {
+    return getCurrentModelData(state).lieKeepTime * (getValue(state).stressingRateFactor / stressingRateFactor.Middle)
+}
+
+// let _getStressingRateFactorForStandupByAutoDifficulty = (state) => {
+//     switch (getAutoDifficulty(state)) {
+//         case autoDifficulty.VeryEasy:
+//             return 0.3
+//         case autoDifficulty.Easy:
+//             return 0.5
+//         default:
+//             return 1
+//     }
+// }
+
+// TODO remove
+let _handleNullableState = (key) => (state) => {
+    if (NullableUtils.isNullable(state)) {
+        let stateMachine = getStateMachine(readState())
+        throw new Error(`state nullable error:
+                    key: ${key},
+                    ${stateMachine.currentState.name}, ${NullableUtils.map(fsmState => fsmState.name, stateMachine.previousState)}`)
+    }
+
+    return state
+}
+
+
+export let updateFsmState = (state: state, filterCollisionShapesFunc = (data) => true) => {
     // return updateFSMState(state)
 
     let stateMachine = getStateMachine(state)
 
-    // if (isChangeCrawlPoseState(state)) {
-    //     state = computeGirlBox(state)
+    // if (isChangeCrawlPoseState(state, usedGirl)) {
+    //     state = computeGirlBoxAndSetToState(state, usedGirl)
     // }
 
     if (getHp(state) <= 0
         && isNotDamageState(stateMachine)
-        // && !isSkillState(state)
+        // && !isControlledState(state, stateMachine)
+        // && !isSkillState(state, usedGirl)
     ) {
         return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine, createDestroyingState(), NullableUtils.return_(getName()))
+            .then(_handleNullableState("1"))
     }
 
     if (
         StateMachine.isState(stateMachine, objectStateName.Lie)
-        && (performance.now() - getLittleManState(state).lieTime) > getCurrentModelData(state).lieKeepTime
-    ) {
+        && (getNow(state) - getLittleManState(state).lieTime) > _getLieKeepTime(state)) {
+        // if (
+        //     isUseGirl(state, usedGirl) && !isPlayerGiantess(state, usedGirl)
+        //     && !NullableUtils.isNullable(queryOBBShapeCollisionWithBox(state, getBox(state), Transform.getPosition(state), false, filterCollisionShapesFunc))
+        //     && NumberUtils.isRandomRate(
+        //         // getValue(state).stressingRateFactor * NumberUtils.clamp(Math.sqrt(computeHeight(state, usedGirl)) * 0.25, 1, 10)
+        //         // getValue(state).stressingRateFactor * _getStressingRateFactorForStandupByAutoDifficulty(state) * NumberUtils.clamp(Math.sqrt(computeHeight(state, usedGirl)) * 0.20, 1, 10)
+        //         getValue(state).stressingRateFactor * _getStressingRateFactorForStandupByAutoDifficulty(state) * NumberUtils.clamp(Math.sqrt(computeHeight(state, usedGirl)) * 0.2, 1, 5)
+        //     )
+        // ) {
+        //     state = setLittleManState(state, {
+        //         ...getLittleManState(state),
+        //         lieTime: getNow(state)
+        //     })
+        //     state = resetIsTriggerAction(state, usedGirl)
+        //     return triggerAction(state, usedGirl, actionName.Lie)
+        //         .then(_handleNullableState("2"))
+        // }
+
+
         return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine, createStandupState(), NullableUtils.getEmpty())
+            .then(_handleNullableState("3"))
     }
 
     return Promise.resolve(state)
+        .then(_handleNullableState("4"))
 }
 
 export let updateStatus = (state: state) => {
     if (getLittleManState(state).isStatusChange) {
+        state = setLittleManState(state, {
+            ...getLittleManState(state),
+            isStatusChange: false
+        })
+
         return Event.trigger(state, getAbstractState, getLittleManStatusUpdateEventName(), null)
     }
 
-    return Promise.resolve(setLittleManState(state, {
-        ...getLittleManState(state),
-        isStatusChange: false
-    }))
+    // return Promise.resolve(setLittleManState(state, {
+    //     ...getLittleManState(state),
+    //     isStatusChange: false
+    // }))
+    return Promise.resolve(state)
 }
 
-export let update = (state: state) => {
-    if (!isLittleRoad(state)) {
-        return Promise.resolve(state)
-    }
+export let isCanMove = (state: state) => {
+    return isPlayingAnimationByWeight(state, animationName.Run, 0.5)
+        || isAllAttackAnimationNamesAreOr(state, isPlayingAnimation)
+        || isPlayingAnimation(state, getFastRunBlockService(state).getAnimationName())
+}
 
-
+export let updateMove = (state: state) => {
     let promise
-    if (
-        isPlayingAnimationByWeight(state, animationName.Run, 0.5)
-    ) {
+    if (isCanMove(state)) {
         promise = move(state)
     }
     else {
         promise = Promise.resolve([state, new Vector3(0, 0, 0)])
     }
 
+    return promise
+}
+
+export let update = (state: state) => {
+    if (!isLittleCharacterType(state)) {
+        return Promise.resolve(state)
+    }
+
+
+    let promise = updateMove(state)
 
     return promise.then(([state, velocity]) => {
-        state = updateCamera(state, velocity)
-
-
-        if (getIsDebug(state)) {
-            setGunInititalTransform(state, NullableUtils.getExn(getCurrentGun(state)), getIsDebug(state))
+        if (!velocity.equals(_v1.set(0, 0, 0))) {
+            state = updateCamera(state, velocity)
         }
 
-
-        state = updateAimHud(state)
+        state = updateGun(state)
 
 
         return updateAnimation(state)
@@ -288,12 +378,16 @@ let _getDefaultAnimationName = () => animationName.Idle
 
 export let createState = (): littleMan => {
     return {
+        currentStudyActions: [],
+        // savedStudyActions: [],
+
         stateMachine: StateMachine.create(getName(), createInitialState()),
 
-        props: List(),
-        usedBulletPropName: bulletPropName.BasicBullet,
+        // usedBulletPropName: bulletPropName.BasicBullet,
+        usedBulletPropName: NullableUtils.getEmpty(),
 
         currentModel: modelName.Infantry,
+        // currentModel: modelName.Ninja,
         // currentModel: modelName.Ely,
         // currentModel: modelName.Maria,
         // currentModel: modelName.Dreyar,
@@ -329,9 +423,20 @@ export let createState = (): littleMan => {
         triggeredAction: NullableUtils.getEmpty(),
         actionState: littleManActionState.Initial,
         triggeredActionTime: Map(),
+        triggeredActionBeforeLock: NullableUtils.getEmpty(),
+
+        fireWay: fireWay.Burst,
+
 
         gunMap: Map(),
         aim: NullableUtils.getEmpty(),
+        aimCrossWhenDamage: NullableUtils.getEmpty(),
+        aimCrossWhenDestroy: NullableUtils.getEmpty(),
+        headShot: NullableUtils.getEmpty(),
+        isShowingHeadShot: false,
+        aimTarget: NullableUtils.getEmpty(),
+        lockTarget: NullableUtils.getEmpty(),
+        lockImage: NullableUtils.getEmpty(),
 
         // parent: NullableUtils.getEmpty(),
 
@@ -345,14 +450,25 @@ export let createState = (): littleMan => {
 
         movableRanges: ArrayUtils.create(),
 
+        // lastDamageTime: getNow(state),
+        lastDamageTime: performance.now(),
+
+        actuallyMoveSpeedRecordInTwoSeconds: ArrayUtils.create(),
+        lastPosition: NullableUtils.getEmpty(),
+
+        hpIncrease: 0,
+
         updateControlsWhenZoomOutToThirdPersonControlsFunc: state => {
-            return updateControlsWhenZoomOutToThirdPersonControls2(state, getCameraNear(state), getCameraFar(state), getGirlBoxSizeForCompute(state))
+            return updateControlsWhenZoomOutToThirdPersonControls2(state, getCameraNear(state), getCameraFar(state),
+                // isUseGirl(state, usedGirl) ? getGirlBoxSizeForCompute(state, usedGirl) : 5
+                5
+            )
         }
     }
 }
 
 export let dispose = (state: state) => {
-    if (!isLittleRoad(state)) {
+    if (!isLittleCharacterType(state)) {
         return Promise.resolve(state)
     }
 
@@ -369,8 +485,8 @@ export let dispose = (state: state) => {
 
     state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManShootStartEventName(), shootStartHandler))
     state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManShootEmitEventName(), shootEmitHandler))
-    state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManSwipingStartEventName(), swipingStartHandler))
-    state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManSwipingEmitEventName(), swipingEmitHandler))
+    // state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManSwipingStartEventName(), swipingStartHandler))
+    // state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManSwipingEmitEventName(), swipingEmitHandler))
     state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManStandupEndEventName(), standupEndHandler))
     // state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManDeathNeedFixPositionYOffsetEventName(), deathHandler))
     // state = setAbstractState(state, Event.off(getAbstractState(state), getLittleManStandupNeedFixPositionYOffset1EventName(), standupNeedFixHandler))
@@ -437,10 +553,25 @@ export let dispose = (state: state) => {
     // })
 
     let littleManState = getLittleManState(state)
-    state = setLittleManState(state, {
-        ...createState(),
-        currentModel: littleManState.currentModel
-    })
+
+    // deepDispose(getLittleMan(state))
+    removeAndDispose(getScene(state), getLittleMan(state))
+
+    if (isEnteringNextLevel(state)) {
+        state = setLittleManState(state, {
+            ...createState(),
+            currentModel: littleManState.currentModel,
+            hpIncrease: littleManState.hpIncrease,
+            fireWay: littleManState.fireWay,
+        })
+    }
+    else {
+        state = setLittleManState(state, {
+            ...createState(),
+            currentModel: littleManState.currentModel,
+            fireWay: littleManState.fireWay,
+        })
+    }
 
     // state = clearPick(state)
 
@@ -453,7 +584,7 @@ export let getValue = (state: state): littleManValue => {
 
 // let _isBelongToCurrentPoseAndScaleState = (state: state, name: actionName) => {
 //     return getConfigData(state).operateRenderData.filter(value => {
-//         return value.pose == getCurrentPose(state) && value.scaleState == getScaleState(state)
+//         return value.pose == getCurrentPose(state, usedGirl) && value.scaleState == getScaleState(state)
 //     })[0].value.map(v => {
 //         return v.name
 //     }).includes(name)
@@ -473,6 +604,12 @@ export let getHp = (state) => {
 }
 
 export let setHp = (state, hp) => {
+    // if (hp == getFullHp(state)) {
+    //     return state
+    // }
+
+    hp = Math.round(hp)
+
     let isStatusChange = getHp(state) != hp
 
     return setLittleManState(state, {
@@ -481,6 +618,11 @@ export let setHp = (state, hp) => {
         isStatusChange
     })
 }
+
+export let addHp = (state, value) => {
+    return setHp(state, NumberUtils.clamp(getHp(state) + value, 0, getFullHp(state)))
+}
+
 
 // let _updateHp = (state, hp) => {
 //     return setLittleManState(state, {
@@ -509,174 +651,300 @@ export let setHp = (state, hp) => {
 // }
 
 
-let _isStressingByRate = (state: state, damage, weaponType_: weaponType) => {
-    let weaponTypeFactor = getWeaponTypeFactor(weaponType_)
+let _isStressingByRate = (state: state, stressingRateFactor, damage, damageType_: damageType) => {
+    let damageTypeFactor = getDamageTypeFactor(damageType_)
 
-    let forceFactor = getForceFactor(damage)
+    // let forceFactor = getForceFactor(getHp(state), damage, 0.1)
+    let forceFactor = getForceFactor(getHp(state), damage, 0.025)
 
     let settingFactor
 
-    switch (getLittleManSetting(state).littleManStrength) {
-        case littleManStrength.Low:
-            settingFactor = 1
-            break
-        case littleManStrength.Middle:
-            settingFactor = 0.7
-            break
-        case littleManStrength.High:
-            settingFactor = 0.4
-            break
-        default:
-            throw new Error("err")
-    }
+    // switch (getLittleManSetting(state).littleManStrength) {
+    //     case littleManStrength.Low:
+    settingFactor = 1
+    //         break
+    //     case littleManStrength.Middle:
+    //         settingFactor = 0.7
+    //         break
+    //     case littleManStrength.High:
+    //         settingFactor = 0.4
+    //         break
+    //     default:
+    //         throw new Error("err")
+    // }
 
-    const factor = 0.35
+    // const factor = 0.35
+    const factor = 0.3
 
 
-    let rate = NumberUtils.clamp(1 * forceFactor * weaponTypeFactor * factor * settingFactor, 0, 1)
+    let rate = NumberUtils.clamp(1 * forceFactor * damageTypeFactor * factor * settingFactor * stressingRateFactor, 0, 1)
 
     // Console.log(rate)
 
     return Math.random() < rate
 }
 
-let _isChangeToLieState = (damageType_, direction) => {
-    return damageType_ == damageType.Direct && direction.equals(buildDownDirection())
-}
+let _getDamagePositionForLabel = (state: state, center, height, damageType_) => {
+    if (damageType_ == damageType.Range) {
+        return NullableUtils.getEmpty()
+    }
 
-let _getDamagePositionForLabel = (state: state, center, height) => {
     switch (getCameraType(state)) {
         case cameraType.FirstPerson:
-            return ScreenUtils.convertScreenCoordniateToWorldCoordniate(
+        case cameraType.Shoot:
+            return NullableUtils.return_(ScreenUtils.convertScreenCoordniateToWorldCoordniate(
                 _v1_1.set(
                     getWidth() / 2,
                     getHeight() / 2 * 0.5
                 ),
                 getCurrentCamera(getAbstractState(state)),
                 false
-            )
+            ))
         case cameraType.ThirdPerson:
-            return center.setY(center.y + height / 2)
+            return NullableUtils.return_(center.setY(center.y + height / 2))
         default:
             throw new Error("err")
     }
 
 }
 
+// let _handleDamageFromArmy = (state, forceSize, fromName) => {
+//     // if (getCampExn(state, fromName) == camp.Enemy) {
+//     if (isArmy(state, fromName)) {
+//         // return forceSize * 0.5
+//         return forceSize * 0.25
+//     }
+
+//     return forceSize
+// }
+
+let _isChangeToLieState = (state: state, damageType_, direction, stressingRateFactor_, fromName) => {
+    if (!isChangeToLieState(state, getStateMachine(state), damageType_, direction)) {
+        return false
+    }
+
+    let height
+    if (isGirl(fromName)) {
+        let usedGirl = getUsedGirlByName(fromName)
+        height = computeHeight(state, usedGirl)
+    }
+    else {
+        let box = getBoxLODQueueObjectUtils(state, fromName)
+        height = DamageUtils.getHeight(box)
+    }
+
+    // return Math.random() < stressingRateFactor_ / stressingRateFactor.Middle2
+    return Math.random() < stressingRateFactor_ * NumberUtils.greaterThan(Math.sqrt(height) * 0.25, 1)
+}
+
 // export let damage = (state: state, force, damageType, damagePosition: nullable<Vector3>) => {
 // export let damage = (state: state, force, damageType) => {
-export let damage = (state: state, forceData, fromName,
+export let damage = (state: state, forceData, weaponValue_, fromName,
     damagePosition,
+    // critRatioFactor,
+    // attackFactor,
     transforms, boxes, names): Promise<[state, Array<string>]> => {
     if (state.config.isNotDamage
         || isProtected(state)
         || getClimbState(state).isPlayingAnimation
+        || !isLittleCharacterType(state)
+        // || getCampWithDefault(state, fromName, camp.Enemy) == getPlayerCamp()
     ) {
         return Promise.resolve([state, names])
     }
 
+    damagePosition = NullableUtils.getWithDefault(damagePosition, Transform.getPosition(state))
 
     let stateMachine = getStateMachine(state)
 
+    let heightOfFromName = DamageUtils.getHeightByDynamicName(state, fromName)
+    // if (NullableUtils.isNullable(heightOfFromName)) {
+    //     return Promise.resolve([state, []])
+    // }
+    // heightOfFromName = NullableUtils.getExn(heightOfFromName)
 
     let box = getBox(state)
 
 
 
-    let [[size, direction], [damageType_, weaponType]] = forceData
+    let [[size, direction], [damageType, weaponType]] = forceData
 
-
-    if (isDestoryRelatedStates(stateMachine) || (isGirl(fromName) && (
-        !_isChangeToLieState(damageType_, direction)
-        && (
-            isStressingState(stateMachine) || isLieState(stateMachine)
-        )
-    ))) {
+    if (isDestoryRelatedStates(stateMachine)
+        // || (isGirl(fromName) && (
+        //     !isChangeToLieState(damageType, direction)
+        //     && (
+        //         isControlledState(state, stateMachine) || isLieState(stateMachine)
+        //     )
+        // ))
+    ) {
         return Promise.resolve([state, names])
     }
 
 
+    // size = _handleDamageFromArmy(state, size, fromName)
 
-
-    // let defenseFactor = _getDefenseFactor()
-    let defenseFactor = getValue(state).defenseFactor
     let height = box.getSize(_v1).y
 
-    let hp = getHp(state)
-
-    // let [actuallyDamage, damage, remainedHp] = DamageUtils.computeActuallyDamage(defenseFactor, height, size, hp)
-    let [actuallyDamage, damage, remainedHp] = DamageUtils.computeActuallyDamageWithDamagePosition(state, defenseFactor, height, size,
-        damageType_,
-        damagePosition,
-        Transform.getPosition(state),
-        hp)
-
-
-    state = setHp(state, remainedHp)
-
-    let center = box.getCenter(new Vector3())
-
-    state = DamageUtils.addLabel(state, actuallyDamage, box,
-        DamageUtils.computeFontType(false, damageType_, weaponType),
-        NullableUtils.return_(
-            _getDamagePositionForLabel(state, center, height)
-        ),
-        getName(),
-        40,
-        NullableUtils.getEmpty(),
-        labelAnimation.None,
-        2
-    )
-
-    if (damage <= 0) {
-        return Promise.resolve([state, names])
+    let userData = getValue(state)
+    let promise
+    if (weaponValue_.type !== weaponType.EffectSelf) {
+        promise = Event.triggerWithUserData(state, getAbstractState, getGetLittleManValueEventName(), userData)
+    }
+    else {
+        promise = Promise.resolve(
+            [state,
+                userData
+            ]
+        )
     }
 
+    return promise.then(([state, value]) => {
+        let { defenseFactor, armorType, armorRatio, armorStrength, stressingRateFactor } = value
 
-    // state = setGirlState(state, {
-    //     ...getGirlState(state),
-    //     lastDamageTime: performance.now()
-    // })
+        // console.log(stressingRateFactor)
+
+        size = handleLittleManDamage(state, fromName,
+            weaponType, armorType,
+            size)
 
 
-    if (remainedHp > 0) {
-        if (_isChangeToLieState(damageType_, direction)) {
-            state = setLittleManState(state, {
-                ...getLittleManState(state),
-                lieTime: performance.now()
-            })
+        // let hp = getHp(state)
 
-            return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine, createLieState(), NullableUtils.getEmpty()).then(state => {
-                return Promise.resolve([state, names])
-            })
-        }
 
-        if (!StateMachine.isState(stateMachine, objectStateName.Stressing)
-        ) {
+        let d3 = computeCrit([size, damageType], weaponValue_, getCritRatioFactor(state, fromName))
+        size = d3[0]
+        damageType = d3[1]
 
-            if (
-                !isLieState(stateMachine)
-                && !(
-                    StateMachine.isState(stateMachine, objectStateName.Climb)
-                    && getClimbState(state).climbPlane == climbPlane.Verticle
-                )
-                &&
-                (
-                    (isGirl(fromName)
-                        || _isStressingByRate(state, damage, weaponType)
-                    )
-                )
-            ) {
-                return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine, createStressingState(), NullableUtils.getEmpty()).then(state => {
-                    return Promise.resolve([state, names])
-                })
+        // let d4 = computeMiss(d3,)
+        // size = d4[0]
+        // damageType = d4[1]
+
+
+        size = DamageUtils.computeForceByAttackFactor(size, getAttackFactor(state, fromName))
+
+
+        // let [damage, damage, remainedHp] = DamageUtils.computeActuallyDamage(defenseFactor, height, size, hp)
+        let damage = DamageUtils.computeDamageWithDamagePosition(state, [
+            defenseFactor, armorType, armorRatio, armorStrength
+        ], weaponValue_, [height, heightOfFromName], size,
+            damageType,
+            damagePosition,
+            Transform.getPosition(state))
+
+
+        return Event.triggerWithUserData(state, getAbstractState, getModAPI(state).event.getHandleDamageLittleManEventName(), NullableUtils.return_(
+            {
+                forceSize: size,
+                damage,
+                damageType,
+                fromName,
+                name: getName(),
+                // transform: Transform.getWorldMatrix(state),
+                box,
+                damagePosition,
+                weaponValue: weaponValue_
             }
-        }
+        )
+        ).then(([state,
+            data
+        ]) => {
+            return Event.triggerWithUserData(state, getAbstractState, getModAPI(state).event.getHandleAfterDamageLittleManEventName(), NullableUtils.return_(
+                data
+            )
+            )
+        }).then(([state, {
+            forceSize,
+            damage,
+            damageType,
+            fromName,
+            name,
+            // transform,
+            box,
+            damagePosition,
+            weaponValue
+        }]) => {
+            weaponValue_ = weaponValue
 
-        return Promise.resolve([state, names])
-    }
+            let hp = getHp(state)
+            let remainedHp = DamageUtils.computeHp(hp, damage)
 
-    return Promise.resolve([state, names])
+            state = setHp(state, remainedHp)
+
+
+
+            let center = box.getCenter(new Vector3())
+
+            state = DamageUtils.addLabel(state, damage, box,
+                // DamageUtils.computeFontType(false, damageType),
+                DamageUtils.computeFontType(
+                    // state, fromName, name, getPlayerCamp(), camp.Enemy,
+                    state, fromName, name,
+                    damageType),
+
+                _getDamagePositionForLabel(state, center, height, damageType),
+                getName(),
+                40,
+                NullableUtils.getEmpty(),
+                labelAnimation.None,
+                2
+            )
+
+            return handleAfterComputeDamage(state, fromName, getName(), damage, remainedHp).then(state => {
+                // if (damage <= 0) {
+                //     return [state, names]
+                // }
+
+
+                state = setLittleManState(state, {
+                    ...getLittleManState(state),
+                    lastDamageTime: getNow(state)
+                })
+
+
+                if (remainedHp > 0) {
+                    if (_isChangeToLieState(state, damageType, direction, stressingRateFactor, fromName)) {
+                        state = setLittleManState(state, {
+                            ...getLittleManState(state),
+                            lieTime: getNow(state)
+                        })
+
+                        return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine, createLieState(getBox(state)), NullableUtils.getEmpty()).then(state => {
+                            return [state, names]
+                        })
+                    }
+
+                    if (!StateMachine.isState(stateMachine, objectStateName.Stressing)
+                    ) {
+
+                        if (
+                            // !isLieState(stateMachine)
+                            !isControlledState(state, stateMachine)
+                            && !(
+                                StateMachine.isState(stateMachine, objectStateName.Climb)
+                                && getClimbState(state).climbPlane == climbPlane.Verticle
+                            )
+                            &&
+                            (
+                                (isGirl(fromName)
+                                    // || isChangeToLieState(damageType, direction)
+                                    ||
+                                    _isStressingByRate(state, stressingRateFactor, damage, damageType)
+                                )
+                            )
+                        ) {
+                            return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine, createStressingState(), NullableUtils.getEmpty()).then(state => {
+                                return [state, names]
+                            })
+                        }
+                    }
+
+                    return [state, names]
+                }
+
+                return [state, names]
+            })
+        })
+    })
 }
 
 export let addToScene = (state: state) => {
@@ -715,32 +983,71 @@ export let getPickedTransform = getGiantessTransformFunc(
 
     getPickTransformPrefix(),
 
-    new Vector3(-0.3, -0.5, -0.2),
     Math.PI / 2,
     Math.PI / 2,
     0,
-
-    false
 )
 
+export let getUBControlledTransform = getGiantessUBControlledTransformFunc(
+    (state) => new Quaternion(),
+
+    getUBControlledTransformPrefix(),
+
+    0,
+    0,
+    0,
+)
+
+export let getPutToBreastTransform = getGiantessPutToBreastTransformFunc(
+    (state) => new Quaternion(),
+
+    getPutToBreastTransformPrefix(),
+
+    0,
+    0,
+    0,
+)
+
+export let getPutToShoeTransform = getGiantessPutToShoeTransformFunc(
+    (state) => new Quaternion(),
+
+    getPutToShoeTransformPrefix(),
+
+    -1.7,
+    0,
+    0,
+)
+
+
 export let isCanPickup = (state: state, name: name) => {
-    return !isLieState(getStateMachine(state))
+    // return !isLieState(getStateMachine(state)) && !isProtected(state)
+    return !isProtected(state)
+    //  && (
+    //     !isFallState(getStateMachine(state))
+    //     && !isRepelState(getStateMachine(state))
+    // )
 }
 
-export let handlePickup = (state: state, name: name) => {
+let _addToBone = (state, bone) => {
+    bone.add(getLittleMan(state))
+
+    return state
+}
+
+export let handlePickup = (state: state, usedGirl, name: name) => {
     // state = removeShadow(state, name)
 
-    let d = getGirlPickBone(state)
+    let d = getGirlPickBone(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
-    bone.add(getLittleMan(state))
+    state = _addToBone(state, bone)
 
     // state = setParent(state, bone)
 
     // state = saveNeedRestoreData(state, getCameraNear(state), getCameraFar(state), getDistance(state), getCameraType(state))
     state = saveNeedRestoreData(state, getCameraNear(state), getCameraFar(state), getCameraPosition(state).clone(), getControlsTarget(state).clone(), getCameraType(state))
-    state = updateControlsWhenZoomOutToThirdPersonControls2(state, 1, buildCameraFar(state, 1), getGirlBoxSizeForCompute(state))
+    state = updateControlsWhenZoomOutToThirdPersonControls2(state, 1, buildCameraFar(state, 1), getGirlBoxSizeForCompute(state, usedGirl))
 
 
     Console.log(
@@ -748,123 +1055,129 @@ export let handlePickup = (state: state, name: name) => {
         "handlePickup"
     )
 
-    return triggerAction(state, actionName.Controlled)
+    let promise
+    // if (getSceneChapter(state) == scene.Play) {
+    if (!isBossLevel(state) && getCurrentAnimationName(state, usedGirl) == giantessAnimationName.Pickup) {
+        promise = startQTE(state, usedGirl, 1)
+    }
+    else {
+        promise = Promise.resolve(state)
+    }
 
-    // return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createControlledState(), name)
+    // return promise.then(state => triggerAction(state, usedGirl, actionName.PickedControlled))
+    return promise.then(state => {
+        return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createPickedControlledState(), name)
+    })
 }
 
-export let updateTransform = (state: state, _queue, _index, _parentTransform: Matrix4, localTransform: Matrix4) => {
-    // requireCheck(() => {
-    //     test("scale should be default", () => {
-    //         return Vector3Utils.isNearlyEqual(TransformUtils.getScaleFromMatrix4(localTransform), new Vector3(1, 1, 1), 0.1)
-    //     })
-    // }, getIsDebug(state))
 
-
-    let d = getGirlPickBone(state)
-    state = d[0]
-    let bone = d[1]
-
-
-    state = Transform.setLocalMatrix(state,
-        // localTransform
-
+let _makeSureScaleOfWorldMatrixEqualLocalOne = (state, localTransform, bone) => {
+    return Transform.setLocalMatrix(state,
         TransformUtils.setScaleToMatrix4(
             _m1.copy(localTransform),
-            // localTransform.clone(),
             _v1.copy(
-                // _v2.set(1, 1, 1).divide(
                 _v2.setScalar(getCurrentModelData(state).scalar).divide(
                     bone.getWorldScale(_v3)
                 )
             )
         )
     )
+}
 
+let _updateTransform = (state: state, bone, distance, localTransform: Matrix4) => {
+    /*! not change littleMan's scale
+    * 
+    */
+    state = _makeSureScaleOfWorldMatrixEqualLocalOne(state, localTransform, bone)
 
-    // state = zoomOutCamera(state)
-
-    Console.log(
-        "update transform"
-    )
-    // Console.log(
-    //     "little:",
-    //     // getGirlScale(state),
-    //     // girlScaleWhenPickup,
-
-    //     // TransformUtils.setScaleToMatrix4(
-    //     //     // _m1.copy(localTransform),
-    //     //     localTransform.clone(),
-    //     //     _v1.setScalar(
-    //     //         1 / (
-    //     //             getGirlScale(state) / girlScaleWhenPickup
-    //     //         )
-    //     //     )
-    //     // ),
-    //     // localTransform.clone(),
-    //     // TransformUtils.getScaleFromMatrix4(localTransform),
-    //     // getLittleMan(state).matrix
-    //     TransformUtils.getScaleFromMatrix4(Transform.getLocalMatrix(state))
-    // )
 
     Object3DUtils.markNeedsUpdate(getLittleMan(state))
 
 
     state = computeBox(state)
-    // state = updateThirdPersonControls(state, 1, buildCameraFar(state, 1), getGirlBoxSizeForCompute(state))
-    // state = updateControlsWhenZoomOutToThirdPersonControls(state, 1, buildCameraFar(state, 1), getGirlBoxSizeForCompute(state))
-    state = keepDistance(state, getGirlBoxSizeForCompute(state))
+
+    state = updatePosition(state)
 
 
     return state
 }
 
+export let updateTransform = (state: state, usedGirl, _queue, _index, parentTransform: Matrix4, localTransform: Matrix4) => {
+    let d = getGirlPickBone(state, usedGirl)
+    state = d[0]
+    let bone = d[1]
+
+    return _updateTransform(state, bone, getGirlBoxSizeForCompute(state, usedGirl), localTransform)
+}
+
+
+// export let handlePickdownNotJudgeValid = (state: state, targetPoint): Promise<state> => {
+//     state = addToScene(state)
+
+
+//     state = Transform.initTransform(state)
+//     state = Transform.setPositionAndComputeBox(state, targetPoint)
+
+
+
+//     if (hasNeedRestoreData(state)) {
+//         state = restoreControlsForNotChangePosition(state)
+//     }
+
+//     return triggerAction(state, usedGirl, actionName.Idle)
+// }
+
+export let handleExitControlled = (state, currentPosition, isResetAction = true) => {
+    state = addToScene(state)
+
+
+    state = Transform.initTransform(state)
+    state = Transform.setPositionAndComputeBox(state, currentPosition)
+
+
+
+    if (hasNeedRestoreData(state)) {
+        // state = restoreControlsForNotChangePosition(state)
+        state = restoreControlsForChangePosition(state)
+    }
+
+    if (isResetAction) {
+        state = resetAction(state)
+    }
+
+    return state
+}
+
 export let handlePickdown = (state: state, name: name, _index, targetPoint, _queue, originTransform: Matrix4): Promise<[state, boolean]> => {
-    let validTargetPoint = PathFind.findValidPosition(
-        new Vector2(targetPoint.x, targetPoint.z),
-        getGrid(state),
-        getIsDebug(state)
-    )
+    // let validTargetPoint = PathFind.findValidPosition(
+    //     new Vector2(targetPoint.x, targetPoint.z),
+    //     getGrid(state),
+    //     getIsDebug(state)
+    // )
+    let validTargetPoint = findValidPosition(state, targetPoint)
 
     if (NullableUtils.isNullable(validTargetPoint)) {
         return Promise.resolve([state, false])
     }
 
-    validTargetPoint = NullableUtils.getExn(validTargetPoint)
+    state = handleExitControlled(state, NullableUtils.getExn(validTargetPoint))
 
-    // Transform.updateTransform(
-    //     state,
-    //     TransformUtils.setPositionToMatrix4(
-    //         originTransform.clone(),
-    //         validTargetPoint
-    //     )
-    // )
+    // return handlePickdownNotJudgeValid(state, validTargetPoint).then(state => [state, true])
+    return triggerAction(state, actionName.Idle).then(state => [state, true])
 
-    // let d = getGirlPickBone(state)
-    // state = d[0]
-    // let bone = d[1]
+}
 
-    // bone.remove(getLittleMan(state))
+export let handleFall = (state: state, name: name, _index, _queue, originTransform: Matrix4): Promise<[state, boolean]> => {
+    let stateMachine = getStateMachine(state)
 
-    // state = removeFromParent(state)
-    state = addToScene(state)
-
-
-    state = Transform.initTransform(state)
-    state = Transform.setPositionAndComputeBox(state, validTargetPoint)
-
-
-
-    if (hasNeedRestoreData(state)) {
-        // state = useThirdPersonControls(state)
-        // let [near, far, distance] = getNeedRestoreDataExn(state)
-        // state = updateThirdPersonControls(state, near, far, distance)
-        state = updateControlsWhenRestore(state)
+    if (!isChangeToFallState(state, stateMachine)) {
+        return Promise.resolve([state, false])
     }
 
-
-    // return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createInitialState(), name).then(state => [state, true])
-    return triggerAction(state, actionName.Idle).then(state => [state, true])
+    return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine,
+        getLittleManFallBlockService(state).createState(getModAPI(state))()
+        , NullableUtils.return_(getName()))
+        .then(state => [state, true])
 }
 
 export let getLocalTransform = (state: state, queue, index, name) => {
@@ -894,7 +1207,7 @@ export let getBoxForPick = (state: state, queue, index, name) => {
 export let getCurrentModelData = (state: state) => {
     return NullableUtils.getExn(getConfigData(state).littleModelData.find(
         data => {
-            return data.name == getLittleManState(state).currentModel
+            return data.name == getCurrentModelName(state)
         }
     ))
 }
@@ -906,6 +1219,11 @@ export let getCurrentModelRelatedLoadData = (state: state) => {
     return getModelRelatedLoadData().filter(d => d.id.includes(resourceId))
 }
 
+export let getCurrentModelName = (state: state) => {
+    return getLittleManState(state).currentModel
+}
+
+
 export let setCurrentModelName = (state: state, name) => {
     return setLittleManState(state, {
         ...getLittleManState(state),
@@ -913,27 +1231,40 @@ export let setCurrentModelName = (state: state, name) => {
     })
 }
 
-export let getAllProps = (state: state, type: propType) => {
-    return getLittleManState(state).props.filter(p => p.type == type)
+export let hasUsedBulletPropName = (state: state) => {
+    return !NullableUtils.isNullable(getLittleManState(state).usedBulletPropName)
 }
 
 export let getUsedBulletPropName = (state: state) => {
-    return getLittleManState(state).usedBulletPropName
+    return NullableUtils.getExn(getLittleManState(state).usedBulletPropName)
 }
 
-export let setUsedBulletPropName = (state: state, name: bulletPropName) => {
+export let setUsedBulletPropName = (state: state, name: bulletPropName | string) => {
     return setLittleManState(state, {
         ...getLittleManState(state),
-        usedBulletPropName: name
+        usedBulletPropName: NullableUtils.return_(name)
     })
 }
 
-export let switchBulletProp = (state: state, name: bulletPropName) => {
+export let switchBulletProp = (state: state, name: bulletPropName | string) => {
     let previousGunName = getCurrentGunName(state)
 
     state = setUsedBulletPropName(state, name)
 
     return addGunToHand(state, NullableUtils.return_(previousGunName))
+}
+
+export let useWater = (state: state, name: waterPropName) => {
+    switch (name) {
+        case waterPropName.AddHp1:
+        case waterPropName.AddHp2:
+        case waterPropName.AddHp3:
+        case waterPropName.AddHp4:
+            state = addHp(state, getFullHp(state) * getPropValue()[name])
+            break
+    }
+
+    return Event.trigger(state, getAbstractState, getLittleManStatusUpdateEventName(), null)
 }
 
 export let getMovableRanges = (state: state) => {
@@ -953,4 +1284,201 @@ export let setMovableRanges = (state: state, movableRanges) => {
         ...getLittleManState(state),
         movableRanges
     })
+}
+
+
+export let getCurrentStudyActionNames = (state: state) => {
+    return getLittleManState(state).currentStudyActions.map(a => a.name)
+}
+
+export let getCurrentStudyActions = (state: state) => {
+    return getLittleManState(state).currentStudyActions
+}
+
+export let setCurrentStudyActions = (state: state, value: Array<studyAction<actionName>>) => {
+    // console.log("setCurrentStudyActions: ", value)
+    // if (NullableUtils.isNullable(value.find(d => d.name == actionName.Shoot))) {
+    //     throw new Error(`not find Shoot action! old all actions are ${getCurrentStudyActionNames(state)}, new all actions are ${value.map(a => a.name)}`)
+    // }
+
+    return setLittleManState(state, {
+        ...getLittleManState(state),
+        currentStudyActions: value
+    })
+}
+
+export let removeStudyActions = (state: state, value: Array<actionName>) => {
+    return setCurrentStudyActions(state,
+        getCurrentStudyActions(state).filter(c => {
+            return !value.includes(c.name)
+        })
+    )
+}
+
+
+
+// export let getSavedStudyActions = (state: state) => {
+//     return getLittleManState(state).savedStudyActions
+// }
+
+// export let setSavedStudyActions = (state: state, value) => {
+//     return setLittleManState(state, {
+//         ...getLittleManState(state),
+//         savedStudyActions: value
+//     })
+// }
+
+
+
+export let getActuallyMoveSpeedRecordInTwoSeconds = (state: state) => {
+    return getLittleManState(state).actuallyMoveSpeedRecordInTwoSeconds
+}
+
+export let setActuallyMoveSpeedRecordInTwoSeconds = (state: state, value) => {
+    return setLittleManState(state, {
+        ...getLittleManState(state),
+        actuallyMoveSpeedRecordInTwoSeconds: value
+    })
+}
+
+export let getLastPosition = (state: state) => {
+    return getLittleManState(state).lastPosition
+}
+
+export let setLastPosition = (state: state, value) => {
+    return setLittleManState(state, {
+        ...getLittleManState(state),
+        lastPosition: NullableUtils.return_(value)
+    })
+}
+
+export let getMaxActuallMoveSpeed = (state: state, interval: millisecondUnit) => {
+    let now = getNow(state)
+
+    return ArrayUtils.reduce(
+        ArrayUtils.filter(
+            getActuallyMoveSpeedRecordInTwoSeconds(state),
+            (({ time }) => {
+                return now - time <= interval
+            })
+        ),
+        ((result, { speed }) => {
+            return Math.max(result, speed)
+        }),
+        0
+    )
+}
+
+
+export let getHpIncrease = (state: state) => {
+    return getLittleManState(state).hpIncrease
+}
+
+export let setHpIncrease = (state: state, value) => {
+    return setLittleManState(state, {
+        ...getLittleManState(state),
+        hpIncrease: value
+    })
+}
+
+export let isBack = (state: state, damagePosition) => {
+    let faceDirection = TransformUtils.getFaceDirection(
+        Transform.getRotation(state), _v1)
+
+    return TransformUtils.isBack(
+        faceDirection,
+        damagePosition,
+        Transform.getPosition(state)
+    )
+}
+
+
+
+export let getFireWay = (state: state) => {
+    return getLittleManState(state).fireWay
+}
+
+export let setFireWay = (state: state, value) => {
+    return setLittleManState(state, {
+        ...getLittleManState(state),
+        fireWay: value
+    })
+}
+
+export let isBurstFire = (state: state) => {
+    return getFireWay(state) == fireWay.Burst
+}
+
+export let handleRepel = (state: state, direction, distance, time): Promise<state> => {
+    let stateMachine = getStateMachine(state)
+
+    if (state.config.isNotDamage) {
+        return Promise.resolve(state)
+    }
+
+    if (isControlledStateExceptStressing(state, stateMachine)) {
+        return Promise.resolve(state)
+    }
+
+    return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, stateMachine,
+        getLittleManRepelBlockService(state).createState(getModAPI(state))()
+        , NullableUtils.return_([direction, distance, time]))
+}
+
+let _getUBCameraDistance = (state) => {
+    return getBoxSizeForCompute(state) * 8
+}
+
+let _handleCarry = (state: state, createControlledStateFunc, getBoneFunc, usedGirl, name, distance) => {
+    return removePickData(state, name).then(state => {
+        let d = getBoneFunc(state, usedGirl)
+        state = d[0]
+        let bone = d[1]
+
+        state = _addToBone(state, bone)
+
+        // state = clearTargetByName(state, name)
+
+        state = updateControlsWhenZoomOutToThirdPersonControls2(state, 0.1, buildCameraFar(state, 0.1), distance)
+
+        // return triggerAction(state, usedGirl, actionName.PickedControlled)
+        return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createControlledStateFunc(), name)
+    })
+}
+
+export let handleUBControl = (state: state, usedGirl, name) => {
+    return _handleCarry(state, createUBControlledState, getGirlUBBone, usedGirl, name, _getUBCameraDistance(state))
+}
+
+export let handlePutToBreast = (state: state, usedGirl, name) => {
+    return _handleCarry(state, createBreastControlledState, getGirlPutToBreastBone, usedGirl, name, getGirlBoxSizeForCompute(state, usedGirl))
+}
+
+export let handlePutToShoe = (state: state, usedGirl, name) => {
+    return _handleCarry(state, createShoeControlledState, getGirlPutToShoeBone, usedGirl, name, getGirlBoxSizeForCompute(state, usedGirl))
+}
+
+
+export let updateUBControlledTransform = (state: state, usedGirl, _queue, _index, parentTransform: Matrix4, localTransform: Matrix4) => {
+    let d = getGirlUBBone(state, usedGirl)
+    state = d[0]
+    let bone = d[1]
+
+    return _updateTransform(state, bone, _getUBCameraDistance(state), localTransform)
+}
+
+export let updatePutToBreastTransform = (state: state, usedGirl, _queue, _index, parentTransform: Matrix4, localTransform: Matrix4) => {
+    let d = getGirlPutToBreastBone(state, usedGirl)
+    state = d[0]
+    let bone = d[1]
+
+    return _updateTransform(state, bone, getGirlBoxSizeForCompute(state, usedGirl), localTransform)
+}
+
+export let updatePutToShoeTransform = (state: state, usedGirl, _queue, _index, parentTransform: Matrix4, localTransform: Matrix4) => {
+    let d = getGirlPutToShoeBone(state, usedGirl)
+    state = d[0]
+    let bone = d[1]
+
+    return _updateTransform(state, bone, getGirlBoxSizeForCompute(state, usedGirl), localTransform)
 }

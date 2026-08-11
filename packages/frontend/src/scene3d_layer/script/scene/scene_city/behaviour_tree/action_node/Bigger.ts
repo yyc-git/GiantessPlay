@@ -14,7 +14,7 @@ import { getGirlScale, setGirlPosition } from "../../CityScene"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { ThirdPersonControls } from "meta3d-jiehuo-abstract"
 import { Map } from "immutable"
-import { road, lodQueueIndex, name, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { characterType, lodQueueIndex, name, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Vector3Utils } from "meta3d-jiehuo-abstract"
 import { Vector2Utils } from "meta3d-jiehuo-abstract"
 
@@ -26,9 +26,19 @@ import { actionName } from "../../data/DataType"
 import { getCurrentPose, isPose } from "../../girl/Pose"
 import { triggerAction } from "./Utils"
 import { Console } from "meta3d-jiehuo-abstract"
+import { isCanBigger } from "../../../../../mod/PropOtherMod"
 
-export let bigger: actionNodeFunc = (state, id) => {
+export let bigger: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("bigger")
 
-    return triggerAction(state, actionName.Bigger, id)
+    if (!isCanBigger(state, usedGirl)) {
+        return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
+    }
+
+    return triggerAction(state, usedGirl, actionName.Bigger, id).then(([state, _]) => {
+        /*! should return Success to avoid to invoke moveAndAttack
+        * 
+        */
+        return [state, behaviourTreeNodeExecuteResult.Success]
+    })
 }

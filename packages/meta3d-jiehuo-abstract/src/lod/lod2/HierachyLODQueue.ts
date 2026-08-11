@@ -1,13 +1,12 @@
 import { status } from "./LODContainerType";
 import { nullable } from "../../utils/nullable";
 import { getEmpty, getExn, getWithDefault, isNullable, map, return_ } from "../../utils/NullableUtils";
-import { Box3, Frustum, Matrix4, Vector3, } from "three";
+import { Box3, Color, Frustum, Matrix4, Vector3, } from "three";
 import { push, pushArrs, range, reducePromise } from "../../utils/ArrayUtils";
 import { LODQueue } from "./LODQueue";
-import { NullableUtils } from "../../Main";
+import { ArrayUtils, MutableMapUtils, NullableUtils } from "../../Main";
 import { state } from "../../type/StateType";
-import { create, get, set } from "../../utils/MutableMapUtils";
-import { getStatusForLODQueue, isNeedsUpdate, markNeedsUpdate } from "../LOD";
+import { create, get, set } from "../../utils/MutableRecordUtils";
 
 // const _q = new Quaternion();
 const _m = new Matrix4();
@@ -26,7 +25,7 @@ type queueName = string
 // 	status: status
 // }
 
-// type index = number
+type index = number
 
 export class HierachyLODQueue extends LODQueue {
 	public isHierachyLODQueue = true
@@ -41,14 +40,16 @@ export class HierachyLODQueue extends LODQueue {
 	// 	this._parentMap = this._parentMap.set(name, parentName)
 	// }
 
-	private _worldTransforms: Array<Matrix4> = []
+	// private _worldTransforms: Array<Matrix4> = []
+	private _worldTransforms: Map<index, Matrix4> = MutableMapUtils.create()
 
 	// private _parentMap: Record<queueName, HierachyLODQueue> = create()
 	// private _childrenMap: Record<queueName, Array<HierachyLODQueue>> = create()
 	private _children: Array<HierachyLODQueue> = []
 
-	private _transformsQueryByFrustum2 = []
-	private _namesQueryByFrustum2 = []
+	// private _transformsQueryByFrustum2 = []
+	// private _namesQueryByFrustum2 = []
+	// private _colorsQueryByFrustum2 = []
 	// private _countQueryByFrustum2 = 0
 
 
@@ -66,10 +67,33 @@ export class HierachyLODQueue extends LODQueue {
 		return this._children
 	}
 
+	_getAllChildren(result, children) {
+		if (children.length == 0) {
+			return result
+		}
+
+		return children.reduce((result, child) => {
+			return this._getAllChildren(
+				// ArrayUtils.pushArrs(result, child.getChildren()),
+				result,
+				child.getChildren()
+			)
+		}, ArrayUtils.pushArrs(result, children))
+	}
+
+	getAllChildren() {
+		return this._getAllChildren(ArrayUtils.create(), this.getChildren())
+	}
+
+
 	addChild(childQueue) {
 		this._children.push(childQueue)
 
 		return this
+	}
+
+	getAllQueues() {
+		return [this].concat(this.getAllChildren())
 	}
 
 
@@ -79,7 +103,7 @@ export class HierachyLODQueue extends LODQueue {
 	// 	// let _func = (matrix, queue) => {
 	// 	// 	return getWithDefault(
 	// 	// 		map(parentQueue => {
-	// 	// 			let parentMatrix = parentQueue.transforms[index]
+	// 	// 			let parentMatrix = parentQueue.getTransform(index)
 
 	// 	// 			return _func(
 	// 	// 				_m.multiplyMatrices(
@@ -101,7 +125,7 @@ export class HierachyLODQueue extends LODQueue {
 
 	// 		return getWithDefault(
 	// 			map(parentQueue => {
-	// 				let parentMatrix = parentQueue.transforms[index]
+	// 				let parentMatrix = parentQueue.getTransform(index)
 
 	// 				return _func(
 	// 					_m.multiplyMatrices(
@@ -118,7 +142,7 @@ export class HierachyLODQueue extends LODQueue {
 	// }
 
 	getWorldMatrix(index) {
-		return this._worldTransforms[index]
+		return MutableMapUtils.getExn(this._worldTransforms, index)
 	}
 
 	// update(state: state, parentWorldMatrix: nullable<Matrix4>) {
@@ -225,8 +249,8 @@ export class HierachyLODQueue extends LODQueue {
 	update(state: state, parentWorldMatrix: nullable<Matrix4>, i: number) {
 		let originBox = this.originBox
 
-		let worldTransform = this._worldTransforms[i]
-		let transform = this.transforms[i]
+		let worldTransform = MutableMapUtils.getExn(this._worldTransforms, i)
+		let transform = MutableMapUtils.getExn(this.transforms, i)
 
 		if (isNullable(parentWorldMatrix)) {
 			worldTransform.copy(transform)
@@ -237,7 +261,7 @@ export class HierachyLODQueue extends LODQueue {
 
 		if (!NullableUtils.isNullable(originBox)) {
 			// this.boxes[i].copy(NullableUtils.getExn(originBox).clone().applyMatrix4(worldTransform)
-			this.boxes[i].copy(NullableUtils.getExn(originBox)).applyMatrix4(worldTransform)
+			MutableMapUtils.getExn(this.boxes, i).copy(NullableUtils.getExn(originBox)).applyMatrix4(worldTransform)
 		}
 
 		this._children.forEach(childQueue => {
@@ -245,12 +269,13 @@ export class HierachyLODQueue extends LODQueue {
 		})
 	}
 
-	getAllIndices() {
-		return range(0, this.getLastIndex())
-	}
+	// getAllIndices() {
+	// 	return range(0, this.getLastIndex())
+	// }
+
 
 	// updateTransform(func, index: number) {
-	// 	let transform = this.transforms[index]
+	// 	let transform = this.getTransform(index)
 
 	// 	func(transform)
 	// }
@@ -258,22 +283,22 @@ export class HierachyLODQueue extends LODQueue {
 	// updatePosition(index: number, position: Vector3, isUpdateBox) {
 	// 	let originBox = getExn(this.originBox)
 
-	// 	let transform = this.transforms[index]
+	// 	let transform = this.getTransform(index)
 
 	// 	transform.setPosition(position)
 
 	// 	if (isUpdateBox) {
-	// 		// this.boxes[index].copy(
+	// 		// this.getBox(index).copy(
 	// 		// 	originBox.clone().translate(position)
 	// 		// )
-	// 		this.boxes[index] = originBox.clone().translate(position)
+	// 		this.getBox(index) = originBox.clone().translate(position)
 	// 	}
 	// }
 
-	insert(transform, box, name) {
-		super.insert(transform, box, name)
+	insert(transform, box, name, color = new Color(1, 1, 1)) {
+		MutableMapUtils.set(this._worldTransforms, this.getLastIndex() + 1, new Matrix4())
 
-		this._worldTransforms.push(new Matrix4())
+		super.insert(transform, box, name, color)
 	}
 
 	// forEach(func: (data: data) => void) {
@@ -315,6 +340,9 @@ export class HierachyLODQueue extends LODQueue {
 	// reducePromise<T>(result: T, func: (result: T, data: data) => Promise<T>) {
 	// 	let self = this
 
+
+
+
 	// 	return reducePromise(this.transforms, (result, transform, i) => {
 	// 		return func(result, { transform: transform, box: self.boxes[i], name: self.names[i], status: self.statuses[i] })
 	// 	}, result)
@@ -342,29 +370,33 @@ export class HierachyLODQueue extends LODQueue {
 	// 	})
 	// }
 
-	queryByFrustum(state: state, frustum: Frustum): [number, Array<THREE.Matrix4>, Array<string>] {
-		let [count, transforms, names] = this.reduce<[number, Array<Matrix4>, Array<string>]>([0, this._transformsQueryByFrustum2, this._namesQueryByFrustum2], (result, _, index) => {
-			let name = this.names[index]
-			if (
-				getStatusForLODQueue(state, name).isVisible
-				&& frustum.intersectsBox(
-					this.boxes[index]
-				)
-			) {
-				// let [transforms, names] = result
+	queryByFrustum(state: state, frustum: Frustum): [number, Array<THREE.Matrix4>, Array<string>, Array<Color>] {
+		// let [count, transforms, names, colors] = this.reduce<[number, Array<Matrix4>, Array<string>, Array<Color>]>([0, this._transformsQueryByFrustum2, this._namesQueryByFrustum2, this._colorsQueryByFrustum2], (result, _, index) => {
+		// 	let name = MutableMapUtils.getExn(this.names, index)
+		// 	let color = MutableMapUtils.getExn(this.colors, index)
+		// 	if (
+		// 		// this.getStatus(index).isVisible
+		// 		this.getIsVisible(index)
+		// 		&& frustum.intersectsBox(
+		// 			MutableMapUtils.getExn(this.boxes, index)
+		// 		)
+		// 	) {
+		// 		// let [transforms, names] = result
 
-				// return [push(transforms, this.getWorldMatrix(index)), push(names, name)]
-				let [i, transforms, names] = result
+		// 		// return [push(transforms, this.getWorldMatrix(index)), push(names, name)]
+		// 		let [i, transforms, names, colors] = result
 
-				return [i + 1, set(transforms, i, this.getWorldMatrix(index)), set(names, i, name)]
-			}
+		// 		return [i + 1, set(transforms, i, this.getWorldMatrix(index)), set(names, i, name), set(colors, i, color)]
+		// 	}
 
-			return result
-		})
+		// 	return result
+		// })
 
-		// this._countQueryByFrustum2 = count
+		// // this._countQueryByFrustum2 = count
 
-		return [count, transforms, names]
+		// return [count, transforms, names, colors]
+
+		return this.queryByFrustumProtected(frustum, this._worldTransforms)
 	}
 
 	// TODO finish
@@ -384,4 +416,31 @@ export class HierachyLODQueue extends LODQueue {
 	// 		return [transforms, boxes, names]
 	// 	}, [transforms, boxes, names])
 	// }
+
+	remove(state: state, index) {
+		state = super.remove(state, index)
+
+		// this._worldTransforms = ArrayUtils.set(this._worldTransforms, index, null)
+		this._worldTransforms = MutableMapUtils.remove(this._worldTransforms, index)
+		// this._children = ArrayUtils.set(this._children, index, null)
+
+		// this._transformsQueryByFrustum2 = ArrayUtils.set(this._transformsQueryByFrustum2, index, null)
+		// this._namesQueryByFrustum2 = ArrayUtils.set(this._namesQueryByFrustum2, index, null)
+		// this._transformsQueryByFrustum2 = ArrayUtils.remove(this._transformsQueryByFrustum2, index)
+		// this._namesQueryByFrustum2 = ArrayUtils.remove(this._namesQueryByFrustum2, index)
+		// this._transformsQueryByFrustum2 = ArrayUtils.create()
+		// this._namesQueryByFrustum2 = ArrayUtils.create()
+		// this._colorsQueryByFrustum2 = ArrayUtils.create()
+
+		// state = markNeedsUpdate(state, this.name, index, false)
+
+
+		return state
+	}
+
+	setColor(queue, index, newColor) {
+		queue.getAllQueues().forEach(queue => {
+			super.setColor(queue, index, newColor)
+		})
+	}
 }

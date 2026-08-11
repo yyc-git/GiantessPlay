@@ -1,24 +1,27 @@
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { getName as getSceneName } from "../CityScene"
 import { getName } from "../little_man/LittleMan"
 import { animationName } from "./DataType"
+import { getAnimationFrameCountMap } from "../../../../mod/SkillLittleManMod"
+import { state } from "../../../../type/StateType"
 
-export let getAnimationFrameCount = (animationName_) => {
-    const frameCountMap = {
+export let getAnimationFrameCount = (state: state, animationName_) => {
+    const frameCountMap = MutableRecordUtils.concat({
         [animationName.Idle]: 60,
         // [animationName.Idle]: 100,
         // [animationName.Run]: 24,
         [animationName.Run]: 26,
         // [animationName.FastRun]: 22,
         [animationName.Shoot]: 34,
-        [animationName.Swiping]: 81,
+        // [animationName.Swiping]: 81,
         // [animationName.VeryFastShoot]: 7,
         // [animationName.Shake]: 25,
         [animationName.Shake]: 37,
         // [animationName.Death]: 40,
         [animationName.Death]: 46,
 
-        // [animationName.Controlled]: 91,
-        [animationName.Controlled]: 126,
+        // [animationName.PickedControlled]: 91,
+        [animationName.PickedControlled]: 126,
 
         [animationName.Lie]: 2,
         [animationName.Standup]: 95,
@@ -31,32 +34,34 @@ export let getAnimationFrameCount = (animationName_) => {
         * 
         */
         [animationName.ClimbToTop]: 120,
-    }
+    },
+        getAnimationFrameCountMap(state)
+    )
 
     return frameCountMap[animationName_]
 }
 
-export let getElyResourcePath = (name) => `./resource/${name}/little_man/soldier1/Ely/Ely By K.Atienza.fbx`
+export let getElyResourcePath = (name) => `./resource/${name}/little_man/soldier/Ely/Ely By K.Atienza.fbx`
 
-export let getDreyarResourcePath = (name) => `./resource/${name}/little_man/soldier1/Dreyar/Dreyar By M.Aure.fbx`
+export let getDreyarResourcePath = (name) => `./resource/${name}/little_man/soldier/Dreyar/Dreyar By M.Aure.fbx`
 
-// export let getCh09ResourcePath = (name) => `./resource/${name}/little_man/soldier1/Ch09/Ch09_nonPBR.fbx`
+// export let getCh09ResourcePath = (name) => `./resource/${name}/little_man/soldier/Ch09/Ch09_nonPBR.fbx`
 
-export let getMouseyResourcePath = (name) => `./resource/${name}/little_man/soldier1/Mousey/Mousey_nonPBR.fbx`
+export let getMouseyResourcePath = (name) => `./resource/${name}/little_man/soldier/Mousey/Mousey_nonPBR.fbx`
 
-export let getNinjaResourcePath = (name) => `./resource/${name}/little_man/soldier1/Ninja/Ninja_nonPBR.fbx`
+export let getNinjaResourcePath = (name) => `./resource/${name}/little_man/soldier/Ninja/Ninja_nonPBR.fbx`
 
-// export let getCh36ResourcePath = (name) => `./resource/${name}/little_man/soldier1/Ch36/Ch36_nonPBR.fbx`
+// export let getCh36ResourcePath = (name) => `./resource/${name}/little_man/soldier/Ch36/Ch36_nonPBR.fbx`
 
-export let getAbeResourcePath = (name) => `./resource/${name}/little_man/soldier1/Abe/Abe_nonPBR.fbx`
+export let getAbeResourcePath = (name) => `./resource/${name}/little_man/soldier/Abe/Abe_nonPBR.fbx`
 
-// export let getCh45ResourcePath = (name) => `./resource/${name}/little_man/soldier1/Ch45/Ch45_nonPBR.fbx`
+// export let getCh45ResourcePath = (name) => `./resource/${name}/little_man/soldier/Ch45/Ch45_nonPBR.fbx`
 
-export let getMariaResourcePath = (name) => `./resource/${name}/little_man/soldier1/Maria/Maria J J Ong.fbx`
+export let getMariaResourcePath = (name) => `./resource/${name}/little_man/soldier/Maria/Maria J J Ong.fbx`
 
-export let getMutantResourcePath = (name) => `./resource/${name}/little_man/soldier1/Mutant/Mutant.fbx`
+export let getMutantResourcePath = (name) => `./resource/${name}/little_man/soldier/Mutant/Mutant.fbx`
 
-export let getInfantryResourcePath = (name) => `./resource/${name}/little_man/soldier1/Infantry/infantry.fbx`
+export let getInfantryResourcePath = (name) => `./resource/${name}/little_man/soldier/Infantry/infantry.fbx`
 
 export let getDreyarResourceId = () => `${getSceneName()}_${getName()}_${getDreyarResourcePath(getName())}`
 
@@ -90,47 +95,44 @@ export let getShakeAnimationResourcePath = (name) => `./resource/${name}/little_
 
 export let getShootingAnimationResourcePath = (name) => `./resource/${name}/little_man/Shooting.fbx`
 
-export let getSwipingAnimationResourcePath = (name) => `./resource/${name}/little_man/Swiping.fbx`
+// export let getSwipingAnimationResourcePath = (name) => `./resource/${name}/little_man/Swiping.fbx`
 
 export let getVeryFastShootingAnimationResourcePath = (name) => `./resource/${name}/little_man/VeryFastShooting.fbx`
 
-export let getControlledAnimationResourcePath = (name) => `./resource/${name}/little_man/Controlled.fbx`
+export let getControlledAnimationResourcePath = (name) => `./resource/${name}/little_man/PickedControlled.fbx`
 
-export let getStandupAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier1/${modelName}/Standup.fbx`
+export let getStandupAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier/${modelName}/Standup.fbx`
 
-export let getLieAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier1/${modelName}/Lie.fbx`
+export let getLieAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier/${modelName}/Lie.fbx`
 
-export let getDeathAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier1/${modelName}/Death.fbx`
+export let getDeathAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier/${modelName}/Death.fbx`
 
-export let getClimbToTopAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier1/${modelName}/ClimbToTop.fbx`
+export let getClimbToTopAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier/${modelName}/ClimbToTop.fbx`
 
-export let getClimbToDownAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier1/${modelName}/ClimbToDown.fbx`
-
-
+export let getClimbToDownAnimationResourcePath = (name, modelName) => `./resource/${name}/little_man/soldier/${modelName}/ClimbToDown.fbx`
 
 
-export let getBasicGunResourcePath = (name) => `./resource/${name}/little_man/soldier1/gun/basicGun.glb`
 
-export let getBasicGunResourceId = () => `${getSceneName()}_${getName()}_${getBasicGunResourcePath(getName())}`
 
-export let getLaserGunResourcePath = (name) => `./resource/${name}/little_man/soldier1/gun/laserGun.glb`
+// export let getBasicGunResourcePath = (name) => `./resource/${name}/little_man/soldier/gun/basicGun.glb`
+
+// export let getBasicGunResourceId = () => `${getSceneName()}_${getName()}_${getBasicGunResourcePath(getName())}`
+
+export let getLaserGunResourcePath = (name) => `./resource/${name}/little_man/soldier/gun/laserGun.glb`
 
 export let getLaserGunResourceId = () => `${getSceneName()}_${getName()}_${getLaserGunResourcePath(getName())}`
 
-export let getRocketGunResourcePath = (name) => `./resource/${name}/little_man/soldier1/gun/rocketGun.glb`
+export let getRocketGunResourcePath = (name) => `./resource/${name}/little_man/soldier/gun/rocketGun.glb`
 
 export let getRocketGunResourceId = () => `${getSceneName()}_${getName()}_${getRocketGunResourcePath(getName())}`
 
-export let getPropGunResourcePath = (name) => `./resource/${name}/little_man/soldier1/gun/propGun.glb`
+// export let getPropGunResourcePath = (name) => `./resource/${name}/little_man/soldier/gun/propGun.glb`
 
-export let getPropGunResourceId = () => `${getSceneName()}_${getName()}_${getPropGunResourcePath(getName())}`
+// export let getPropGunResourceId = () => `${getSceneName()}_${getName()}_${getPropGunResourcePath(getName())}`
 
+// export let getSubMachineGunResourcePath = (name) => `./resource/${name}/little_man/soldier/gun/submachineGun.glb`
 
-
-
-export let getAimResourcePath = (name) => `./resource/${name}/little_man/soldier1/aim.png`
-
-export let getAimResourceId = () => `${getSceneName()}_${getName()}_${getAimResourcePath(getName())}`
+// export let getSubMachineGunResourceId = () => `${getSceneName()}_${getName()}_${getSubMachineGunResourcePath(getName())}`
 
 
 

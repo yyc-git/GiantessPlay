@@ -1,26 +1,40 @@
+import { Vector3 } from "three"
 import { state } from "../../../../../type/StateType"
+import { animationName } from "../../data/biwu/DataType"
 import { actionName } from "../../data/biwu/level2/DataType"
-import { playBiggerAnimation, playSmallerToHalfSizeAnimation } from "../../girl/Animation"
-import { isActionTriggering, isDamageAction, isTriggerAction, resetIsTriggerAction, setTriggerAction } from "../../girl/Girl"
+import { isPlayingAnimation, playBiggerAnimation, playSmallerAnimation, updateAnimation } from "../../girl/Animation"
+import { getAllUsedMMDData, isActionTriggering, isDamageAction, isTriggerAction, resetIsTriggerAction, setTriggerAction } from "../../girl/Girl"
+import { move } from "../../girl/Move"
 import { result } from "../../type/StateType"
+import { updateAnimationCollision } from "../../girl/Collision"
+import * as GirlFSMState from "../../girl/FSMState"
+import { createDestroyingState } from "./FSMState"
+import { getCurrentCamera } from "meta3d-jiehuo-abstract/src/scene/Camera"
+import { getAbstractState } from "../../../../../state/State"
+import { buildBossStatusUpdateEventNameEventData } from "../../../../../utils/EventUtils"
+import { NullableUtils } from "meta3d-jiehuo-abstract"
+import * as InitWhenImportScene from "../../girl/InitWhenImportScene"
+import { updateUtils } from "../../girl/utils/LevelGirlUtils"
+import { getLanguageTextData, languageKey } from "../../../../../internation/Data"
+import { getUsedGirl } from "./Utils"
 
-let _isActionValid = (state: state, name: actionName) => {
+let _isActionValid = (state: state, usedGirl, name: actionName) => {
     // if (!hasGirlMesh(state)) {
     //     return false
     // }
 
-    // if (name == actionName.Smaller
+    // if (name == actionName.Smallest
     //     // && (
-    //     //     isChangeScaling(state) || getGirlScale(state) <= getValue(name).minScale
+    //     //     isChangeScaling(state, usedGirl) || getGirlScale(state, usedGirl) <= getValue(name).scaleIncrease
     //     // )
-    //     && getGirlScale(state) > getValue(name).minScale
+    //     && getGirlScale(state, usedGirl) > getValue(name).scaleIncrease
     // ) {
     //     return true
     // }
 
     // if (name == actionName.Bigger
     //     && (
-    //         isChangeScaling(state) || (!getIsBiggerNoLimit(state) && getGirlScale(state) >= getValue(name).maxScale)
+    //         isChangeScaling(state, usedGirl) || (!getIsBiggerNoLimit(state) && getGirlScale(state, usedGirl) >= getValue(name).maxScale)
     //     )
     // ) {
     //     return false
@@ -39,7 +53,7 @@ let _isActionValid = (state: state, name: actionName) => {
     // }
 
 
-    if (isActionTriggering(state, name as any)) {
+    if (isActionTriggering(state, usedGirl, name as any)) {
         return false
     }
 
@@ -52,7 +66,7 @@ let _isActionValid = (state: state, name: actionName) => {
     //     return false
     // }
 
-    // if (isKeepPoseAnimation(getCurrentAnimationName(state))) {
+    // if (isKeepPoseAnimation(state, name, getCurrentAnimationName(state, usedGirl))) {
     //     return true
     // }
 
@@ -63,9 +77,9 @@ let _isActionValid = (state: state, name: actionName) => {
     //             return false
     //         }
 
-    //         return getCurrentAnimationName(state) == animationName.Walk
+    //         return getCurrentAnimationName(state, usedGirl) == animationName.Walk
     //     case actionName.Stomp:
-    //         return getCurrentAnimationName(state) == animationName.Walk || isActionState(state, actionState.Run)
+    //         return getCurrentAnimationName(state, usedGirl) == animationName.Walk || isActionState(state, actionState.Run)
     //     default:
     //         return false
     // }
@@ -73,9 +87,9 @@ let _isActionValid = (state: state, name: actionName) => {
     return true
 }
 
-export let triggerAction = (state, name: actionName): Promise<[state, result]> => {
-    if (isDamageAction(name as any)) {
-        state = setTriggerAction(state, name)
+export let triggerAction = (state, usedGirl, name: actionName): Promise<[state, result]> => {
+    if (isDamageAction(state, name as any)) {
+        state = setTriggerAction(state, usedGirl, name)
         return Promise.resolve([state, result.Success])
     }
 
@@ -96,7 +110,7 @@ export let triggerAction = (state, name: actionName): Promise<[state, result]> =
 
 
 
-    if (!_isActionValid(state, name)) {
+    if (!_isActionValid(state, usedGirl, name)) {
         // return Promise.resolve([state, result.Fail])
         return Promise.resolve([state, result.Success])
     }
@@ -105,39 +119,39 @@ export let triggerAction = (state, name: actionName): Promise<[state, result]> =
     // if (isSubExcitement) {
     //     let { excitement } = getSkillData(state, name)
 
-    //     state = subExcitement(state, excitement)
+    //     state = subExcitement(state,usedGirl, excitement)
     // }
 
 
 
-    state = setTriggerAction(state, name)
+    state = setTriggerAction(state, usedGirl, name)
 
     // switch (name) {
     //     case actionName.Bigger:
     //         // state = setActionState(state, actionState.Initial)
 
     //         state = playBiggerAnimation(state, (state) => {
-    //             // state = setScaleState(state, scaleState.Big)
-    //             // state = setNeedUpdateSkillBar(state, true)
-    //             // state = InitWhenImportScene.refreshBiggerTime(state)
+    //             // state = setLastScaleChangeTime(state, scaleState.Big)
+    //             // state = setNeedShowSkillBar(state, usedGirl, true)
+    //             // state = InitWhenImportScene.refreshBiggerTime(state, usedGirl)
 
     //             if (isTriggerAction(state, actionName.Bigger)) {
-    //                 state = resetIsTriggerAction(state)
+    //                 state = resetIsTriggerAction(state, usedGirl)
     //             }
 
     //             // return Event.trigger(state, getAbstractState, getOperateUpdateEventName(), null)
     //             return Promise.resolve([state, result.Success])
     //         })
     //         break
-    //     case actionName.Smaller:
+    //     case actionName.Smallest:
     //         // state = setActionState(state, actionState.Initial)
 
-    //         state = playSmallerToHalfSizeAnimation(state, (state) => {
-    //             // state = setScaleState(state, scaleState.Normal)
-    //             // state = setNeedUpdateSkillBar(state, false)
+    //         state = playSmallerAnimation(state, (state) => {
+    //             // state = setLastScaleChangeTime(state, scaleState.Normal)
+    //             // state = setNeedShowSkillBar(state, usedGirl, false)
 
-    //             if (isTriggerAction(state, actionName.Smaller)) {
-    //                 state = resetIsTriggerAction(state)
+    //             if (isTriggerAction(state, actionName.Smallest)) {
+    //                 state = resetIsTriggerAction(state, usedGirl)
     //             }
 
 
@@ -152,3 +166,13 @@ export let triggerAction = (state, name: actionName): Promise<[state, result]> =
 
     return Promise.resolve([state, result.Success])
 }
+
+export let update = (state: state) => {
+    let usedGirl = getUsedGirl()
+
+    return updateUtils(state, usedGirl, state => {
+        return GirlFSMState.update(state, createDestroyingState, usedGirl)
+    })
+}
+
+export let initWhenImportScene = state => InitWhenImportScene.initWhenImportScene(state, getAllUsedMMDData(state))

@@ -34,5 +34,8 @@ export class FirstPersonControls {
     horrizonMin: number;
     horrizonMax: number;
     getAzimuthalAngle(): number
+    getLookData(): [number, number]
     setLookat(lat: number, lon: number): void
+    getLookatDirection(): Vector3
+    resetPointerData(): void
 }

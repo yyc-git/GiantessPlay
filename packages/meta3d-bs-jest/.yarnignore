@@ -1,0 +1,12 @@
+.idea/
+.vscode/
+.DS_Store/
+lib/bs/
+.bs.js
+.gen.tsx
+test/
+build/
+reference/
+mine/
+server/
+examples/

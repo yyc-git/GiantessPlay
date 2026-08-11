@@ -1,4 +1,4 @@
-import { WebGLRenderer, Object3D, Camera, Vector2, Raycaster, Scene, Clock, AnimationMixer, AnimationClip, Mesh, Color, Vector3, LOD, Box3, Group, Matrix4, BufferGeometry, Sprite, PerspectiveCamera } from "three"
+import { WebGLRenderer, Object3D, Camera, Vector2, Raycaster, Scene, Clock, AnimationMixer, AnimationClip, Mesh, Color, Vector3, LOD, Box3, Group, Matrix4, BufferGeometry, Sprite, PerspectiveCamera, Quaternion } from "three"
 import type { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
 import type { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 import type { OutlinePass } from '../three/OutlinePass'
@@ -8,7 +8,7 @@ import type { TrackballControls } from 'three/examples/jsm/controls/TrackballCon
 import type GLBench from 'gl-bench/dist/gl-bench';
 import type RendererStats from 'three-webgl-stats';
 import { nullable } from "../utils/nullable"
-import type { Map, List } from "immutable"
+import type { Map as ImmutableMap, List } from "immutable"
 import type { JoystickManager } from 'nipplejs'
 import type { ShadowMapViewer } from "three/examples/jsm/utils/ShadowMapViewer"
 import { InstancedMesh2 } from "../instance/InstancedMesh2"
@@ -37,11 +37,12 @@ import { FirstPersonControls } from "../three/FirstPersonControls"
 import type { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader"
 import type { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader"
 import { OBB } from "../three/OBB"
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader"
 
 export type render = {
     // isNeedHandleLandscape: boolean,
 
-    canvas: nullable<HTMLCanvasElement>,
+    // canvas: nullable<HTMLCanvasElement>,
     // width: number,
     // height: number,
     isNeedSetSize: boolean,
@@ -49,7 +50,10 @@ export type render = {
     composer: nullable<EffectComposer>,
     renderPass: nullable<RenderPass>,
     outlinePass: nullable<OutlinePass>,
-    gammaCorrection: nullable<ShaderPass>
+    gammaCorrection: nullable<ShaderPass>,
+
+
+    webglcontextlostExtension: nullable<WEBGL_lose_context>,
 }
 
 export type pickTarget = [number, nullable<Object3D>, nullable<[Matrix4, Box3, string]>]
@@ -78,8 +82,8 @@ export type articluatedAnimation = {
 
     // reallocateTweens: Array<tween>,
 
-    articluatedAnimationTweens: Map<articluatedAnimationName, Array<tween>>,
-    articluatedAnimationStatus: Map<articluatedAnimationName, articluatedAnimationStatus>
+    // articluatedAnimationTweens: ImmutableMap<articluatedAnimationName, Array<tween>>,
+    // articluatedAnimationStatus: ImmutableMap<articluatedAnimationName, articluatedAnimationStatus>
 }
 
 export type skinAnimationName = string
@@ -89,10 +93,10 @@ export type skinTargetName = string
 export type weight = number
 
 export type skinAnimation = {
-    animationClips: Map<skinAnimationName, AnimationClip>,
-    animationNames: Map<skinTargetName, List<skinAnimationName>>,
-    mixerMap: Map<skinTargetName, AnimationMixer>,
-    weights: Map<skinAnimationName, weight>
+    animationClips: ImmutableMap<skinAnimationName, AnimationClip>,
+    animationNames: ImmutableMap<skinTargetName, List<skinAnimationName>>,
+    mixerMap: ImmutableMap<skinTargetName, AnimationMixer>,
+    weights: ImmutableMap<skinAnimationName, weight>
 }
 
 type key = string
@@ -104,13 +108,21 @@ type key = string
 //     Right,
 // }
 
-export enum road {
+export enum characterType {
     Giantess,
-    LittleMan
+    LittleMan,
+    Both,
+    GiantessOrNone,
+    LittleManOrNone,
+    BothOrNone,
+    None,
 }
 
 export type cameraControls = {
-    keyState: Map<road, Map<key, boolean>>,
+    // keyState: ImmutableMap<characterType, ImmutableMap<key, boolean>>,
+    littleManKeyState: ImmutableMap<key, boolean>,
+    giantessKeyState: ImmutableMap<usedGirl, ImmutableMap<key, boolean>>,
+
     joystickManager: nullable<JoystickManager>,
     moveHandlerFunc: nullable<any>,
     endHandlerFunc: nullable<any>,
@@ -120,7 +132,13 @@ export type cameraControls = {
     // back: number,
     // left: number,
     // right: number,
-    directionData: Map<road, [
+    // directionData: ImmutableMap<characterType, [
+    //     number, number, number, number
+    // ]>,
+    littleManDirectionData: [
+        number, number, number, number
+    ],
+    giantessDirectionDataMap: ImmutableMap<usedGirl, [
         number, number, number, number
     ]>,
 
@@ -138,7 +156,7 @@ export type camera = {
     currentControls: nullable<any>,
     orbitControls: nullable<OrbitControls>,
     cameraControls: nullable<cameraControls>,
-    trackballControls: nullable<TrackballControls>,
+    // trackballControls: nullable<TrackballControls>,
     firstPersonControls: nullable<FirstPersonControls>,
 }
 
@@ -147,22 +165,42 @@ export type scene = {
     currentScene: nullable<Object3D>,
     camera: nullable<camera>,
 
-    road: road,
+    characterType: characterType,
 
     pickableOctrees: Array<StaticLODContainer>,
 }
 
 export type eventName = string
 
+export type userData = nullable<any>
+
 export type customEvent = {
     name: eventName,
-    userData: nullable<any>
+    userData: userData
 }
 
 export type handler<specificState> = (state: specificState, customEvent: customEvent) => Promise<specificState>
 
+export type handlerWithUserData<specificState> = (state: specificState, customEvent: customEvent) => Promise<[specificState, userData]>
+
+export type handlerByReadWriteState = (customEvent: customEvent) => Promise<void>
+
+export type gotData = any
+
+// export type handlerForGetData<specificState> = (state: specificState, customEvent: customEvent) => Promise<[specificState, gotData]>
+// export type handlerForGetData<specificState> = (state: specificState, customEvent: customEvent) => [specificState, gotData]
+export type handlerForGetData<specificState> = (state: specificState, customEvent: customEvent) => gotData
+
 export type event = {
-    handlers: Map<eventName, List<handler<any>>>
+    handlers: ImmutableMap<eventName, List<handler<any>>>,
+
+    // handlersWithUserData: ImmutableMap<eventName, List<handlerWithUserData<any>>>,
+    handlersWithUserData: Map<eventName, Array<handlerWithUserData<any>>>,
+
+    handlersByReadWriteState: ImmutableMap<eventName, List<handlerByReadWriteState>>,
+
+    // handlersForGetData: ImmutableMap<eventName, List<handlerForGetData<any>>>,
+    handlerForGetData: ImmutableMap<eventName, handlerForGetData<any>>,
 }
 
 export type stats = {
@@ -195,7 +233,7 @@ export type sourceObjectName = string
 
 // type lodObject = {
 //     object: Object3D,
-//     // lodDataMap: Map<objectId, {
+//     // lodDataMap: ImmutableMap<objectId, {
 //     //     maxDistanceToCamera: number,
 //     //     geometry,
 //     //     material
@@ -224,24 +262,24 @@ export type instancedSource = InstanceSourceLOD | Object3D
 export type instancedMesh = InstancedMesh2LOD | InstancedMesh2
 
 export type instance = {
-    // sourcesMap: Map<instancedMesh2LODId, Array<InstanceSourceLOD>>,
-    // indexMap: Map<instanceSourceLODId, instanceIndex>,
-    // instancedMesh2OneMap: Map<instanceSourceLODId, InstancedMesh2LOD>,
-    // needUpdateColorMap: Map<instanceSourceLODId, Color>,
-    // visibleMap: Map<instanceSourceLODId, boolean>
+    // sourcesMap: ImmutableMap<instancedMesh2LODId, Array<InstanceSourceLOD>>,
+    // indexMap: ImmutableMap<instanceSourceLODId, instanceIndex>,
+    // instancedMesh2OneMap: ImmutableMap<instanceSourceLODId, InstancedMesh2LOD>,
+    // needUpdateColorMap: ImmutableMap<instanceSourceLODId, Color>,
+    // visibleMap: ImmutableMap<instanceSourceLODId, boolean>
 
-    // isInstancedSourceMap: Map<instancedSourceId, boolean>,
-    // // sourcesMap: Map<instancedId, Array<InstanceSourceLOD | Mesh>>,
-    // sourcesMap: Map<instancedId, Array<instancedSource>>,
-    // sourceWorldBoundingBoxMap: Map<instancedSourceId, Box3>,
-    // indexMap: Map<instancedSourceId, instanceIndex>,
-    // instancedMesh2OneMap: Map<instancedSourceId, instancedMesh>,
-    // needUpdateColorMap: Map<instancedSourceId, Color>,
-    // visibleMap: Map<instancedSourceId, boolean>
+    // isInstancedSourceMap: ImmutableMap<instancedSourceId, boolean>,
+    // // sourcesMap: ImmutableMap<instancedId, Array<InstanceSourceLOD | Mesh>>,
+    // sourcesMap: ImmutableMap<instancedId, Array<instancedSource>>,
+    // sourceWorldBoundingBoxMap: ImmutableMap<instancedSourceId, Box3>,
+    // indexMap: ImmutableMap<instancedSourceId, instanceIndex>,
+    // instancedMesh2OneMap: ImmutableMap<instancedSourceId, instancedMesh>,
+    // needUpdateColorMap: ImmutableMap<instancedSourceId, Color>,
+    // visibleMap: ImmutableMap<instancedSourceId, boolean>
 
 
     isInstancedSourceMap: Record<instancedSourceId, boolean>,
-    // sourcesMap: Map<instancedId, Array<InstanceSourceLOD | Mesh>>,
+    // sourcesMap: ImmutableMap<instancedId, Array<InstanceSourceLOD | Mesh>>,
     sourcesMap: Record<instancedId, Array<instancedSource>>,
     sourceWorldBoundingBoxMap: Record<instancedSourceId, Box3>,
     indexMap: Record<instancedSourceId, instanceIndex>,
@@ -262,8 +300,17 @@ export enum resourceType {
     Audio
 }
 
+export type needLoadResourceData = Array<{ id: resourceId, path: string | Array<string> | [string, Array<[string, string]>], type: resourceType }>
+
 export type loader = {
-    resourceData: Map<resourceId, resource>,
+    needLoadResourceData: needLoadResourceData,
+    loadedIndex: number,
+
+    // needLoadResourceDataForRetry: needLoadResourceData,
+
+    resourceData: ImmutableMap<resourceId, resource>,
+
+    fbxLoader: nullable<FBXLoader>,
     dracoLoader: nullable<DRACOLoader>,
     ktx2Loader: nullable<KTX2Loader>,
 }
@@ -273,6 +320,8 @@ export type device = {
     delta: number,
     // width: number,
     // height: number
+
+    isMobile: boolean,
 }
 
 export enum layer {
@@ -303,7 +352,8 @@ export type level = {
 type detail = {
     group: Group,
     level: string,
-    distance: number,
+    // distance: number,
+    getDistanceFunc: (specificState: any) => number,
 }
 
 export type details = Array<detail>
@@ -317,13 +367,13 @@ export type name = string
 export type hierachyLODQueueName = string
 
 export type lod = {
-    instancedMesh2LevelsMap: Map<instancedMesh2LODId, Array<level>>,
-    // bvhMap: Map<instancedMesh2LODId, InstancedMeshBVH>,
+    instancedMesh2LevelsMap: ImmutableMap<instancedMesh2LODId, Array<level>>,
+    // bvhMap: ImmutableMap<instancedMesh2LODId, InstancedMeshBVH>,
     lod2s: List<InstancedLOD2>,
     skinLOD2s: List<InstancedSkinLOD2>,
 
     // needsUpdateForHierachyLODQueue: Array<boolean>,
-    needsUpdateForHierachyLODQueueMap: Record<hierachyLODQueueName, Array<boolean>>,
+    needsUpdateForHierachyLODQueueMap: Map<hierachyLODQueueName, Array<boolean>>,
 
 
 
@@ -332,18 +382,20 @@ export type lod = {
 
     // visibleIndicesAfterfrustumCull: Array<staticLODContainerIndex>,
     // visibleIndicesAfterfrustumCull: Record<staticLODContainerIndex, boolean>,
-    visibleIndicesAfterfrustumCull: MutableNumberMapUtilsT<staticLODContainerIndex, boolean>,
+    // visibleIndicesAfterfrustumCull: MutableNumberMapUtilsT<staticLODContainerIndex, boolean>,
+    visibleIndicesAfterfrustumCull: Map<staticLODContainerIndex, boolean>,
 
-    staticLODContainerNames: Array<name>,
-    staticLODContainerStatuses: Array<status>,
-    staticLODContainerTransforms: Array<Matrix4>,
-    staticLODContainerBoxes: Array<Box3>,
-    staticLODContainerIndicesMap: Record<name, staticLODContainerIndex>,
+    staticLODContainerNames: Map<staticLODContainerIndex, name>,
+    staticLODContainerIsCollisionable: Map<staticLODContainerIndex, status>,
+    staticLODContainerIsVisible: Map<staticLODContainerIndex, status>,
+    staticLODContainerTransforms: Map<staticLODContainerIndex, Matrix4>,
+    staticLODContainerBoxes: Map<staticLODContainerIndex, Box3>,
+    staticLODContainerIndicesMap: Map<name, staticLODContainerIndex>,
     // staticLODContainerMap: Record<staticLODContainerIndex, StaticLODContainer>,
 
 
-    lodQueueStatusMap: Record<name, status>
-    lodQueueMap: Record<name, LODQueue>,
+    // lodQueueStatusMap: Record<name, status>
+    lodQueueMap: Map<name, LODQueue>,
 }
 
 export type config = {
@@ -352,37 +404,84 @@ export type config = {
     isNotTestPerf: boolean,
     isSkipScenario: boolean,
     isSkipGameEvent: boolean,
+    isShowDemo: boolean,
 }
 
+type deferFunc<specificState> = (specificState: specificState) => Promise<specificState>
+
 export type deferExecFuncData<specificState> = {
-    func: (specificState: specificState) => Promise<specificState>,
+    func: deferFunc<specificState>,
     loopCount: nullable<number>,
     time: nullable<number>,
     name: name,
+
+    isPause: boolean,
 }
 
+export type frameIndex = number
+
 export type flow = {
+    frameIndex: frameIndex,
+    fps: number,
+    maxFPS: number,
+
     isStopLoop: boolean,
+    isInReduce: boolean,
+
+    stoppedLoopCount: number,
+
     // loopIndex:number,
     // deferExecFuncs: List<deferExecFuncData<any>>,
     deferExecFuncs: Array<deferExecFuncData<any>>,
 
     // needRemoveDeferExecFuncs: Record<name, deferExecFuncData<any>>,
     needRemoveDeferExecFuncs: Array<name>,
+    // needRemoveDeferExecFuncs: Array<[name, nullable<deferFunc<any>>]>,
 
-    lastTime: nullable<number>,
+    // lastTime: nullable<number>,
+    // lastFrameIndex: nullable<number>,
+    lastTime: number,
+    lastFrameIndex: number,
+    firstUpdateTime: number,
+
 }
 
 export type collision = {
     // emitterCollisionContainers: Array<LODContainer>,
-    // playerCollisionContainers: Array<LODContainer>,
-    playerCollisionContainers: Array<LODQueue>,
+    // playerMoveCollisionContainers: Array<LODContainer>,
+    playerMoveCollisionContainers: Array<LODQueue>,
     // cameraCollisionOctrees: Array<StaticLODContainer>,
 }
 
+
+export enum girlType {
+    PlayerGirl = "PlayerGirl",
+    PlayerGoddess = "PlayerGoddess",
+    LevelGiantess = "LevelGiantess",
+    LevelGiantessHard = "LevelGiantessHard",
+    BossGiantess = "BossGiantess",
+}
+
+
+export enum usedGirlEnum {
+    None = "None",
+    PlayerGirl = "PlayerGirl",
+    WildGiantess = "WildGiantess",
+    EnemyGiantess = "EnemyGiantess",
+    PlayerGoddess = "PlayerGoddess",
+    BossGiantess = "BossGiantess",
+}
+
+// export type usedGirlEnum | string
+
+export type usedGirl = string
+
 export type mmd = {
     loader: MMDLoader,
-    helper: MMDAnimationHelper,
+    // helper: MMDAnimationHelper,
+    helperMap: ImmutableMap<usedGirl, MMDAnimationHelper>,
+    // currentUsedGirl: usedGirl,
+    currentUsedGirls: Array<usedGirl>,
 }
 
 
@@ -499,10 +598,20 @@ export type flameEmitterParam = {
 }
 
 
-export type bulletParticle = {
+export enum camp {
+    None,
+    Player,
+    Enemy,
+    Giantess,
+    Other,
+}
+
+
+export type gemParticle = {
     id: id,
 
     fromName: name,
+    camp: camp,
 
     // rotation: number,
 
@@ -515,7 +624,53 @@ export type bulletParticle = {
     updateTime: number,
     speed: number,
     position: [number, number, number],
-    direction: [number, number, number],
+    getDirectionFunc: (specificState: any, position: [number, number, number]) => [number, number, number],
+}
+
+export type gemEmitter = {
+    geometry: nullable<BufferGeometry>,
+    particles: Array<gemParticle>
+}
+
+export type gemEmitterParam = {
+    life: number,
+    size: number,
+    speed: number,
+    position: [number, number, number],
+    getDirectionFunc: (specificState: any, position: [number, number, number]) => [number, number, number],
+
+    fromName: name
+    camp: camp,
+}
+
+
+export type coinParticle = gemParticle
+
+export type coinEmitter = gemEmitter
+
+export type coinEmitterParam = gemEmitterParam
+
+export type bulletParticle = {
+    id: id,
+
+    fromName: name,
+    camp: camp,
+
+    fromPosition: [number, number, number],
+
+    // rotation: number,
+
+    opacity: number,
+    size: number,
+    // maxDistance: number,
+    life: number,
+    // changeLife: number,
+    createTime: number,
+    updateTime: number,
+    speed: number,
+    position: [number, number, number],
+    direction?: [number, number, number],
+    getDirectionFunc?: (specificState: any, position: [number, number, number]) => [number, number, number],
 }
 
 export type bulletEmitter = {
@@ -530,15 +685,19 @@ export type bulletEmitterParam = {
     size: number,
     speed: number,
     position: [number, number, number],
-    direction: [number, number, number],
+    // fromPosition: [number, number, number],
+    direction?: [number, number, number],
+    getDirectionFunc?: (specificState: any, position: [number, number, number]) => [number, number, number],
 
     fromName: name
+    camp: camp,
 }
 
 export type rocketParticle = {
     id: id,
 
     fromName: name,
+    camp: camp,
 
     // opacity: number,
     // size: number,
@@ -548,16 +707,28 @@ export type rocketParticle = {
     speed: number,
     position: [number, number, number],
     direction: [number, number, number],
+    // getDirectionFunc?: (specificState: any, position: [number, number, number]) => [number, number, number],
 }
 
 export type rocketEmitter = {
     // geometry: nullable<BufferGeometry>,
     particles: Array<rocketParticle>,
     queue: nullable<LODQueue>,
-    queueIndexMap: MutableNumberMapUtilsT<id, lodQueueIndex>,
+    // queueIndexMap: MutableNumberMapUtilsT<id, lodQueueIndex>,
+    queueIndexMap: Map<id, lodQueueIndex>,
 }
 
-export type rocketEmitterParam = bulletEmitterParam
+export type rocketEmitterParam = {
+    life: number,
+    size: number,
+    speed: number,
+    position: [number, number, number],
+    direction: [number, number, number],
+
+    fromName: name
+    camp: camp,
+}
+
 
 
 export type missileVehicleMissileParticle = rocketParticle
@@ -573,11 +744,26 @@ export type missileVehicleMissileEmitterParam = rocketEmitterParam
 
 // export type laserBulletEmitterParam = rocketEmitterParam
 
+// export type submachineBulletParticle = bulletParticle
+
+// export type submachineBulletEmitter = bulletEmitter
+
+// export type submachineBulletEmitterParam = bulletEmitterParam
+
+
 export type laserBulletParticle = bulletParticle
 
 export type laserBulletEmitter = bulletEmitter
 
 export type laserBulletEmitterParam = bulletEmitterParam
+
+
+export type fireballParticle = bulletParticle
+
+export type fireballEmitter = bulletEmitter
+
+export type fireballEmitterParam = bulletEmitterParam
+
 
 
 
@@ -631,11 +817,29 @@ export type bulletHitEmitter = {
 export type bulletHitEmitterParam = shellEmitOrExplodeEmitterParam
 
 
+
+// export type submachineBulletHitParticle = bulletHitParticle
+
+// export type submachineBulletHitEmitter = bulletHitEmitter
+
+// export type submachineBulletHitEmitterParam = bulletHitEmitterParam
+
+
+
 export type laserBulletHitParticle = bulletHitParticle
 
 export type laserBulletHitEmitter = bulletHitEmitter
 
 export type laserBulletHitEmitterParam = bulletHitEmitterParam
+
+
+
+// export type fireballHitParticle = bulletHitParticle
+
+// export type fireballHitEmitter = bulletHitEmitter
+
+// export type fireballHitEmitterParam = bulletHitEmitterParam
+
 
 
 
@@ -672,6 +876,47 @@ export type swipingHitEmitter = waterBloomEmitter
 
 export type swipingHitEmitterParam = waterBloomEmitterParam
 
+
+// export type iceEmitterParam = {
+//     life: number,
+//     // size: number,
+//     width: number,
+//     height: number,
+//     speed: number,
+//     position: [number, number, number],
+
+//     resourceId: string,
+
+
+//     setQuaternionFunc?: (quaternion: Quaternion) => Quaternion,
+
+//     // offset: [number, number],
+//     // repeat: [number, number],
+
+//     // planeMesh:
+// }
+
+// export type iceParticle = {
+//     // id: id,
+
+//     opacity: number,
+//     // size: number,
+//     life: number,
+//     createTime: number,
+//     updateTime: number,
+//     speed: number,
+//     position: [number, number, number],
+
+//     offset: [number, number],
+//     // repeat: [number, number],
+
+//     planeMesh: Mesh,
+// }
+
+// export type iceEmitter = {
+//     // geometry: nullable<BufferGeometry>,
+//     particles: Array<iceParticle>
+// }
 
 export type protectParticle = {
     opacity: number,
@@ -720,20 +965,31 @@ export type particle = {
     allEmitParticlesForCollisionCheck: Array<any>,
     // allEmitParticlesForCollisionCheckCount: number,
 
+    bulletLastPosition: Record<id, [number, number, number]>,
+
     // needCollisionCheckLoopCountMap: Record<id, loopCount>,
-    needCollisionCheckLoopCountMap: MutableNumberMapUtilsT<id, loopCount>,
+    // needCollisionCheckLoopCountMap: MutableNumberMapUtilsT<id, loopCount>,
+    needCollisionCheckLoopCountMap: Map<id, loopCount>,
 
     dustEmitter: nullable<dustEmitter>,
     stompDustEmitter: nullable<stompDustEmitter>,
     flameEmitter: nullable<flameEmitter>,
-    bulletEmitter: nullable<bulletEmitter>,
-    propBulletEmitter: nullable<bulletEmitter>,
+    // bulletEmitter: nullable<bulletEmitter>,
+    // submachineBulletEmitter: nullable<submachineBulletEmitter>,
+    // propBulletEmitter: nullable<bulletEmitter>,
     laserBulletEmitter: nullable<laserBulletEmitter>,
+    // fireballEmitter: nullable<fireballEmitter>,
     shellEmitter: nullable<shellEmitter>,
     shellEmitOrExplodeEmitter: nullable<shellEmitOrExplodeEmitter>,
-    bulletHitEmitter: nullable<bulletHitEmitter>,
+    // bulletHitEmitter: nullable<bulletHitEmitter>,
     propBulletHitEmitter: nullable<bulletHitEmitter>,
+    // submachineBulletHitEmitter: nullable<submachineBulletHitEmitter>,
     laserBulletHitEmitter: nullable<laserBulletHitEmitter>,
+    // fireballHitEmitter: nullable<fireballHitEmitter>,
+    bloodHitEmitter: nullable<bulletHitEmitter>,
+    sparkLightHitEmitter: nullable<bulletHitEmitter>,
+    sparkHeavyHitEmitter: nullable<bulletHitEmitter>,
+    weaknessHitEmitter: nullable<bulletHitEmitter>,
     waterBloomEmitter: nullable<waterBloomEmitter>,
     milkSplashEmitter: nullable<milkSplashEmitter>,
     clothDestroyedEmitter: nullable<clothDestroyedEmitter>,
@@ -743,35 +999,50 @@ export type particle = {
 
     rocketEmitter: nullable<rocketEmitter>,
     missileVehicleMissileEmitter: nullable<missileVehicleMissileEmitter>,
+
+    gemEmitter: nullable<gemEmitter>,
+    coinEmitter: nullable<coinEmitter>,
+
+
+
+    // iceEmitter: nullable<iceEmitter>,
 }
 
 
-type resouceId = string
+
+// type resourceId = string
 
 export type needToPlayData = {
-    resouceId: resouceId,
+    resourceId: resourceId,
     volume: number,
     isLoop: boolean
 }
 
 // export type isPlayingData = {
-//     resouceId: string,
+//     resourceId: string,
 // }
 
 export type sound = {
     needToPlayList: List<needToPlayData>,
-    lastPlayTimeMap: Map<resouceId, number>,
+    lastPlayTimeMap: ImmutableMap<resourceId, number>,
 
-    // isPlayingList: List<resouceId>,
+    // isPlayingList: List<resourceId>,
 }
 
 export enum fontType {
     NormalAttack,
     HeavyAttack,
     WeaknessAttack,
+    CritAttack,
+    // MissAttack,
 
     NormalDamage,
     HeavyDamage,
+    WeaknessDamage,
+    CritDamage,
+    // MissDamage,
+
+    Heal,
 }
 
 export enum labelAnimation {
@@ -803,73 +1074,60 @@ export type needToShowData = {
 // export type labelSeat = 0 | 1 | 2 | 3 | 4 | 5
 // export type labelSeat = 0 | 1 | 2
 
+export enum labelEffect {
+    None,
+    BiggerSize
+}
+
+type labelKey = string
+
 export type label = {
     // ctx: CanvasRenderingContext2D,
+
+    labelPool: Map<labelKey, Array<Sprite>>,
 
     needToShowList: List<needToShowData>,
     // labelSeatMap: Record<labelSeat, labelValue>,
     // labelSeatTweenMap: Record<labelSeat, tween>,
 
-    labelTweensMap: Record<targetName, Array<tween>>,
-    needRemoveLabelMap: Record<targetName, Sprite>,
-    aliveLabelCountMap: Record<targetName, number>
+    labelTweensMap: Map<targetName, Array<tween>>,
+    needRemoveLabelMap: Map<targetName, [labelKey, Sprite]>,
+    aliveLabelCountMap: Map<targetName, number>
 }
 
-export enum hdLevel {
-    High,
-    Middle,
-    Low
-}
+// export type renderSetting = {
+//     hd: hdLevel,
+//     renderAccuracy: renderAccuracyLevel,
+//     shadow: shadowLevel,
+//     isShowBlood: boolean,
+//     maxUnitCount: maxUnitCount,
+//     physics: physicsLevel,
 
-export enum renderAccuracyLevel {
-    VeryHigh,
-    High,
-    Middle,
-    Low
-}
-
-export enum shadowLevel {
-    High,
-    Middle,
-    Low
-}
-
-export enum crowdSize {
-    Small,
-    Middle,
-    Big,
-    VeryBig
-}
-
-export enum physicsLevel {
-    VeryHigh,
-    High,
-    Middle,
-    Low,
-    VeryLow
-}
+//     cameraRotateSpeed: cameraRotateSpeed,
+//     mapSize: mapSize,
+// }
 
 export type renderSetting = {
-    hd: hdLevel,
-    renderAccuracy: renderAccuracyLevel,
-    shadow: shadowLevel,
-    isShowBlood: boolean,
-    crowdSize: crowdSize,
-    physics: physicsLevel,
+    // isRenderAccuracyIncrease: boolean,
 }
 
 export type version = {
     mainVersion: number,
-    subVersion: number
+    subVersion: number,
+    postfix: nullable<string>,
+    newContentChi: string,
+    newContentEng: string,
+
+    isVersionUpdate: boolean,
 }
 
-export type fsmStateName = number
+export type fsmStateName = number | string
 
 export type fsm_state<specificState extends any> = {
     name: fsmStateName,
-    enterFunc: (specificState: specificState, stateMachine: stateMachine<specificState>) => Promise<specificState>,
+    enterFunc: (specificState: specificState, stateMachine: stateMachine<specificState>, data: any) => Promise<specificState>,
     executeFunc: (specificState: specificState, data: any, stateMachine: stateMachine<specificState>) => Promise<specificState>,
-    exitFunc: (specificState: specificState, stateMachine: stateMachine<specificState>) => Promise<specificState>,
+    exitFunc: (specificState: specificState, stateMachine: stateMachine<specificState>, data: any) => Promise<specificState>,
 }
 
 export type stateMachine<specificState> = {
@@ -898,26 +1156,37 @@ export type onCompleteFunc<specificState> = (specificState: specificState) => Pr
 export enum gpuSkinPlayMode {
     Once,
     Loop,
+    OnceAndKeepLast,
     KeepLast
 }
 
 export type gpuSkin = {
-    clipDurationsMap: Record<objectName, Array<number>>,
-    clipStepsMap: Record<objectName, Array<number>>,
+    clipDurationsMap: Map<objectName, Array<number>>,
+    clipStepsMap: Map<objectName, Array<number>>,
 
-    instancedSkeletonAnimationTimeMap: Record<objectName, time>,
-    playedClipIndexMap: Record<objectName, [number, gpuSkinPlayMode]>,
-    onceClipOnCompleteFuncMap: Record<objectName, onCompleteFunc<any>>,
-    // isOnceClipOnCompleteFuncExecutedMap: Record<objectName, boolean>,
+    instancedSkeletonAnimationTimeMap: Map<objectName, time>,
+    playedClipIndexMap: Map<objectName, [number, gpuSkinPlayMode]>,
+    onceClipOnCompleteFuncMap: Map<objectName, onCompleteFunc<any>>,
+    // isOnceClipOnCompleteFuncExecutedMap: Map<objectName, boolean>,
+
+    animationDurationFactorMap: Map<objectName, number>,
 }
 
 export type pathFind = {
-    gridMap: Map<string, PF.Grid>,
+    gridMap: ImmutableMap<string, PF.Grid>,
     // findedPaths: List<Array<Vector3>>,
 
     step: nullable<number>,
 
-    lastFindPathTimeMap: Map<name, number>
+    lastFindPathTimeMap: ImmutableMap<name, number>
+}
+
+type length = number
+
+export type optimize = {
+    // float32ArrayPools: Array<Float32Array>,
+    // float32ArrayPools: MutableNumberMapUtilsT<length, Float32Array>
+    float32ArrayPools: Map<length, Float32Array>
 }
 
 export type state = {
@@ -952,4 +1221,6 @@ export type state = {
     gpuSkin: gpuSkin,
 
     pathFind: pathFind,
+
+    optimize: optimize,
 }

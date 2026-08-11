@@ -1,9 +1,9 @@
 import { ModelLoader } from "meta3d-jiehuo-abstract"
 import { getAbstractState, setAbstractState } from "../../../../../state/State"
 import { state } from "../../../../../type/StateType"
-import { getBaseMapResourceId, getColorMapResourceId, getHeightMapResourceId, getScene, getState, setState } from "../../CityScene"
+import { getColorMapResourceId, getHeightMapResourceId, getScene, getState, setState } from "../../CityScene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
-import { map } from "../../type/StateType"
+import { camp, map } from "../../type/StateType"
 import { Scene } from "meta3d-jiehuo-abstract"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Terrain } from "meta3d-jiehuo-abstract"
@@ -15,8 +15,9 @@ import { Box3Helper } from "three"
 import { buildStatus } from "../../utils/LODContainerUtils"
 import { LOD } from "meta3d-jiehuo-abstract"
 import { addBox3Helper } from "../../utils/ConfigUtils"
-// import { getCameraCollisionableOctrees, getPlayerCollisionableContainers, setCameraCollisionableOctrees, setPlayerCollisionableContainers } from "meta3d-jiehuo-abstract/src/collision/Collision"
-// import { getPlayerCollisionableContainers, setPlayerCollisionableContainers } from "../../Collision"
+import { setCamp } from "./Army"
+// import { getCameraCollisionableOctrees, getPlayerMoveCollisionableContainers, setCameraCollisionableOctrees, setPlayerMoveCollisionableContainers } from "meta3d-jiehuo-abstract/src/collision/Collision"
+// import { getPlayerMoveCollisionableContainers, setPlayerMoveCollisionableContainers } from "../../Collision"
 
 let _getState = (state: state) => {
     return NullableUtils.getExn(getState(state).map)
@@ -68,7 +69,7 @@ export let initWhenImportScene = (state: state) => {
         NullableUtils.map(wall => {
             let abstractState = getAbstractState(state)
 
-            // abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat([wall]))
+            // abstractState = Collision.setPlayerMoveCollisionableContainers(abstractState, Collision.getPlayerMoveCollisionableContainers(abstractState).concat([wall]))
 
 
             let staticLODContainer = wall
@@ -106,5 +107,7 @@ export let addStaticLODContainerData = (state: state,
 }
 
 export let initialAttributes = (state, name) => {
+    state = setCamp(state, name, camp.None)
+
     return state
 }

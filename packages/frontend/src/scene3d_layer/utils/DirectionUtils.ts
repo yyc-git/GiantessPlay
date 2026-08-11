@@ -58,3 +58,8 @@ export let computeDirectionAxis = (direction, isDebug) => {
 		})
 	}, isDebug)
 }
+
+
+export let computeDirectionInXZ = (startPoint: Vector3, endPoint: Vector3) => {
+	return endPoint.sub(startPoint).setY(0).normalize()
+}

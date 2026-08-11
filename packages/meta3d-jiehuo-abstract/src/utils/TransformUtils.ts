@@ -6,6 +6,7 @@ const _v1 = /*@__PURE__*/ new Vector3();
 const _v2 = /*@__PURE__*/ new Vector3();
 const _q1 = /*@__PURE__*/ new Quaternion();
 const _m1 = /*@__PURE__*/ new Matrix4();
+const _m2 = /*@__PURE__*/ new Matrix4();
 const _target = /*@__PURE__*/ new Vector3();
 
 export let getWorldPosition = (obj: Object3D, target: Vector3) => {
@@ -64,16 +65,12 @@ export let rotateOnWorldAxis = (quaternion: Quaternion, angle: number, axis: Vec
 
 
 export let rotateOnLocalAxis = (quaternion: Quaternion, angle: number, axis: Vector3) => {
-    // rotate object on axis in world space
-    // axis is assumed to be normalized
-    // method assumes no rotated parent
-
     _q1.setFromAxisAngle(axis, angle)
 
     return quaternion.multiply(_q1);
 }
 
-export let rotate= (quaternion: Quaternion, euler:Euler) => {
+export let rotate = (quaternion: Quaternion, euler: Euler) => {
     return quaternion.multiply(_q1.setFromEuler(euler));
 }
 
@@ -219,9 +216,9 @@ export let rotateAround = (
     ]
 }
 
-export let getPositionFromMatrix4 = (mat: Matrix4) => {
+export let getPositionFromMatrix4 = (mat: Matrix4, result = new Vector3()) => {
     // return _v1.setFromMatrixPosition(mat)
-    return new Vector3().setFromMatrixPosition(mat)
+    return result.setFromMatrixPosition(mat)
 }
 
 export let getPositionYFromMatrix4 = (mat: Matrix4) => {
@@ -260,8 +257,11 @@ export let getRotationEulerFromMatrix4 = (mat: Matrix4, order = 'XYZ'): Euler =>
     return new Euler().setFromRotationMatrix(mat, order as EulerOrder)
 }
 
-export let getRotationQuaternionFromMatrix4 = (mat: Matrix4): Quaternion => {
-    return new Quaternion().setFromRotationMatrix(mat)
+export let getRotationQuaternionFromMatrix4 = (mat: Matrix4, q = new Quaternion): Quaternion => {
+    // return new Quaternion().setFromRotationMatrix(mat)
+    mat.decompose(_v1, q, _v2)
+
+    return q
 }
 
 export let setQuaternionToMatrix4 = (mat: Matrix4, quat) => {
@@ -299,3 +299,29 @@ export let setMatrix = (obj: Object3D, matrix: Matrix4) => {
 export let positionAddY = (position: Vector3, value) => {
     return position.setY(position.y + value)
 }
+
+export let translatePosition = (matrix: Matrix4, translation: [number, number, number]) => {
+    matrix.setPosition(
+        getPositionFromMatrix4(matrix, _v1).add(_v2.fromArray(translation))
+    )
+}
+
+export let getFaceDirection = (quaternion: Quaternion, v = new Vector3()) => {
+    return v.set(0, 0, -1)
+        .applyQuaternion(
+            quaternion
+        ).negate()
+}
+
+export let isBack = (faceDirection: Vector3, hitPoint: Vector3, origin: Vector3) => {
+    return _v1.copy(hitPoint).sub(origin)
+        // .normalize()
+        .dot(faceDirection) < 0
+}
+
+// export let makeSureResultScaleEqualLocalOne = (localTransform, parentTransform, result ) => {
+//     return setScaleToMatrix4(result.copy(localTransform),
+//         getScaleFromMatrix4(localTransform).divide(
+//             getScaleFromMatrix4(parentTransform)
+//         ))
+// }

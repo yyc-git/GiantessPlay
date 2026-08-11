@@ -1,4 +1,4 @@
-@import "../../../../Main.scss";
+@use "../../../../Main.scss" as *;
 
 .title {
 	@include font-size-large;

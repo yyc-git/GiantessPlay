@@ -1,5 +1,110 @@
-.border-box-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+@use "../../../../Main.scss" as *;
+
+.scene-main {
+    .border-box-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .prop_image {
+        width: 2rem;
+        height: 2rem;
+    }
 }
+
+.interaction_text {
+    @include font-size-level3;
+}
+
+.interaction {
+    // overflow-y: auto;
+
+    .interaction_chestbox_text {
+        @include font-size-level4;
+        color: black !important;
+    }
+
+    .interaction_chestbox_image {
+        width: 2rem !important;
+        height: 2rem !important;
+    }
+
+    // .interaction_wargirl {
+    //     .interaction_wargirl_text {
+    //         @include font-size-level4;
+    //         color: black !important;
+    //     }
+
+    //     .interaction_wargirl_image {
+    //         width: 4rem !important;
+    //         height: 4rem !important;
+    //     }
+    // }
+
+    // .interaction_blessgirl {
+    .interaction_blessgirl_text {
+        @include font-size-level4;
+        color: black !important;
+    }
+
+    .interaction_blessgirl_image {
+        width: 4rem !important;
+        height: 4rem !important;
+    }
+
+    // }
+
+    // .interaction_fategirl {
+    .interaction_fategirl_text {
+        @include font-size-level4;
+        color: black !important;
+    }
+
+    // }
+}
+
+.interaction_toast_mobile {
+    z-index: 2 !important;
+
+    .adm-toast-main {
+        top: 80% !important;
+    }
+}
+
+.interaction_toast {
+    z-index: 2 !important;
+
+    .adm-toast-main {
+        left: 30%;
+    }
+}
+
+// /* 滚动条整体 */
+// .interaction::-webkit-scrollbar {
+//     height: 5rem;
+//     width: 5rem;
+// }
+
+// /* 两个滚动条交接处 -- x轴和y轴 */
+// .interaction::-webkit-scrollbar-corner {
+//     background-color: transparent;
+// }
+
+// /* 滚动条滑块 */
+// .interaction::-webkit-scrollbar-thumb {
+//     // border-radius: 10px;
+//     border-radius: 2.5rem;
+//     -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+//     background: #535353;
+// }
+
+// /* 滚动条轨道 */
+// .interaction::-webkit-scrollbar-track {
+//     -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+//     border-radius: 2.5rem;
+//     background: #ededed;
+// }
+
+// /* 滚动条两端按钮 */
+// .interaction::-webkit-scrollbar-button {}

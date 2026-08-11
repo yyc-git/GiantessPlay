@@ -23,7 +23,7 @@ import { Flow } from "meta3d-jiehuo-abstract"
 import { buildDownDirection, buildRandomDirectionInXZ } from "../../../../../../utils/DirectionUtils"
 import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { InstanceSourceLOD as InstanceSourceLODType } from "meta3d-jiehuo-abstract/src/lod/InstanceSourceLOD"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { fontType, fsm_state, labelAnimation, lodQueueIndex, name, shellParticle, staticLODContainerIndex, tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Collision } from "meta3d-jiehuo-abstract"
@@ -34,28 +34,28 @@ import { GPUSkin } from "meta3d-jiehuo-abstract"
 import { LODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/LODQueue"
 import { Device } from "meta3d-jiehuo-abstract"
 import { InstancedSkinLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedSkinLOD2"
-import { armyValue, emitPrecision, emitSpeed, emitVolume, emitterLife, emitterSize, emitterSpeed, objectValue, milltaryValue, explodeSize } from "../../../data/ValueType"
+import { armyValue, emitPrecision, emitSpeed, emitterVolume, emitterLife, emitterSize, emitterSpeed, objectValue, milltaryValue, explodeSize } from "../../../data/ValueType"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Loader } from "meta3d-jiehuo-abstract"
-import { add, buildQueue } from "../../../utils/LODQueueUtils"
+import { add, buildQueue } from "../../../utils/AviailableLODQueueUtils"
 import { fixZFighting } from "meta3d-jiehuo-abstract/src/utils/MaterialUtils"
 import { solveBlackBoardProblem } from "meta3d-jiehuo-abstract/src/utils/TextureUtils"
 import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import { buildStatus } from "../../../utils/LODContainerUtils"
 import { buildMultipleTweens, computeEuler, computeMoveTime, getMoveData, position, singleMoveData } from "../../../utils/MoveUtils"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
+
 import { LabelManager } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { convertPositionFromThreejsToBlender } from "../../../utils/BlenderUtils"
 import { getGrid } from "../PathFind"
 import { ModelLoader } from "meta3d-jiehuo-abstract"
-import { parseArmyVehicleQueues, parseCharacter } from "../WholeScene"
+import { getNearDistance, parseArmyVehicleQueues } from "../WholeScene"
 import { Render } from "meta3d-jiehuo-abstract"
-import { getActualHeight, getGirlPositionParrelToObj, getPositionParrelToObj, getScale, getSmallGirlBox } from "../../../girl/Utils"
+import { getActualHeight, getGirlPositionParrelToObj, getPositionParrelToObj, getScale } from "../../../girl/Utils"
 import { ParticleManager } from "meta3d-jiehuo-abstract"
 // import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import * as Buildings from "../Buildings"
-import { getCollisionPartCenter, getCollisionPartOBB, queryAllOBBShapesCollisionWithBox } from "../../../girl/Collision"
+import { getCollisionPartCenter, getCollisionPartOBB, queryOBBShapeCollisionWithBox } from "../../../girl/Collision"
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getVolume } from "../../../utils/SoundUtils"
 import { InstancedLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedLOD2"
@@ -63,16 +63,16 @@ import { HierachyLODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/HierachyLO
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { findArticluatedAnimationData, playArticluatedAnimation } from "../../../data/DataUtils"
 import * as HierachyLODQueueUtils from "../../../utils/HierachyLODQueueUtils"
-import { articluatedAnimationName, defenseFactor, excitement, forceSize, hp, speed } from "../../../data/DataType"
+import { armorStrength, armorRatio, articluatedAnimationName, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, excitement, forceSize, hp, speed, armorType } from "../../../data/DataType"
 import { LOD } from "meta3d-jiehuo-abstract"
-import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, setParticleNeedCollisionCheckLoopCount, getParticleNeedCollisionCheckLoopCount, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy, emitShellEmitOrExplode, deferFire, getTargetBox, handleCollision } from "../../../utils/ArmyUtils"
+import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy, emitShellEmitOrExplode, deferFire, getTargetBox, handleCollision, computeAttackFrames } from "../../../utils/ArmyUtils"
 import * as Girl from "../../../girl/Girl"
 import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { getTransformData, updatePositionTween } from "../../../data/InstancedLOD2Utils"
 import { clearTween } from "../../../utils/TweenUtils"
 
 import { getLocalTransform as getLocalTransformUtils, getBoxForPick as getBoxForPickUtils } from "../../../girl/PickPoseUtils"
-import { getGiantessTransformFunc, getPickTransformPrefix } from "../../../utils/SkeletonUtils"
+import { getGiantessTransformFunc, getGiantessUBControlledTransformFunc, getPickTransformPrefix, getUBControlledTransformPrefix } from "../../../utils/SkeletonUtils"
 import * as FlameGun from "../../../weapon/FlameGun"
 import { addBox3Helper, isMaxArmySpeed } from "../../../utils/ConfigUtils"
 import { makeBoxHeightMax } from "../../../utils/Box3Utils"
@@ -82,8 +82,13 @@ import { getFlameVehicleResourceId, getModelData, modelName } from "../../../arm
 import * as MilltaryVehicle from "./MilltaryVehicle"
 import { Console } from "meta3d-jiehuo-abstract"
 import { getCurrentScene } from "meta3d-jiehuo-abstract/src/scene/Scene"
-import { handleFlameHitGirl, handleFlameHitLittleMan, handleFlameHitStatic } from "./weapon/Flame"
-import { getFlameVehicleNamePrefix } from "../soldier/utils/MeleeUtils"
+import { handleFlameHitArmy, handleFlameHitGirl, handleFlameHitLittleMan, handleFlameHitStatic } from "./weapon/Flame"
+import { getFlameVehicleNamePrefix } from "../soldier/utils/SoldierUtils"
+import { getNamePrefixFlameVehicle, isFlameVehicleUtils } from "./MilltaryVehicleUtils"
+import { updateArmyValue } from "../../../difficulty/HeatImplementer"
+import { getCampExn } from "../Army"
+import { getEmitSpeedFactor } from "../../../StaticDynamicUnit"
+import { MutableMapUtils } from "meta3d-jiehuo-abstract"
 
 const _b = new Box3()
 const _q = new Quaternion();
@@ -96,7 +101,7 @@ const _v1_1 = new Vector2();
 const _v1_2 = new Vector2();
 
 
-export let getNamePrefix = () => `${MilltaryVehicle.getNamePrefix()}_${getFlameVehicleNamePrefix()}`
+export let getNamePrefix = getNamePrefixFlameVehicle
 
 export let buildFlameVehicleCategoryName = getNamePrefix
 
@@ -121,14 +126,19 @@ export let getAllMeshData = (group: Group) => {
     ]
 }
 
-export let isFlameVehicle = (name: string) => {
-    return name.includes(getNamePrefix())
-}
+export let isFlameVehicle = isFlameVehicleUtils
 
-export let getValue = (state: state): armyValue & milltaryValue => {
-    return {
+export let getValue = (state: state) => {
+    return updateArmyValue<armyValue & milltaryValue>(state, {
         excitement: excitement.High,
-        defenseFactor: defenseFactor.High,
+        defenseFactor: defenseFactor.Middle,
+        armorType: armorType.Heavy,
+        armorRatio: armorRatio.Middle,
+        armorStrength: armorStrength.VeryHigh,
+        attackFactor: attackFactor.VeryLow2,
+        emitSpeedFactor: emitSpeedFactor.Low,
+        critRatioFactor: critRatioFactor.Low,
+        //missRatio: missRatio.VeryLow,
         hp: hp.High,
         // hp: 1,
 
@@ -137,13 +147,9 @@ export let getValue = (state: state): armyValue & milltaryValue => {
         rotateSpeed: speed.Middle,
 
 
-        emitSpeed: emitSpeed.Slow,
-        emitVolume: emitVolume.Middle,
+        // emitSpeed: emitSpeed.Slow,
         emitPrecision: emitPrecision.High,
-
-
-        emitterVolume: emitVolume.Big,
-    }
+    })
 }
 
 export let getFlameVehicleBodyQueue = (state: state): HierachyLODQueue => {
@@ -161,7 +167,7 @@ export let getModelAllQueues = (state: state): [HierachyLODQueue] => {
     return [bodyQueue]
 }
 
-let _getAllBodyNames = (state): Array<string> => {
+let _getAllBodyNames = (state) => {
     return MilltaryVehicle.getModelQueueByQueueName(state,
         buildFlameVehicleCategoryName(),
         buildBodyLODQueueName(buildFlameVehicleCategoryName())).names
@@ -185,10 +191,13 @@ export let initWhenImportScene = (state: state) => {
                 getAllMeshData,
                 MilltaryVehicle.setData,
                 setHierachy,
+                box => {
+                    return box.clone().setFromCenterAndSize(box.getCenter(_v1), box.getSize(_v2).multiplyScalar(0.8))
+                }
             ],
             flameVehicle.scene,
             boxFactor,
-            500,
+            getNearDistance,
             true,
             getScene(state)
         )
@@ -201,12 +210,12 @@ export let initWhenImportScene = (state: state) => {
         .then(state => {
             let abstractState = getAbstractState(state)
 
-            abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat([MilltaryVehicle.getModelQueueByQueueName(state, buildFlameVehicleCategoryName(), buildBodyLODQueueName(buildFlameVehicleCategoryName()))]))
+            // abstractState = Collision.setPlayerMoveCollisionableContainers(abstractState, Collision.getPlayerMoveCollisionableContainers(abstractState).concat([MilltaryVehicle.getModelQueueByQueueName(state, buildFlameVehicleCategoryName(), buildBodyLODQueueName(buildFlameVehicleCategoryName()))]))
 
 
             state = setAbstractState(state, abstractState)
 
-            return ArrayUtils.reducePromise(_getAllBodyNames(state), (state, name) => {
+            return MutableMapUtils.reducePromise(_getAllBodyNames(state), (state, name) => {
                 state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
                     return StateMachine.changeAndExecuteState(state, MilltaryVehicle.setStateMachine, MilltaryVehicle.getStateMachine(state, name), createFireState(), name, NullableUtils.return_(name))
                 }, 1))
@@ -214,10 +223,6 @@ export let initWhenImportScene = (state: state) => {
                 return StateMachine.execute(state, MilltaryVehicle.getStateMachine(state, name), name)
             }, state)
         })
-}
-
-let _getFullHp = (state) => {
-    return getValue(state).hp
 }
 
 
@@ -247,7 +252,7 @@ let _getFlameEmitPointPosition = (bodyQueue, lODQueueIndex) => {
 let _rotateTowardsTarget = (state, [onCompleteFunc, onFailFunc], name, [bodyQueue], lODQueueIndex, targetPart) => {
     // let bodyPosition = TransformUtils.getPositionFromMatrix4(bodyQueue.getWorldMatrix(lODQueueIndex))
 
-    // let girlPosition = getPositionParrelToObj(getCollisionPartCenter(state, targetPart), bodyPosition.y)
+    // let girlPosition = getPositionParrelToObj(getCollisionPartCenter(state,usedGirl,  targetPart), bodyPosition.y)
 
     // let { emitPrecision } = getArmyValueForAttack(state, getValue(state), bodyPosition)
 
@@ -261,7 +266,7 @@ let _rotateTowardsTarget = (state, [onCompleteFunc, onFailFunc], name, [bodyQueu
     // )
 
 
-    // let bodyTransform = bodyQueue.transforms[lODQueueIndex]
+    // let bodyTransform = bodyQueue.getTransform(lODQueueIndex)
 
     // let _ = TransformUtils.setQuaternionToMatrix4(
     //     bodyTransform,
@@ -277,107 +282,120 @@ let _rotateTowardsTarget = (state, [onCompleteFunc, onFailFunc], name, [bodyQueu
 }
 
 let _fireFlames = (state: state,
-    name, [bodyQueue], lODQueueIndex, targetPart) => {
+    name, [bodyQueue], lODQueueIndex, targetPart, targetBox) => {
     let emitPosition = _getFlameEmitPointPosition(bodyQueue, lODQueueIndex)
 
     let {
-        emitSpeed,
-        emitVolume,
         emitPrecision
     } = getArmyValueForAttack(state, getValue(state), emitPosition)
     let weaponValue = FlameGun.getValue(state)
     let {
+        emitSpeed,
         emitterSpeed,
         emitterLife,
         emitterSize,
     } = weaponValue
 
-    let targetPosition = getTargetBox(state, name, targetPart).getCenter(new Vector3())
+
+    // let targetBox = getTargetBox(state, name, targetPart)
+    // if (NullableUtils.isNullable(targetBox)) {
+    //     return state
+    // }
+    // targetBox = NullableUtils.getExn(targetBox)
+
+    let targetPosition = targetBox.getCenter(new Vector3())
 
     let shootDirection = getShootDirection(
         targetPosition.clone().sub(emitPosition).normalize(),
         emitPrecision
     )
 
-    return deferFire(state, (state) => {
-        state = setAbstractState(state, ParticleManager.emitFlame(getAbstractState(state), {
-            speed: emitterSpeed,
-            life: emitterLife,
-            size: emitterSize,
-            position: emitPosition.toArray(),
-            direction: shootDirection.toArray(),
-            colors: [[1, 0, 0], [0.6, 0, 0], [1, 1, 0], [0.8, 0.9, 0]],
-        }))
+    let camp_ = getCampExn(state, name)
 
-        state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
-            SoundManager.buildNeedToPlaySoundData(getFlameGunEmitSoundResourceId(), getIsDebug(state), getVolume(state, getValue(state).emitterVolume,
-                emitPosition, 0
-            ))
+    state = setAbstractState(state, ParticleManager.emitFlame(getAbstractState(state), {
+        speed: emitterSpeed,
+        life: emitterLife,
+        size: emitterSize,
+        position: emitPosition.toArray(),
+        direction: shootDirection.toArray(),
+        colors: [[1, 0, 0], [0.6, 0, 0], [1, 1, 0], [0.8, 0.9, 0]],
+    }))
+
+    state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
+        SoundManager.buildNeedToPlaySoundData(getFlameGunEmitSoundResourceId(), getIsDebug(state), getVolume(state, FlameGun.getValue(state).emitterVolume,
+            emitPosition, 0
         ))
+    ))
 
-        state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
-            // return handleMeleeCollision(
-            //     state,
-            //     [
-            //         handleFlameHitStatic,
-            //         handleFlameHitGirl
-            //     ],
-            //     name,
-            //     0.5,
-            //     targetPosition,
-            //     targetPart,
-            //     emitPosition,
-            //     bodyQueue.boxes[lODQueueIndex],
-            //     weaponValue,
-            // )
-            // let direction = targetPosition.clone().sub(emitPosition).normalize()
+    state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
+        // return handleMeleeCollision(
+        //     state,
+        //     [
+        //         handleFlameHitStatic,
+        //         handleFlameHitGirl
+        //     ],
+        //     name,
+        //     0.5,
+        //     targetPosition,
+        //     targetPart,
+        //     emitPosition,
+        //     bodyQueue.getBox(lODQueueIndex),
+        //     weaponValue,
+        // )
+        // let direction = targetPosition.clone().sub(emitPosition).normalize()
 
-            // let box = bodyQueue.boxes[lODQueueIndex]
+        // let box = bodyQueue.getBox(lODQueueIndex)
 
-            let meleeRange = NullableUtils.getExn(
-                weaponValue.meleeRange
-            )
-
-
-            // let center = box.getCenter(_v1).add(direction.multiplyScalar(meleeRange / 2 * 1.5))
-            let center = emitPosition.clone().add(shootDirection.clone().multiplyScalar(meleeRange / 2 * 1.1))
-
-            // let attackRangeBox
-
-            // let xzSizeFactor = 0.5
-
-            // let attackRangeBox = _b.setFromCenterAndSize(center, _v2.set(meleeRange * xzSizeFactor, box.getSize(_v3).y, meleeRange * xzSizeFactor,))
-
-            let attackRangeBox = _b.setFromCenterAndSize(center, _v2.set(
-                meleeRange,
-                Math.abs(targetPosition.y - emitPosition.y),
-                meleeRange)
-            )
-
-            if (getIsDebug(state)) {
-                addBox3Helper(getAbstractState(state), getScene(state), attackRangeBox, 0x811100)
-            }
-
-            return handleCollision(
-                state,
-                [
-                    handleFlameHitGirl,
-                    // NullableUtils.return_(handleFlameHitArmy),
-                    NullableUtils.getEmpty(),
-                    handleFlameHitLittleMan
-                ],
-                // NullableUtils.return_(targetPart),
-                targetPart,
-                attackRangeBox, center,
-                name,
-                shootDirection,
-                weaponValue,
-                damageType.Direct
-            )
-        }, 0.5, name))
+        let meleeRange = NullableUtils.getExn(
+            weaponValue.meleeRange
+        )
 
 
-        return Promise.resolve(MilltaryVehicle.fire(state,
+        // let center = box.getCenter(_v1).add(direction.multiplyScalar(meleeRange / 2 * 1.5))
+        // let center = emitPosition.clone().add(shootDirection.clone().multiplyScalar(meleeRange / 2 * 1.1))
+        let center = emitPosition.clone().add(shootDirection.clone().multiplyScalar(meleeRange / 2 * 1.3))
+
+        // let attackRangeBox
+
+        // let xzSizeFactor = 0.5
+
+        // let attackRangeBox = _b.setFromCenterAndSize(center, _v2.set(meleeRange * xzSizeFactor, box.getSize(_v3).y, meleeRange * xzSizeFactor,))
+
+        let attackRangeBox = _b.setFromCenterAndSize(center, _v2.set(
+            meleeRange,
+            Math.abs(targetPosition.y - emitPosition.y),
+            meleeRange)
+        )
+
+        if (getIsDebug(state)) {
+            addBox3Helper(getAbstractState(state), getScene(state), attackRangeBox, 0x811100)
+        }
+
+        return handleCollision(
+            state,
+            [
+                NullableUtils.getEmpty(),
+                handleFlameHitGirl,
+                NullableUtils.return_(handleFlameHitArmy),
+                // NullableUtils.getEmpty(),
+                handleFlameHitLittleMan
+            ],
+            // NullableUtils.return_(targetPart),
+            targetPart,
+            attackRangeBox, center,
+            name,
+            camp_,
+            shootDirection,
+            false,
+            weaponValue,
+            FlameGun.getName(),
+            // damageType.Direct
+        )
+    }, 0.5, name))
+
+
+    return deferFire(state, (state) => {
+        return MilltaryVehicle.fire(state,
             [
                 _buildRoughFireRay,
                 _rotateTowardsTarget,
@@ -385,8 +403,8 @@ let _fireFlames = (state: state,
                 getFlameVehicleBodyQueue,
                 FlameGun.getValue
             ],
-            name, [bodyQueue], lODQueueIndex, targetPart, true))
-    }, name, emitSpeed)
+            name, [bodyQueue], lODQueueIndex, targetPart, true)
+    }, name, computeAttackFrames(state, name, emitSpeed))
 }
 
 export let createFireState = MilltaryVehicle.createFireState(
@@ -401,15 +419,16 @@ export let createFireState = MilltaryVehicle.createFireState(
     true
 )
 
-let _getInitialEulerForTweenToFaceNegativeX = () => {
-    return new Euler(0, -Math.PI / 2, 0)
+let _getInitialEulerForMoveTween = () => {
+    // return new Euler(0, -Math.PI / 2, 0)
+    return NullableUtils.getEmpty()
 }
 
 export let createMoveState = (state) => {
     return MilltaryVehicle.createMoveState(
         [
             getFlameVehicleBodyQueue,
-            _getInitialEulerForTweenToFaceNegativeX
+            _getInitialEulerForMoveTween
         ],
         getValue(state),
         modelName.FlameVehicle
@@ -420,7 +439,7 @@ export let createMoveState = (state) => {
 //     return MilltaryVehicle.createStressingState(
 //         [
 //             getFlameVehicleBodyQueue,
-//             _getFullHp,
+//             getFullHp,
 
 //             getModelAllQueues,
 //             _buildRoughFireRay,
@@ -435,7 +454,8 @@ export let createMoveState = (state) => {
 let _setStatus = (state: state, status, index) => {
     let bodyQueue = getFlameVehicleBodyQueue(state)
 
-    LOD.setStatusForLODQueue(getAbstractState(state), bodyQueue.names[index], status)
+    // LOD.setStatusForLODQueue(getAbstractState(state), bodyQueue.getName(index), status)
+    bodyQueue.setStatus(index, status)
 
     return state
 }
@@ -448,15 +468,18 @@ export let updateQueue = (state: state) => {
 }
 
 export let initialAttributes = (state, name, index) => {
-    return MilltaryVehicle.initialAttributes(state, [getValue, _getFullHp], name, index)
+    return MilltaryVehicle.initialAttributes(state, [getValue, getFullHp], name, index)
 }
 
 export let damage = (damageFunc) => {
-    return (state: state, forceData, fromName, damagePosition, transforms, boxes, names) => {
+    return (state: state, forceData, weaponValue_, fromName, damagePosition,
+        // critRatioFactor,
+        // attackFactor,
+        transforms, boxes, names) => {
         return damageFunc(state,
             [
                 getFlameVehicleBodyQueue,
-                _getFullHp,
+                getFullHp,
                 _setStatus,
                 MilltaryVehicle.emitBodyExplode,
 
@@ -464,12 +487,16 @@ export let damage = (damageFunc) => {
                 _buildRoughFireRay,
                 _rotateTowardsTarget,
                 _fireFlames,
-                FlameGun.getValue
+                FlameGun.getValue,
+                setScaleY
             ],
             getShellGunBarretHitSoundResourceId(),
             getValue(state),
 
-            forceData, fromName, damagePosition, transforms, boxes, names,
+            forceData, weaponValue_, fromName, damagePosition,
+            // critRatioFactor,
+            // attackFactor,
+            transforms, boxes, names,
             true
         )
     }
@@ -494,17 +521,46 @@ export let getPickedTransform = getGiantessTransformFunc(
 
     getPickTransformPrefix(),
 
-    new Vector3(0.1, -0.4, 0.1),
     0.4, -0.2, 1.5
 )
 
+// export let getUBControlledTransform = getGiantessUBControlledTransformFunc(
+//     (state) => MilltaryVehicle.getInitialQuaternion(state, modelName.FlameVehicle),
 
+//     getUBControlledTransformPrefix(),
+
+//     new Vector3(0, 0, 0),
+//     0, 0, 0
+// )
+
+export let getUBControlledTransform = MilltaryVehicle.getUBControlledTransform(modelName.FlameVehicle)
+
+export let getPutToBreastTransform = MilltaryVehicle.getPutToBreastTransform(modelName.FlameVehicle)
+
+export let getPutToShoeTransform = MilltaryVehicle.getPutToShoeTransform(modelName.FlameVehicle)
 
 export let handlePickup = MilltaryVehicle.handlePickup
 
 export let updateTransform = MilltaryVehicle.updateTransform
 
 export let handlePickdown = MilltaryVehicle.handlePickdown(getFlameVehicleBodyQueue)
+
+export let handleFall = MilltaryVehicle.handleFall(getFlameVehicleBodyQueue)
+
+export let handleRepel = MilltaryVehicle.handleRepel(getFlameVehicleBodyQueue)
+
+export let handleUBControl = MilltaryVehicle.handleUBControl
+
+export let handlePutToBreast = MilltaryVehicle.handlePutToBreast
+
+export let handlePutToShoe = MilltaryVehicle.handlePutToShoe
+
+export let updateUBControlledTransform = MilltaryVehicle.updateUBControlledTransform
+
+export let updatePutToBreastTransform = MilltaryVehicle.updatePutToBreastTransform
+
+export let updatePutToShoeTransform = MilltaryVehicle.updatePutToShoeTransform
+
 
 export let getLocalTransform = MilltaryVehicle.getLocalTransform
 
@@ -515,3 +571,24 @@ export let getBoxForPick = MilltaryVehicle.getBoxForPick
 export let getModelQueueIndex = MilltaryVehicle.getModelQueueIndex
 
 export let getHp = MilltaryVehicle.getHp
+
+export let getHpRatio = (state, name) => {
+    return MilltaryVehicle.getHpWithDefault(state, name) / getFullHp(state)
+}
+
+export let updateHp = MilltaryVehicle.updateHp
+
+export let getFullHp = (state) => {
+    return getValue(state).hp
+}
+
+
+export let getSnapshot = () => `./resource/ui/in_game/snapshot/flame.png`
+
+export let createInitialState = MilltaryVehicle.createInitialState
+
+export let getModelName = () => modelName.FlameVehicle
+
+export let setScaleY = (scale: Vector3, factor) => {
+    return scale.setZ(scale.z * factor)
+}

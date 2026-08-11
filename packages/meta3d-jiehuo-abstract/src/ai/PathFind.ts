@@ -8,11 +8,16 @@ import { List, Map } from "immutable"
 import { getIsDebug, getIsNotTestPerf, getPathFindState, setPathFindState } from "../state/State"
 import { getEmpty, getExn, return_, isNullable, getWithDefault } from "../utils/NullableUtils"
 import { getCurrentScene } from "../scene/Scene"
-import { push } from "../utils/ArrayUtils"
-import { Console, NullableUtils } from "../Main"
+// import { push } from "../utils/ArrayUtils"
+import { ArrayUtils, Console, NullableUtils, NumberUtils, Vector2Utils } from "../Main"
 import { removeAndDispose } from "../scene/utils/DisposeUtils"
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry"
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial"
+import { isInLine } from "../utils/Vector2Utils"
+
+const _v1_1 = new Vector2()
+const _v1_2 = new Vector2()
+const _v1_3 = new Vector2()
 
 export type range = {
 	min: [number, number],
@@ -74,7 +79,7 @@ export let createGrid = (range: range, step: number) => {
 	), range, step)
 }
 
-let _convertToGridCoordinate = (worldPosition: Vector2, range: range, step: number, isAllowNotInRange): nullable<gridCoordinate> => {
+let _convertToGridCoordinate = (worldPosition: Vector2, range: range, step: number, isAllowNotInRange: boolean): nullable<gridCoordinate> => {
 	let x = worldPosition.x
 	let z = worldPosition.y
 
@@ -174,21 +179,53 @@ export let createAStarFinder = () => {
 	})
 }
 
+export let isWalkable = (
+	worldPosition: Vector2, grid
+) => {
+	let range = _getRange(grid)
+	let step = _getStep(grid)
+
+	return NullableUtils.getWithDefault(
+		NullableUtils.map(c => {
+			return grid.isWalkableAt(c[0], c[1])
+		}, _convertToGridCoordinate(worldPosition, range, step, false)),
+		false
+	)
+}
+
 let _findNeighborValidGridCoordinate = ([x, y]: gridCoordinate, grid: PF.Grid): nullable<gridCoordinate> => {
 	let node = grid.getNodeAt(x, y)
 
-	// let data = grid.getNeighbors(node, PF.DiagonalMovement.Never)
-	let data = (grid as any).fastGetNeighbors(node)
+	return NullableUtils.bind(node => {
+		// let data = grid.getNeighbors(node, PF.DiagonalMovement.Never)
+		let data = (grid as any).fastGetNeighbors(node)
 
-	// .find(node => {
-	// 	return grid.isWalkableAt(node.x, node.y)
-	// })
+		// .find(node => {
+		// 	return grid.isWalkableAt(node.x, node.y)
+		// })
 
-	let result: nullable<PF.Node> = data.length == 0 ? NullableUtils.getEmpty() : NullableUtils.return_(data[0])
+		let result: nullable<PF.Node> = data.length == 0 ? NullableUtils.getEmpty() : NullableUtils.return_(data[0])
 
-	return NullableUtils.map(result => {
+		return NullableUtils.map(result => {
+			return [result.x, result.y]
+		}, result)
+	}, node)
+}
+
+let _findNeighborRandomGridCoordinate = ([x, y]: gridCoordinate, grid: PF.Grid): gridCoordinate => {
+	let node = grid.getNodeAt(x, y)
+
+	return NullableUtils.bind(node => {
+		let data = (grid as any).getAllNeighbors(node)
+
+		if (data.length == 0) {
+			throw new Error("error")
+		}
+
+		let result: PF.Node = NumberUtils.randomSelect(data)
+
 		return [result.x, result.y]
-	}, result)
+	}, node)
 }
 
 let _makePathValid = (path: Array<Vector2>) => {
@@ -226,7 +263,91 @@ let _findNearstPath = (finder,
 // 	return path
 // }
 
-export let findPath = (state: state, finder: PF.Finder, startWorldPosition, endWorldPosition, grid: PF.Grid, name: name, isDebug, minInterval: nullable<number>,
+let _handleStartGridCoordinate = (gridCoordinate, grid, name) => {
+	if (!grid.isWalkableAt(gridCoordinate[0], gridCoordinate[1])) {
+		gridCoordinate = _findNeighborRandomGridCoordinate(gridCoordinate, grid)
+
+		Console.warn(`name: ${name}, gridCoordinate:${gridCoordinate} random find`);
+	}
+
+	return gridCoordinate
+}
+
+let _handleEndGridCoordinate = (gridCoordinate, grid, name) => {
+	if (!grid.isWalkableAt(gridCoordinate[0], gridCoordinate[1])) {
+		gridCoordinate = _findNeighborValidGridCoordinate(gridCoordinate, grid)
+
+		if (NullableUtils.isNullable(gridCoordinate)) {
+			Console.warn(`name: ${name}, gridCoordinate:${gridCoordinate} not walkable`);
+
+			return NullableUtils.getEmpty()
+		}
+	}
+
+	return gridCoordinate
+}
+
+// let _isEqual = (gridCoordinate1: gridCoordinate, gridCoordinate2: gridCoordinate) => {
+// 	return gridCoordinate1[0] == gridCoordinate2[0] && gridCoordinate1[1] == gridCoordinate2[1]
+// }
+
+// let _insertStartGridCoordinate = (path: Array<gridCoordinate>, startGridCoordinate: gridCoordinate) => {
+// 	// if (handledPath.length > 0 && !handledPath[0].equals(startWorldPosition)) {
+// 	// 	// return [state, [startWorldPosition.clone()].concat(handledPath)]
+
+// 	// 	handledPath = [startWorldPosition.clone()].concat(handledPath)
+// 	// }
+
+// 	// return handledPath
+// 	let result
+// 	// if (path.length > 0) {
+// 	// 	result = path.reduce((result, gridCoordinate) => {
+// 	// 		// if (!isNearlyEqual(point, startWorldPosition, 0.1)) {
+// 	// 		// if (!isNearlyEqual(point, startWorldPosition, 1)) {
+// 	// 		if (!_isEqual(gridCoordinate, startGridCoordinate)) {
+// 	// 			return ArrayUtils.push(result, gridCoordinate)
+// 	// 		}
+
+// 	// 		return []
+// 	// 	}, [])
+
+
+// 	// 	// result = [startWorldPosition.clone()].concat(result)
+// 	// 	result = path.unshift(startGridCoordinate)
+// 	// }
+// 	// else {
+// 	// 	result = path
+// 	// }
+// 	result = path.reduce((result, gridCoordinate) => {
+// 		if (_isEqual(gridCoordinate, startGridCoordinate)) {
+// 			return []
+// 		}
+
+// 		return ArrayUtils.push(result, gridCoordinate)
+// 	}, [])
+
+// 	// result = path.unshift(startGridCoordinate)
+// 	result = [startGridCoordinate].concat(result)
+
+// 	return result
+// }
+
+let _insertStartWorldPosition = (handledPath: Array<Vector2>, startWorldPosition: Vector2) => {
+	if (handledPath.length >= 2) {
+		if (isInLine(startWorldPosition, handledPath[0], handledPath[1])) {
+			handledPath[0] = startWorldPosition.clone()
+		}
+		else {
+			handledPath = [startWorldPosition.clone()].concat(handledPath)
+		}
+	}
+
+	return handledPath
+}
+
+export let findPath = (state: state, finder: PF.Finder, startWorldPosition, endWorldPosition,
+	isVeryNearAttackTarget: boolean,
+	grid: PF.Grid, name: name, isDebug, minInterval: nullable<number>,
 	// isFindNearstPath: boolean
 	rangeSquared: nullable<number>
 ): [state, Array<Vector2>] => {
@@ -250,26 +371,45 @@ export let findPath = (state: state, finder: PF.Finder, startWorldPosition, endW
 	endGridCoordinate = getExn(endGridCoordinate)
 
 
-	if (!grid.isWalkableAt(startGridCoordinate[0], startGridCoordinate[1])) {
-		startGridCoordinate = _findNeighborValidGridCoordinate(startGridCoordinate, grid)
+	// if (!grid.isWalkableAt(startGridCoordinate[0], startGridCoordinate[1])) {
+	// 	startGridCoordinate = _findNeighborValidGridCoordinate(startGridCoordinate, grid)
 
-		if (NullableUtils.isNullable(startGridCoordinate)) {
-			Console.warn(`name: ${name}, startGridCoordinate:${startGridCoordinate} not walkable`);
+	// 	if (NullableUtils.isNullable(startGridCoordinate)) {
+	// 		Console.warn(`name: ${name}, startGridCoordinate:${startGridCoordinate} not walkable`);
 
-			return [state, []]
-		}
+	// 		return [state, []]
+	// 	}
 
-		startGridCoordinate = NullableUtils.getExn(startGridCoordinate)
-	}
+	// 	startGridCoordinate = NullableUtils.getExn(startGridCoordinate)
+	// }
+	startGridCoordinate = _handleStartGridCoordinate(startGridCoordinate, grid, name)
+
+	// if (NullableUtils.isNullable(startGridCoordinate)) {
+	// 	return [state, []]
+	// }
+	// else {
+	// 	startGridCoordinate = NullableUtils.getExn(startGridCoordinate)
+	// }
 
 
-	if (!grid.isWalkableAt(endGridCoordinate[0], endGridCoordinate[1])
-		&& isNullable(rangeSquared)
-	) {
-		Console.warn(`name: ${name}, endGridCoordinate:${endGridCoordinate} not walkable`);
+	// if (!grid.isWalkableAt(endGridCoordinate[0], endGridCoordinate[1])
+	// 	&& isNullable(rangeSquared)
+	// ) {
+	// 	Console.warn(`name: ${name}, endGridCoordinate:${endGridCoordinate} not walkable`);
 
+	// 	return [state, []]
+	// }
+	endGridCoordinate = _handleEndGridCoordinate(endGridCoordinate, grid, name)
+
+	if (NullableUtils.isNullable(endGridCoordinate)) {
 		return [state, []]
 	}
+	else {
+		endGridCoordinate = NullableUtils.getExn(endGridCoordinate)
+	}
+
+
+
 
 	if (!isNullable(minInterval)) {
 		minInterval = getExn(minInterval)
@@ -287,6 +427,7 @@ export let findPath = (state: state, finder: PF.Finder, startWorldPosition, endW
 
 	let path, handledPath
 	if (!isNullable(rangeSquared)) {
+		// TODO handle isVeryNearAttackTarget
 		path = _findNearstPath(finder,
 			startGridCoordinate, endGridCoordinate, grid, NullableUtils.getExn(rangeSquared),
 			3
@@ -294,29 +435,52 @@ export let findPath = (state: state, finder: PF.Finder, startWorldPosition, endW
 
 		// path = _addStartWorldPosition(path, startWorldPosition, range, step, isDebug)
 
+
 		if (path.length == 0) {
 			return [state, []]
 		}
 
 		handledPath = PF.Util.smoothenPath(grid, path)
+
 	}
 	else {
-		path = finder.findPath(startGridCoordinate[0], startGridCoordinate[1], endGridCoordinate[0], endGridCoordinate[1], grid.clone())
+		if (isVeryNearAttackTarget) {
+			path = (finder as any).findDirectPath(startGridCoordinate[0], startGridCoordinate[1], endGridCoordinate[0], endGridCoordinate[1], grid)
 
-		// path = _addStartWorldPosition(path, startWorldPosition, range, step, isDebug)
+			if (path.length == 0) {
+				path = finder.findPath(startGridCoordinate[0], startGridCoordinate[1], endGridCoordinate[0], endGridCoordinate[1], grid.clone())
+			}
 
-		handledPath = PF.Util.compressPath(path)
+			if (path.length == 0) {
+				return [state, []]
+			}
+
+			handledPath = path
+		}
+		else {
+			path = finder.findPath(startGridCoordinate[0], startGridCoordinate[1], endGridCoordinate[0], endGridCoordinate[1], grid.clone())
+
+			if (path.length == 0) {
+				return [state, []]
+			}
+
+			handledPath = PF.Util.smoothenPath(grid, path)
+		}
 	}
+
+	// if (path.length == 0) {
+	// 	return [state, []]
+	// }
+
+	// // path = _insertStartGridCoordinate(path, startGridCoordinate)
+	// handledPath = PF.Util.smoothenPath(grid, path)
 
 	handledPath = handledPath.map((gridCoordinate: gridCoordinate) => {
 		return _convertToWorldPosition(gridCoordinate, range, step, isDebug)
 	})
 
-	if (handledPath.length > 0 && !handledPath[0].equals(startWorldPosition)) {
-		// return [state, [startWorldPosition.clone()].concat(handledPath)]
+	handledPath = _insertStartWorldPosition(handledPath, startWorldPosition)
 
-		handledPath = [startWorldPosition.clone()].concat(handledPath)
-	}
 
 	handledPath = _makePathValid(handledPath)
 
@@ -553,6 +717,13 @@ export let showFindedPath = (state: state, findedPath: Array<Vector2>, colorHex,
 	// return state
 }
 
+export let disposeData = (state: state, name: name) => {
+	return setPathFindState(state, {
+		...getPathFindState(state),
+		lastFindPathTimeMap: getPathFindState(state).lastFindPathTimeMap.remove(name),
+	})
+}
+
 export let dispose = (state: state) => {
 	return setPathFindState(state, createState())
 }
@@ -562,6 +733,7 @@ export let findValidPosition = (worldPosition: Vector2, grid: PF.Grid, isDebug):
 	let step = _getStep(grid)
 
 	return NullableUtils.map(result => {
+		// TODO fix position y
 		return new Vector3(result.x, 0, result.y)
 	}, NullableUtils.bind(gridCoordinate => {
 		if (grid.isWalkableAt(gridCoordinate[0], gridCoordinate[1])) {

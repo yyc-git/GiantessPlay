@@ -4,9 +4,8 @@ import { getGPUSkinState, getIsDebug, setGPUSkinState } from "../state/State"
 import { gpuSkinPlayMode, objectName, onCompleteFunc, state } from "../type/StateType"
 import { forEach, getExn, getWithDefault, map } from "../utils/NullableUtils"
 import { hasDuplicateItems, reducePromise } from "../utils/ArrayUtils"
-import { MutableMapUtils } from "../Main"
+import { Flow, MutableMapUtils, NumberUtils } from "../Main"
 import { requireCheck, test } from "../utils/Contract"
-import { isAliveByName } from "../lod/LOD"
 
 let _resetInstancedSkeletonAnimationData = (instancedSkeletonAnimationTimeMap, name) => {
 	// return MutableMapUtils.map(instancedSkeletonAnimationTimeMap, (time, name) => {
@@ -52,25 +51,61 @@ export let playLoop = (state: state, name: objectName, clipIndex) => {
 	})
 }
 
+// export let playSpecificFrame = (state: state, name: objectName, durationPercent: number, clipIndex) => {
+// 	let { instancedSkeletonAnimationTimeMap, playedClipIndexMap } = getGPUSkinState(state)
+
+// 	playedClipIndexMap = MutableMapUtils.set(playedClipIndexMap, name, [clipIndex, gpuSkinPlayMode.KeepLast])
+
+// 	// let duration = _getClipDuration(state, name, clipIndex) * durationPercent
+
+// 	// MutableMapUtils.set(instancedSkeletonAnimationTimeMap, name, duration)
+
+// 	let time = (getClipSteps(state, name)[clipIndex] - 1) / Flow.getMaxFPS(state)
+
+// 	MutableMapUtils.set(instancedSkeletonAnimationTimeMap, name, time)
+
+
+// 	return setGPUSkinState(state, {
+// 		...getGPUSkinState(state),
+// 		instancedSkeletonAnimationTimeMap,
+// 		playedClipIndexMap,
+// 	})
+// }
 
 export let playLastFrame = (state: state, name: objectName, clipIndex) => {
+	// /*! because fps is not always equal 60/30, so InstancedSkinnedMesh->update->compute frame has a little error, so need use 0.99 instead of 1
+	// * 
+	// */
+	// // return playSpecificFrame(state, name, 1, clipIndex)
+	// return playSpecificFrame(state, name,
+	// 	// 0.99 * (Flow.getMaxFPS(state) / 60),
+	// 	0.9,
+	// 	clipIndex)
+
 	let { instancedSkeletonAnimationTimeMap, playedClipIndexMap } = getGPUSkinState(state)
 
 	playedClipIndexMap = MutableMapUtils.set(playedClipIndexMap, name, [clipIndex, gpuSkinPlayMode.KeepLast])
 
-	let duration = getClipDurations(state, name)[clipIndex]
+	// let duration = _getClipDuration(state, name, clipIndex) * durationPercent
 
-	MutableMapUtils.set(instancedSkeletonAnimationTimeMap, name, duration)
+	// MutableMapUtils.set(instancedSkeletonAnimationTimeMap, name, duration)
+
+	let time = (getClipSteps(state, name)[clipIndex] - 1) / Flow.getMaxFPS(state)
+
+	MutableMapUtils.set(instancedSkeletonAnimationTimeMap, name, time)
+
 
 	return setGPUSkinState(state, {
 		...getGPUSkinState(state),
 		instancedSkeletonAnimationTimeMap,
 		playedClipIndexMap,
 	})
+
 }
 
 let _updateLoopInstancedSkeletonAnimationTime = (state,
 	// data: instancedSkeletonAnimationData,
+	name,
 	time,
 	// index,
 	duration: number,
@@ -81,7 +116,9 @@ let _updateLoopInstancedSkeletonAnimationTime = (state,
 
 	// let time = data.time
 
-	time += dt;
+
+	// time += dt;
+	time += dt / getAnimationDurationFactor(state, name);
 	time = MathUtils.clamp(time - Math.floor(time / duration) * duration, 0, duration);
 
 	// let frame = Math.floor(time * fps);
@@ -95,6 +132,7 @@ let _updateLoopInstancedSkeletonAnimationTime = (state,
 let _updateOnceInstancedSkeletonAnimationTime = (
 	// onCompleteFunc,
 	state,
+	name,
 	// data: instancedSkeletonAnimationData,
 	time,
 	// index,
@@ -107,13 +145,17 @@ let _updateOnceInstancedSkeletonAnimationTime = (
 
 	// let time = data.time
 
-	if (time + dt >= duration) {
+	let animationDurationFactor = getAnimationDurationFactor(state, name)
+
+	// if (time + dt >= duration) {
+	if (time + dt / animationDurationFactor >= duration) {
 		// this.setFrameDataAt(index, clipIndex, this._getLastFrame(steps))
 
 		return [true, time]
 	}
 
-	time += dt
+	// time += dt
+	time += dt / animationDurationFactor
 
 	// let frame = Math.floor(time * fps);
 	// frame = frame >= steps ? _getLastFrame(steps) : frame
@@ -125,20 +167,34 @@ let _updateOnceInstancedSkeletonAnimationTime = (
 	return [false, time]
 }
 
-let _updateKeepLastInstancedSkeletonAnimationTime = (
+let _updateKeepSpecificInstancedSkeletonAnimationTime = (
 	time,
-	duration,
 ) => {
-	time = duration
-
 	return time
 }
 
-export let getClipDurations = (state: state, name: objectName) => {
+let _getClipDuration = (state: state, name: objectName, clipIndex) => {
+	// console.log(
+	// 	"_getClipDuration:",
+	// 	Flow.getFrameIndex(state),
+	// 	MutableMapUtils.entries(getGPUSkinState(state).clipDurationsMap),
+	// 	name
+	// )
+	// return MutableMapUtils.getExn(
+	// 	getGPUSkinState(state).clipDurationsMap, name
+	// )
+
+	// return NumberUtils.fixFloatError(
+	// 	MutableMapUtils.getExn(
+	// 		getGPUSkinState(state).clipDurationsMap, name
+	// 	)[clipIndex],
+	// 	3
+	// )
 	return MutableMapUtils.getExn(
 		getGPUSkinState(state).clipDurationsMap, name
-	)
+	)[clipIndex]
 }
+
 
 export let getClipSteps = (state: state, name: objectName) => {
 	return MutableMapUtils.getExn(
@@ -209,12 +265,13 @@ export let update = <specificState>(
 		([completedNames, newInstancedSkeletonAnimationTimeMap], time, name) => {
 			return getWithDefault(
 				map(([clipIndex, gpuSkinPlayMode_]) => {
-					let duration = getClipDurations(state, name)[clipIndex]
+					let duration = _getClipDuration(state, name, clipIndex)
 
 					let newTime
 					switch (gpuSkinPlayMode_) {
 						case gpuSkinPlayMode.Loop:
 							newTime = _updateLoopInstancedSkeletonAnimationTime(state,
+								name,
 								time,
 								// i,
 								duration,
@@ -224,6 +281,7 @@ export let update = <specificState>(
 							break
 						case gpuSkinPlayMode.Once:
 							let d = _updateOnceInstancedSkeletonAnimationTime(state,
+								name,
 								time,
 								// i,
 								duration,
@@ -242,9 +300,8 @@ export let update = <specificState>(
 							}
 							break
 						case gpuSkinPlayMode.KeepLast:
-							newTime = _updateKeepLastInstancedSkeletonAnimationTime(
+							newTime = _updateKeepSpecificInstancedSkeletonAnimationTime(
 								time,
-								duration,
 							)
 							break
 						default:
@@ -292,7 +349,6 @@ export let update = <specificState>(
 
 		// specificState = setAbstractStateFunc(specificState, setGPUSkinState(getAbstractStateFunc(specificState), gpuSkinState))
 
-
 		MutableMapUtils.remove(gpuSkinState.playedClipIndexMap, completedName)
 
 		let onceClipOnCompleteFunc = MutableMapUtils.getExn(gpuSkinState.onceClipOnCompleteFuncMap, completedName)
@@ -319,6 +375,24 @@ let _setTime = (state: state, name, time) => {
 	MutableMapUtils.set(
 		getGPUSkinState(state).instancedSkeletonAnimationTimeMap,
 		name, time
+	)
+
+	return state
+}
+
+export let getAnimationDurationFactor = (state: state, name) => {
+	return (1 + MutableMapUtils.getWithDefault(
+		getGPUSkinState(state).animationDurationFactorMap,
+		name,
+		0
+	))
+}
+
+export let setAnimationDurationFactor = (state: state, name, value) => {
+	MutableMapUtils.set(
+		getGPUSkinState(state).animationDurationFactorMap,
+		name,
+		value
 	)
 
 	return state

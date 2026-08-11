@@ -1,8 +1,8 @@
 import { Console } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../../../../type/StateType"
-import { attackRange, pose, targetPrior, targetType } from "../../../../type/StateType"
+import { attackRange, pose, targetType } from "../../../../type/StateType"
 import { behaviourTreeData, controlNode } from "../../../behaviour_tree_data/BehaviourTreeDataType"
-import * as BehaviourTreeData from "../../../behaviour_tree_data/BehaviourTreeData"
+import * as BehaviourTreeData from "../../../behaviour_tree_data/utils/BehaviourTreeDataUtils"
 import { eventName } from "../GameEventData"
 import { isFinish } from "../../../../scenario/Command"
 import { getFightRate } from "../../Utils"
@@ -11,7 +11,7 @@ import { Vector3 } from "three"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { tween } from "meta3d-jiehuo-abstract/src/type/StateType"
-import { isStressingState } from "../../../../utils/FSMStateUtils"
+import { isControlledState } from "../../../../utils/FSMStateUtils"
 import { getStateMachine } from "../../../../girl/FSMState"
 
 export enum extendActionNode {
@@ -48,8 +48,10 @@ export enum extendActionNode {
     BackLeftHandRightHand,
 }
 
-export type actionNode = BehaviourTreeData.actionNode | extendActionNode
-export const actionNode = { ...BehaviourTreeData.actionNode, ...extendActionNode }
+// export type actionNode = BehaviourTreeData.actionNode | extendActionNode
+// export const actionNode = { ...BehaviourTreeData.actionNode, ...extendActionNode }
+export type actionNode = extendActionNode
+export const actionNode = { ...extendActionNode }
 
 
 
@@ -133,8 +135,8 @@ export let setHandType = (state: state, handType_: handType) => {
     })
 }
 
-export let setAttackType = (state: state, currentHandType, leftHandAttackType, rightHandAttackType) => {
-    if (isStressingState(getStateMachine(state))
+export let setAttackType = (state: state, usedGirl, currentHandType, leftHandAttackType, rightHandAttackType) => {
+    if (isControlledState(state, getStateMachine(state, usedGirl))
         || getCustomData(state).handType != currentHandType
     ) {
         return state
@@ -218,49 +220,48 @@ export let initWhenImportScene = (state: state) => {
 export let getData = ([
 ]): behaviourTreeData<actionNode> => {
     return {
-        returnFailCondition: (state: state) => true,
+        conditionReturnFail: (state: state, usedGirl) => true,
 
         node: controlNode.Selector,
         children: [
             {
                 name: "fightAll",
-                returnFailCondition: (state: state) => {
-                    return !isStressingState(getStateMachine(state))
+                conditionReturnFail: (state: state, usedGirl) => {
+                    return !isControlledState(state, getStateMachine(state, usedGirl))
                 },
                 node: controlNode.Selector,
                 children: [
                     {
                         name: "RightHandAdd",
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             let data = getCustomData(state)
-
                             return data.handType == handType.RightHandAdd
                             // && data.isCanAddFunc(state)
                         },
                         node: controlNode.Sequence,
                         children: [
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.HangRightHand,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.RightHandDefaultToAdd,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.KeepRightHandAdd,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.RightHandAddToDefault,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.BackRightHand,
                                 children: []
                             },
@@ -268,33 +269,33 @@ export let getData = ([
                     },
                     {
                         name: "RightHandOneFinger",
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return getCustomData(state).handType == handType.RightHandOneFingerAttack
                         },
                         node: controlNode.Sequence,
                         children: [
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.HangRightHand,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.RightHandDefaultToOneFinger,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.KeepRightHandOneFinger,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.RightHandOneFingerToDefault,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.BackRightHand,
                                 children: []
                             },
@@ -302,33 +303,33 @@ export let getData = ([
                     },
                     {
                         name: "RightHandBeat",
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return getCustomData(state).handType == handType.RightHandBeatAttack
                         },
                         node: controlNode.Sequence,
                         children: [
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.HangRightHand,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.RightHandDefaultToBeat,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.KeepRightHandBeat,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.RightHandBeatToDefault,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.BackRightHand,
                                 children: []
                             },
@@ -336,33 +337,33 @@ export let getData = ([
                     },
                     {
                         name: "TwoHandsOneFinger",
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return getCustomData(state).handType == handType.TwoHandsOneFingerAttack
                         },
                         node: controlNode.Sequence,
                         children: [
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.HangTwoHands,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.TwoHandsDefaultToOneFinger,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.KeepTwoHandsOneFinger,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.TwoHandsOneFingerToDefault,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.BackTwoHands,
                                 children: []
                             },
@@ -370,33 +371,33 @@ export let getData = ([
                     },
                     {
                         name: "TwoHandsBeat",
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return getCustomData(state).handType == handType.TwoHandsBeatAttack
                         },
                         node: controlNode.Sequence,
                         children: [
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.HangTwoHands,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.TwoHandsDefaultToBeat,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.KeepTwoHandsBeat,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.TwoHandsBeatToDefault,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.BackTwoHands,
                                 children: []
                             },
@@ -404,23 +405,23 @@ export let getData = ([
                     },
                     {
                         name: "LeftHandRightHand",
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return getCustomData(state).handType == handType.LeftHandRightHand
                         },
                         node: controlNode.Sequence,
                         children: [
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.HangLeftHandRightHand,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.KeepLeftHandRightHand,
                                 children: []
                             },
                             {
-                                returnSuccessCondition: (state: state) => true,
+                                conditionReturnSuccess: (state: state, usedGirl) => true,
                                 node: actionNode.BackLeftHandRightHand,
                                 children: []
                             },

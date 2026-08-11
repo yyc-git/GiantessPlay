@@ -8,17 +8,18 @@ import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
-import {  getStep } from "../../manage/city1/PathFind"
+import { getStep } from "../../manage/city1/PathFind"
 import { actionName, animationName } from "../../data/DataType"
-import { judgeAttackRangeAndTriggerAction, triggerAction } from "./Utils"
+import { triggerAction } from "./Utils"
 import { getCurrentPose } from "../../girl/Pose"
 import * as BehaviourTreeManager from "../BehaviourTreeManager"
 import { Console } from "meta3d-jiehuo-abstract"
+import { getPassTimeFromNow } from "../../Time"
 
-export let clearTarget: actionNodeFunc = (state, id) => {
+export let clearTarget: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("clearTarget")
 
-    state = BehaviourTreeManager.clearTarget(state)
+    state = BehaviourTreeManager.clearTarget(state, usedGirl)
 
     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
 }

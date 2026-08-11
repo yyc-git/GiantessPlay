@@ -9,6 +9,7 @@ import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { Vector3 } from "three"
 import { tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import * as AddUtils from "../../AddUtils"
+import { getUsedGirl } from "../../../../../manage/biwu/Utils"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 
@@ -19,8 +20,8 @@ let _setCurrentTweens = (state: state, tweens: Array<tween>) => {
     })
 }
 
-let _getHandIKBone = (state: state) => {
-    return getBone(state, Girl.getGirl(state), "右腕ＩＫ")
+let _getHandIKBone = (state: state, usedGirl) => {
+    return getBone(state, usedGirl, Girl.getGirl(state, usedGirl), "右腕ＩＫ")
 }
 
 let _isHandIKBone = (bone) => {
@@ -46,12 +47,13 @@ export let add: actionNodeFunc = AddUtils.add(
         }),
         _setCurrentTweens
     ],
+    getUsedGirl(),
     actionName.RightHandAdd,
     getKey()
 )
 
-export let dispose = (state: state) => {
-    state = AddUtils.dispose(state, actionName.RightHandAdd)
+export let dispose = (state: state, usedGirl) => {
+    state = AddUtils.dispose(state, usedGirl, actionName.RightHandAdd)
 
     return state
 }

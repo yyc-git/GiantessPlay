@@ -1,7 +1,9 @@
 import { state } from "../../../../../type/StateType"
 import * as DamageUtils from "../../utils/DamageUtils"
-import { getModelQueueIndex, getDefenseFactor, getHp, getState, getStateMachine, isStressingByRate, setState, setStateMachine, updateHp, createStressingState } from "../city1/milltary_building/MilltaryBuilding"
+import { getModelQueueIndex, getHp, getState, getStateMachine, setState, setStateMachine, updateHp, createStressingState, disposeData, getModelQueueIndexNullable, isStressing } from "../city1/milltary_building/MilltaryBuilding"
 import { addLabel, createDestroyingState } from "../../utils/ArmyUtils"
+import { armyValue, weaponValue } from "../../data/ValueType"
+import { createFlattenState, isChangeToFlattenState, isControlled } from "../../utils/RigidBodyUtils"
 
 export let damage = (state: state,
     [
@@ -13,39 +15,91 @@ export let damage = (state: state,
         buildRoughFireRayFunc,
         rotateTowardsTargetFunc,
         fireShellFunc,
-        getWeaponValueFunc
+        getWeaponValueFunc,
+        setScaleYFunc
     ],
-    soundResourceId, value,
-
-    forceData, fromName, damagePosition, transforms, boxes, names) => {
+    soundResourceId, value: armyValue,
+    forceData, weaponValue_, fromName, damagePosition,
+    // critRatioFactor,
+    // attackFactor,
+    transforms, boxes, names) => {
     return DamageUtils.damage(
         state, [
-        getDefenseFactor, getHp, updateHp,
+        // getDefenseFactor,
+        // // getAttackFactor,
+        // // getCritRatioFactor,
+        // getMissRatio,
+        getHp, updateHp,
 
         getStateMachine,
         setStateMachine,
-        createStressingState(
-            [
-                getBodyQueueFunc,
-                getFullHpFunc,
-                getModelAllQueuesFunc,
-                buildRoughFireRayFunc,
-                rotateTowardsTargetFunc,
-                fireShellFunc,
-                getWeaponValueFunc,
-            ]
-        ),
+        (
+            state,
+            fromName,
+            [matrix, box, name, damage, damageType_],
+            direction
+        ) => {
+            if (
+                isChangeToFlattenState(
+                    state,
+                    getStateMachine(state, name),
+                    damage, damageType_,
+                    direction,
+                    getFullHpFunc(state, name),
+                    getHp(state, name),
+                    fromName
+                )
+            ) {
+                return createFlattenState(
+                    getStateMachine,
+                    setStateMachine,
+                    createDestroyingState,
+                    getModelQueueIndex,
+                    getModelQueueIndexNullable,
+                    disposeData,
+                )([
+                    getBodyQueueFunc,
+                    setScaleYFunc,
+                    setStatusFunc,
+                    emitBodyExplodeFunc
+                ],
+                    soundResourceId, weaponValue_,
+                    fromName,
+                    [matrix, box, name, damage, damageType_],
+                    forceData[0][1]
+                )
+            }
+
+            return createStressingState(
+                [
+                    getBodyQueueFunc,
+                    getFullHpFunc,
+                    getModelAllQueuesFunc,
+                    buildRoughFireRayFunc,
+                    rotateTowardsTargetFunc,
+                    fireShellFunc,
+                    getWeaponValueFunc
+                ],
+            )()
+        },
         createDestroyingState([
             setStatusFunc,
             emitBodyExplodeFunc,
-            getModelQueueIndex,
+            getModelQueueIndexNullable,
+            disposeData,
             getStateMachine,
             setStateMachine,
         ],
-            soundResourceId, value
+            soundResourceId, weaponValue_,
+            forceData[1][0]
         ),
-        isStressingByRate,
+        isControlled(isStressing),
         addLabel
-    ], forceData, fromName, damagePosition, transforms, boxes, names,
+    ], forceData, weaponValue_, fromName, damagePosition,
+        [value.armorType, value.armorRatio, value.armorStrength,
+            // critRatioFactor,
+            // attackFactor,
+        ],
+        transforms, boxes, names,
     )
 }

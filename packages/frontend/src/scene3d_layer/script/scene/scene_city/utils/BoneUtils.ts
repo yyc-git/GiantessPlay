@@ -1,3 +1,4 @@
+import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Object3DUtils } from "meta3d-jiehuo-abstract"
 import { Bone, Object3D, SkinnedMesh } from "three"
 
@@ -21,7 +22,7 @@ export let setBonePositionOffset = (state, obj: Object3D, value: [number, number
 
 
 export let addBoneGroup = (obj: Object3D) => {
-    let boneGroup = new Object3D()
+    let boneGroup = NewThreeInstance.createObject3D()
     boneGroup.name = _buildBoneGroupName()
     // boneGroup.position.setY(getCurrentModelData(state).positionYOffset)
 

@@ -1,7 +1,7 @@
 import { Flow } from "meta3d-jiehuo-abstract"
 import { getAbstractState, setAbstractState } from "../../../../../state/State"
 import { actionNode, actionNodeFunc, attackRange, behaviourTreeNodeExecuteResult, pose, targetType } from "../../type/StateType"
-import { getTarget, hasTarget, markFinish } from "../BehaviourTreeManager"
+import { getId, getTarget, hasTarget, markFinish, setId } from "../BehaviourTreeManager"
 import { state } from "../../../../../type/StateType"
 import { CullFaceBack, Euler, Quaternion, Vector2, Vector3 } from "three"
 import { getGirlPosition, getGirlPositionParrelToObj, getGirlRotation, setPivotWorldPositionAndUpdateBox, setGirlRotation, setGirlRotationAndLock, unlockGirlRotation, getPivotWorldPosition } from "../../girl/Utils"
@@ -11,41 +11,86 @@ import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { getStep } from "../../manage/city1/PathFind"
 import { actionName, animationName } from "../../data/DataType"
-import { judgeAttackRangeAndTriggerAction, lookatTarget as lookatTargetUtils, triggerAction } from "./Utils"
+import { finish, lookatTarget as lookatTargetUtils, triggerAction, triggerActionAndNotMarkFinish } from "./Utils"
 import { getCurrentPose } from "../../girl/Pose"
 import { Console } from "meta3d-jiehuo-abstract"
 import { TransformUtils } from "meta3d-jiehuo-abstract"
+import { getStompBlockService } from "../../../../../mod/SkillGiantessMod"
+import { Event } from "meta3d-jiehuo-abstract"
+import { getEndStompBackEventName } from "../../../../../utils/EventUtils"
+import { markIsRunning } from "../../utils/BehaviourManagerUtils"
+// import { isCanStomp } from "../../../../../mod/PropOtherMod"
+// import { getGiantessControllerBlockState } from "../../../../../mod/PropOtherMod"
+// import { actionPrior } from "prop-artifact-giantesscontroller/src/script/State"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 
-export let lookatTarget = (state: state) => {
+export let lookatTarget = (state: state, usedGirl) => {
     return lookatTargetUtils(state, (state, lookatQuaternion) => {
         return TransformUtils.rotateOnWorldAxis(
             lookatQuaternion, Math.PI / 18, _v1.set(0, 1, 0)
         )
-    })
+    }, usedGirl)
 }
 
-export let stomp: actionNodeFunc = (state, id) => {
+export let stomp: actionNodeFunc = (state, usedGirl, id) => {
     Console.log("stomp")
 
-    let actionName_
-    switch (getCurrentPose(state)) {
-        case pose.Stand:
-        case pose.Pick:
-            actionName_ = actionName.Stomp
-            break
-        case pose.Crawl:
-            return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
-    }
+    // if (state.config.littleManConfig.isOnlyPickup) {
+    // if (!isCanStomp(state)) {
+    //     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // }
 
 
-    if (!hasTarget(state)) {
+    // let actionName_
+    // switch (getCurrentPose(state, usedGirl)) {
+    //     case pose.Stand:
+    //     case pose.Pick:
+    //         actionName_ = actionName.Stomp
+    //         break
+    //     case pose.Crawl:
+    //         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // }
+    // let actionName_ = actionName.Stomp
+    if (!hasTarget(state, usedGirl)) {
         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
     }
 
-    state = lookatTarget(state)
+    let actionName_ = getStompBlockService(state).getActionName()
+
+    state = setId(state, usedGirl, actionName_, id)
+    // state = markIsRunning(state, usedGirl,true)
+
+    state = lookatTarget(state, usedGirl)
 
     // return judgeAttackRangeAndTriggerAction(state, actionName_, id, attackRange.Big)
-    return triggerAction(state, actionName_, id)
+    // return triggerAction(state, usedGirl, actionName_, id)
+    return triggerActionAndNotMarkFinish(state, usedGirl, actionName_, id, state => {
+        return finish(state, usedGirl, id, actionName_)
+    })
+}
+
+let _stompBackEndHandler = (state: state, { userData }) => {
+    let { usedGirl } = userData
+    let actionName_ = getStompBlockService(state).getActionName()
+
+    return NullableUtils.getWithDefault(
+        NullableUtils.map(id => {
+            return markFinish(state, usedGirl, id, behaviourTreeNodeExecuteResult.Success)
+        }, getId(state, usedGirl, actionName_)),
+        Promise.resolve(state)
+    )
+}
+
+
+export let initWhenImportScene = (state: state) => {
+    state = setAbstractState(state, Event.on(getAbstractState(state), getEndStompBackEventName(), _stompBackEndHandler))
+
+    return state
+}
+
+export let dispose = (state: state) => {
+    state = setAbstractState(state, Event.off(getAbstractState(state), getEndStompBackEventName(), _stompBackEndHandler))
+
+    return state
 }

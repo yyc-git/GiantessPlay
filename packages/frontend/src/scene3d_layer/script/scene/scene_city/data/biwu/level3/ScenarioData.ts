@@ -8,6 +8,8 @@ import {
 	getSayHitRightNipple3SoundResourceId,
 	getSayLeftRightSoundResourceId, getSayOneSoundResourceId, getSayOnlySoundResourceId, getSayReachSoundResourceId, getSayStressing1SoundResourceId, getSayStressing2SoundResourceId, getSayStressing3SoundResourceId, getSayTwoBeatSoundResourceId, getSayTwoOneSoundResourceId
 } from "../../../manage/biwu/level3/ManageScene"
+import { getLanguageTextData, languageKey } from "../../../../../../internation/Data"
+import { readState } from "../../../../../../state/State"
 
 export enum command {
 	handleGoToTrigone,
@@ -72,7 +74,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "到肚子上来~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3GoToTrigoneSay1),
 						soundId: getSayGoSoundResourceId()
 					}],
 					time: 1000,
@@ -130,7 +132,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "你到了哦~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3ReachTrigoneSay1),
 						soundId: getSayReachSoundResourceId()
 					}],
 					time: 1000,
@@ -151,7 +153,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "放点小玩具助兴~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3OnlyAddArmySay1),
 						soundId: getSayOnlySoundResourceId()
 					}],
 					time: 2000,
@@ -178,7 +180,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "放一些小玩具，一起玩玩~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3RightHandAddArmySay1),
 						soundId: getSayAddSoundResourceId()
 					}],
 					time: 2000,
@@ -204,7 +206,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "我只用一根手指~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3RightHandOnePointAttackSay1),
 						soundId: getSayOneSoundResourceId()
 					}],
 					time: 1000,
@@ -231,7 +233,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "我用一只手掌哦~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3RightHandBeatAttackSay1),
 						soundId: getSayBeatSoundResourceId()
 					}],
 					time: 2000,
@@ -257,7 +259,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "要防护下~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3LeftHandRightHandSay1),
 						soundId: getSayLeftRightSoundResourceId()
 					}],
 					time: 1000,
@@ -284,7 +286,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "我要用两根手指哦~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3TwoHandsOneFingerAttackSay1),
 						soundId: getSayTwoOneSoundResourceId()
 					}],
 					time: 2000,
@@ -311,7 +313,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "要认真点啦~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3TwoHandsBeatAttackSay1),
 						soundId: getSayTwoBeatSoundResourceId()
 					}],
 					time: 2000,
@@ -339,15 +341,15 @@ export let getData = (girlName): data<scenarioName, command> => {
 				data: {
 					name: girlName,
 					contents: [{
-						content: "啊啊啊~~~右边乳头有点痒痒的",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3HitRightNippleSay1),
 						soundId: getSayHitRightNipple1SoundResourceId()
 					},
 					{
-						content: "人家有点感觉啦~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3HitRightNippleSay2),
 						soundId: getSayHitRightNipple2SoundResourceId()
 					},
 					{
-						content: "哎哟~你打得很准嘛~",
+						content: getLanguageTextData(readState(), languageKey.BossLevel3HitRightNippleSay3),
 						soundId: getSayHitRightNipple3SoundResourceId()
 					},
 					],
@@ -380,15 +382,15 @@ export let getData = (girlName): data<scenarioName, command> => {
 					name: girlName,
 					contents: [
 						{
-							content: "啊啊啊~左边乳头有点痒痒的",
+							content:getLanguageTextData(readState(), languageKey.BossLevel3HitLeftNippleSay1),
 							soundId: getSayHitLeftNipple1SoundResourceId()
 						},
 						{
-							content: "弄得人家有点感觉啦~",
+							content:getLanguageTextData(readState(), languageKey.BossLevel3HitLeftNippleSay2),
 							soundId: getSayHitLeftNipple2SoundResourceId()
 						},
 						{
-							content: "啊啊啊~你打得很准嘛~",
+							content:getLanguageTextData(readState(), languageKey.BossLevel3HitLeftNippleSay3),
 							soundId: getSayHitLeftNipple3SoundResourceId()
 						},
 					],
@@ -422,7 +424,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 					name: girlName,
 					contents: [
 						{
-							content: "啊啊啊~",
+							content:getLanguageTextData(readState(), languageKey.BossLevel3StressingSay1),
 							soundId: getSayStressing1SoundResourceId()
 						},
 						// {
@@ -430,7 +432,7 @@ export let getData = (girlName): data<scenarioName, command> => {
 						// 	soundId: getSayStressing2SoundResourceId()
 						// },
 						{
-							content: "哎哟~",
+							content:getLanguageTextData(readState(), languageKey.BossLevel3StressingSay2),
 							soundId: getSayStressing3SoundResourceId()
 						},
 					],

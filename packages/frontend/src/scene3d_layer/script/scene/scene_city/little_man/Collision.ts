@@ -33,7 +33,6 @@ import { eventName } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { TransformUtils } from "meta3d-jiehuo-abstract"
-import { axis, getData } from "../data/CollisionShapeData"
 import { getBox, getLittleMan, getLittleManState, getName, setLittleManState } from "./LittleMan"
 import { getAnimationFrameCount } from "../little_man_data/Const"
 import { isCompletelyPlayingAnimation } from "./Animation"
@@ -41,7 +40,7 @@ import { getWorldMatrix } from "./Transform"
 import { Console } from "meta3d-jiehuo-abstract"
 import { isSpecificFrameIndex } from "../utils/CollisionUtils"
 // import { isNearGirl } from "../utils/CollisionUtils"
-// import { damageWithData } from "../utils/DamageUtils"
+// import { damageWithMultipleData } from "../utils/DamageUtils"
 // import { getGirlVolume } from "../utils/SoundUtils"
 // import { getBone } from "../utils/MMDUtils"
 
@@ -67,7 +66,7 @@ const _v2 = new Vector3();
 // }
 
 // let _screenShake = (state: state) => {
-// 	getLittleManState(state).screenShake.shake(getOrbitControlsTarget(state), getValue(state).screenShakeDistanceFactor * Math.pow(getScale(state), 1.0), getValue(state).screenShakeTime)
+// 	getLittleManState(state).screenShake.shake(getOrbitControlsTarget(state), getValue(state).screenShakeDistanceFactor * Math.pow(getScale(state, usedGirl), 1.0), getValue(state).screenShakeTime)
 
 // 	return state
 // }
@@ -101,7 +100,7 @@ const _v2 = new Vector3();
 
 // }
 
-// let _isCollisionWithVehicle = (state, animationName, phase) => {
+// let _isCollisionWithRigidBody = (state, animationName, phase) => {
 // 	return _isCollisionWithObject(name => {
 // 		return Cars.isCars(name) || DynamicCars.isDynamicCar(name) || Tank.isTank(name)
 // 	}, state, animationName, phase)
@@ -169,11 +168,11 @@ const _v2 = new Vector3();
 // 	centerFactor,
 // 	size
 // ) => {
-// 	let data1 = getBone(state, littleMan, bone1Name)
+// 	let data1 = getBone(state,usedGirl, littleMan, bone1Name)
 // 	state = data1[0]
 // 	let bone1 = data1[1]
 
-// 	let data2 = getBone(state, littleMan, bone2Name)
+// 	let data2 = getBone(state,usedGirl, littleMan, bone2Name)
 // 	state = data2[0]
 // 	let bone2 = data2[1]
 
@@ -200,7 +199,7 @@ const _v2 = new Vector3();
 // 	littleMan, bone1Name, collisionPart_: collisionPart,
 // 	size
 // ) => {
-// 	let data1 = getBone(state, littleMan, bone1Name)
+// 	let data1 = getBone(state,usedGirl, littleMan, bone1Name)
 // 	state = data1[0]
 // 	let bone1 = data1[1]
 
@@ -324,7 +323,7 @@ let _resetActionCollision = (state: state, name: animationName, frameIndex) => {
 // 				case stompPhase.Down:
 // 					direction = buildDownDirection()
 // 					break
-// 				case stompPhase.Range:
+// 				case rangePhase.Range:
 // 					direction = buildDownDirection()
 // 					break
 // 			}
@@ -361,7 +360,7 @@ let _resetActionCollision = (state: state, name: animationName, frameIndex) => {
 // }
 
 // let _damageInRange = (state: state, velocity, rangeBox): Promise<state> => {
-// 	let force = _computeForce(state, animationName.Stomp, velocity, stompPhase.Range)
+// 	let force = _computeForce(state, animationName.Stomp, velocity, rangePhase.Range)
 
 // 	return ArrayUtils.reducePromise(Collision.queryRangeCollisionByBox(getAbstractState(state), rangeBox), (state, damageData) => {
 // 		let [transforms, boxes, names] = NullableUtils.getExn(damageData)
@@ -370,7 +369,7 @@ let _resetActionCollision = (state: state, name: animationName, frameIndex) => {
 // 			return Promise.resolve(state)
 // 		}
 
-// 		return damageWithData(state, [force, damageType.Range], getName(),
+// 		return damageWithMultipleData(state, [force, damageType.Range], getName(),
 // 			[transforms, boxes, names]).then(TupleUtils.getTuple2First)
 // 	}, state)
 // }
@@ -392,7 +391,7 @@ let _resetActionCollision = (state: state, name: animationName, frameIndex) => {
 // 		}, [[], [], []])
 
 
-// 		return damageWithData(state, [force, damageType_], getName(),
+// 		return damageWithMultipleData(state, [force, damageType_], getName(),
 // 			[newTransforms, newBoxes, newNames])
 // 	}
 
@@ -510,8 +509,8 @@ let _resetActionCollision = (state: state, name: animationName, frameIndex) => {
 // }
 
 
-export let getAnimationCollisionData = () => {
-	return Data.getAnimationCollisionData()
+export let getAnimationCollisionData = (state:state) => {
+	return Data.getAnimationCollisionData(state)
 }
 
 export let updateAnimationCollision = (state: state) => {
@@ -524,7 +523,7 @@ export let updateAnimationCollision = (state: state) => {
 	return NullableUtils.getWithDefault(
 		NullableUtils.map(
 			({ name, timeline }) => {
-				let frameCount = getAnimationFrameCount(name)
+				let frameCount = getAnimationFrameCount(state, name)
 
 				let frameIndex = SkinAnimation.getFrameIndex(
 					SkinAnimation.getAction(getAbstractState(state), getName(), name),
@@ -632,7 +631,7 @@ export let updateAnimationCollision = (state: state) => {
 									// case track.Audio:
 									// 	let soundId = data.value<string>(state, valueData)
 
-									// 	let volume = getGirlVolume(state)
+									// 	let volume = getGirlVolume(state, usedGirl)
 
 									// 	state = NullableUtils.getWithDefault(NullableUtils.map(soundId => {
 									// 		return setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(soundId, getIsDebug(state), volume)))
@@ -716,7 +715,7 @@ export let updateAnimationCollision = (state: state) => {
 	)
 }
 
-// export let queryAllOBBShapesCollisionWithBox = (
+// export let queryOBBShapeCollisionWithBox = (
 // 	state: state,
 // 	point: Vector3
 // )
@@ -726,7 +725,7 @@ export let updateAnimationCollision = (state: state) => {
 // 		return NullableUtils.getEmpty()
 // 	}
 
-// 	let girlBox = getGirlBox(state).clone()
+// 	let girlBox = getGirlBox(state, usedGirl).clone()
 
 // 	let size = girlBox.getSize(_v1)
 

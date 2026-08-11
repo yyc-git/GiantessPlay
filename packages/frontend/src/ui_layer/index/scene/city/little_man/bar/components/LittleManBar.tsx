@@ -14,12 +14,12 @@ import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
 let LittleManBar: React.FC = () => {
 	let littleManStatus = useSelector<AppState>((state) => state.scene.littleManStatus) as nullable<littleManStatus>
 
-	return <Layout className="bar-main">
+	return <Layout className="little-man-bar-main">
 		{
 			NullableUtils.getWithDefault(
 				NullableUtils.map(littleManStatus => {
 					return <>
-						<section className="little-man-hp">
+						<Row justify="center" className="little-man-hp">
 							<Row justify="center" className="row">
 								<Col className="col" >
 									{
@@ -48,7 +48,22 @@ let LittleManBar: React.FC = () => {
 								</Col>
 							</Row>
 
-						</section>
+
+							<Row justify="center" className="row row_life_count">
+								<Col className="col" span={12}>
+									{
+										renderImage("./resource/ui/in_game/life_count.png",
+											"life_count",
+											false
+										)
+									}
+								</Col>
+								<Col className="col" span={12}>
+									<Title className="life_count_text" >{`${littleManStatus.lifeCount}`}</Title>
+								</Col>
+							</Row>
+
+						</Row>
 					</>
 				}, littleManStatus),
 				null

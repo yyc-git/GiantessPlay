@@ -1,0 +1,30 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"jsx": "react",
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		// "noEmit": true,
+		"noEmit": false,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"lib": [
+			"DOM",
+			"ESNext",
+		],
+		"types": [],
+		"strict": true
+	},
+	   "exclude": [
+        "node_modules",
+        "dist",
+        "build"
+      ],
+"include": [
+		"./src"
+	]
+}

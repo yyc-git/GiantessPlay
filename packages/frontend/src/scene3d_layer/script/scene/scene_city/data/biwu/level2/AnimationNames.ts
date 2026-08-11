@@ -11,7 +11,7 @@ export let getLightStompAnimationNames = () => [
     animationName.KeepLeftLightStomp,
 ]
 
-export let getAllAnimationNames = () => (getGirlAllAnimationNames() as any).concat(
+export let getAllAnimationNames = (state) => (getGirlAllAnimationNames(state) as any).concat(
     getLightStompAnimationNames()
 ).concat(
     [

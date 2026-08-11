@@ -4,13 +4,151 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-let isDevelopment = process.env.NODE_ENV.trim() != 'production'
+const TerserPlugin = require('terser-webpack-plugin');
+
+// let isDevelopment = process.env.NODE_ENV.trim() != 'production'
+// let isDevelopment = process.env.NODE_ENV.trim() != 'production'
+let nodeEnv = process.env.NODE_ENV.trim()
+// let isDevelopment = false
+// let isDevelopment = true
 
 // let timestamp = new Date().getTime()
 
+let _buildWithDebugSourceMap = () => {
+    return {
+        devtool: 'eval',
+        optimization: {
+            chunkIds: 'named',
+            mangleExports: false,
+            moduleIds: 'named',
+
+            concatenateModules: false,
+            // avoidEntryIife: false,
+            // flagIncludedChunks: false,
+            //  sideEffects: 'flag',
+
+            // minimize: true,
+
+            minimizer: [
+                new TerserPlugin({
+                    terserOptions: {
+                        keep_classnames: true,
+                        keep_fnames: true
+                    },
+                }),
+            ],
+        },
+    }
+}
+
+let _buildWithDebugNoSourceMap = () => {
+    return {
+        devtool: false,
+        optimization: {
+            chunkIds: 'named',
+            mangleExports: false,
+            moduleIds: 'named',
+
+            // concatenateModules: false,
+            // avoidEntryIife: false,
+            // flagIncludedChunks: false,
+            // sideEffects: 'flag',
+
+            // minimize: true,
+
+            minimizer: [
+                new TerserPlugin({
+                    terserOptions: {
+                        keep_classnames: true,
+                        keep_fnames: true
+                    },
+                }),
+            ],
+        },
+    }
+}
+
+// let _buildWithProduction = () => {
+//     return {
+//         devtool: false,
+//         // optimization: {
+//         //     minimizer: [
+//         //         new TerserPlugin({
+//         //             terserOptions: {
+//         //                 keep_classnames: true,
+//         //                 keep_fnames: true
+//         //             },
+//         //         }),
+//         //     ],
+//         // },
+//     }
+// }
+let _buildWithProduction = _buildWithDebugNoSourceMap
+
+let obj
+switch (nodeEnv) {
+    case "fast":
+        obj = _buildWithDebugNoSourceMap()
+        break
+    case "debug":
+        obj = _buildWithDebugSourceMap()
+        break
+    case "production":
+        obj = _buildWithProduction()
+        break
+    default:
+        throw new Error("err")
+}
+
+// let _isChinese = () => {
+//     return (navigator.language || navigator.browserLanguage).toLowerCase().includes("zh-cn")
+// }
+
 module.exports = {
+    ...obj,
+
     entry: "./src/Main.tsx",
-    mode: !isDevelopment ? 'production' : 'development',
+    // mode: !isDevelopment ? 'production' : 'development',
+    // mode: nodeEnv == "debug" ? 'production' : nodeEnv,
+    mode: 'production',
+    // devtool: 'source-map',
+    // devtool:'eval-cheap-source-map',
+    // devtool: false,
+    // devtool: nodeEnv == "debug" || nodeEnv == 'development' ? 'eval' : false,
+
+    // devtool: nodeEnv == "debug" ? 'eval' : false,
+    // optimization: nodeEnv == "production" ? {
+    //     minimizer: [
+    //         new TerserPlugin({
+    //             terserOptions: {
+    //                 keep_classnames: true,
+    //                 keep_fnames: true
+    //             },
+    //         }),
+    //     ],
+    // } : {
+    //     chunkIds: 'named',
+    //     mangleExports: false,
+    //     moduleIds: 'named',
+
+    //     concatenateModules: false,
+    //     // avoidEntryIife: false,
+    //     // flagIncludedChunks: false,
+    //     //  sideEffects: 'flag',
+
+    //     // minimize: true,
+
+    //     minimizer: [
+    //         new TerserPlugin({
+    //             terserOptions: {
+    //                 keep_classnames: true,
+    //                 keep_fnames: true
+    //             },
+    //         }),
+    //     ],
+    // },
+
+
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'static/js/[name].js',
@@ -48,14 +186,25 @@ module.exports = {
                 test: /\.s(a|c)ss$/,
                 exclude: /\.module.(s(a|c)ss)$/,
                 use: [
-                    isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
+                    // isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
+                    // nodeEnv == "development" ? 'style-loader' : MiniCssExtractPlugin.loader,
+                    MiniCssExtractPlugin.loader,
                     'css-loader',
                     {
                         loader: 'sass-loader',
                         options: {
-                            sourceMap: isDevelopment
+                            // sourceMap: nodeEnv == "development"
+                            sourceMap: false
                         }
                     }
+                    // false ? 'style-loader' : MiniCssExtractPlugin.loader,
+                    // 'css-loader',
+                    // {
+                    //     loader: 'sass-loader',
+                    //     options: {
+                    //         sourceMap: false
+                    //     }
+                    // }
                 ]
             },
             {
@@ -83,13 +232,21 @@ module.exports = {
         new HtmlWebpackPlugin({
             template: './index.html',
             hash: true, // cache busting
+            cache: false,
             // timestamp: timestamp,
             filename: 'index.html',
             inject: true,
-            favicon: path.resolve('favicon.ico'),//favicon路径
+            // favicon:_isChinese() ? path.resolve('favicon_cn.ico') : path.resolve('favicon_en.ico'),//favicon路径
+            favicon: path.resolve('favicon_cn.ico'),
         }),
         new CopyWebpackPlugin({
             patterns: [
+                {
+                    from: '../meta3d-jiehuo-abstract/src/resource/',
+                    to: './meta3d-jiehuo-abstract/'
+                },
+
+
                 {
                     from: './src/resource/',
                     to: './resource/'
@@ -98,10 +255,22 @@ module.exports = {
                     from: './src/resource_girl/',
                     to: './resource_girl/'
                 },
+
                 {
-                    from: '../meta3d-jiehuo-abstract/src/resource/',
-                    to: './meta3d-jiehuo-abstract/'
-                }
+                    from: '../../mods/',
+                    to: './'
+                },
+
+
+
+                {
+                    from: '../website/chinese/build/',
+                    to: './website/chinese/'
+                },
+                {
+                    from: '../website/english/build/',
+                    to: './website/english/'
+                },
             ],
         }),
     ],

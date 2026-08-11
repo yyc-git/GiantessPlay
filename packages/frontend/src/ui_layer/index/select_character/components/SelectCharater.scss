@@ -1,7 +1,9 @@
-@import "../../../../Main.scss";
+@use "../../../../Main.scss" as *;
 
-.select-charater-main {
+.select-character-main {
 	@include background-unset;
+
+	overflow-y: auto;
 
 	.title {
 		// font-size: 2rem !important;
@@ -62,6 +64,16 @@
 				}
 			}
 
+			.name {
+				@include font-size-level2;
+			}
+
+			.name_supply {
+				@include font-size-level2;
+
+				color: yellow !important;
+			}
+
 			.White {
 				background-color: white;
 			}
@@ -70,10 +82,14 @@
 				background-color: #008000;
 			}
 
-			// .charater {
+			.Blue {
+				background-color: blue;
+			}
+
+			// .character {
 			// 	width: 100%;
 			// 	height: 80%;
-			// 	background-image: url("/ui/not_in_game/charater1.png");
+			// 	background-image: url("/ui/not_in_game/character1.png");
 			// 	background-size: 100% 100%;
 
 			// }
@@ -98,4 +114,47 @@
 		}
 
 	}
+
+
+	.fixed-button {
+		.note {
+			position: fixed;
+			top: 0rem;
+			right: 2rem;
+			z-index: 2;
+
+			@include font-size-level2;
+			color: red !important;
+		}
+
+	}
 }
+
+/* 滚动条整体 */
+.select-character-main::-webkit-scrollbar {
+	height: 5rem;
+	width: 5rem;
+}
+
+/* 两个滚动条交接处 -- x轴和y轴 */
+.select-character-main::-webkit-scrollbar-corner {
+	background-color: transparent;
+}
+
+/* 滚动条滑块 */
+.select-character-main::-webkit-scrollbar-thumb {
+	// border-radius: 10px;
+	border-radius: 2.5rem;
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	background: #535353;
+}
+
+/* 滚动条轨道 */
+.select-character-main::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	border-radius: 2.5rem;
+	background: #ededed;
+}
+
+/* 滚动条两端按钮 */
+.select-character-main::-webkit-scrollbar-button {}

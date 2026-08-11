@@ -35,102 +35,61 @@ export let getData = (): data<eventName> => {
 	return [
 		{
 			eventName: eventName.GoToTrigone,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.GoToTrigone)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.GoToTrigone,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.ReachTrigone,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.ReachTrigone)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.ReachTrigone,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.OnlyAddArmy,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.OnlyAddArmy)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.OnlyAddArmy,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.RightHandAddArmy,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.RightHandAddArmy)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.RightHandAddArmy,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.RightHandOnePointAttack,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.RightHandOnePointAttack)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.RightHandOnePointAttack,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.RightHandBeatAttack,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.RightHandBeatAttack)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.RightHandBeatAttack,
+			getCommandFunc:getCommand,
 		},
-		// {
-		// 	eventName: eventName.LeftHandRightHand,
-		// 	func: (state: state) => {
-		// 		state = execute(state, getCommand, scenarioName.LeftHandRightHand)
-
-		// 		return Promise.resolve(state)
-		// 	},
-		// },
 		{
 			eventName: eventName.TwoHandsOneFingerAttack,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.TwoHandsOneFingerAttack)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.TwoHandsOneFingerAttack,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.TwoHandsBeatAttack,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.TwoHandsBeatAttack)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.TwoHandsBeatAttack,
+			getCommandFunc:getCommand,
 		},
 
 
 		{
 			eventName: eventName.HitRightNipple,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.HitRightNipple, false)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.HitRightNipple,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.HitLeftNipple,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.HitLeftNipple, false)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.HitLeftNipple,
+			getCommandFunc:getCommand,
 		},
 
 		{
 			eventName: eventName.Stressing,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.Stressing, false)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.Stressing,
+			getCommandFunc:getCommand,
 		},
 	]
 }

@@ -1,0 +1,14 @@
+{
+  "name": "meta3d-bs-jest-cucumber",
+  "version": "1.3.0",
+  "description": "",
+  "license": "",
+  "main": "",
+  "scripts": {
+    "watch": "rescript clean && rescript build -w"
+  },
+  "dependencies": {
+    "jest-cucumber": "^3.0.1",
+    "rescript": "^10.0.1"
+  }
+}

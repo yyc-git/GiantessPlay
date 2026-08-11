@@ -1,40 +1,93 @@
-@import "../../../../../Main.scss";
+@use "../../../../../Main.scss" as *;
 
 .city {
-	.main_menu_button {
-		// position: absolute;
+
+
+
+	.main_menu_button_div {
 		position: fixed;
+		// z-index: 2;
+		z-index: 20;
 		top: 1rem;
 		right: 1rem;
-		z-index: 2;
 
-		width: 3rem;
-		height: 3rem;
+		.main_menu_button {
+			width: 3rem;
+			height: 3rem;
+
+			pointer-events: none;
+		}
+
+		.main_menu_text {
+			position: fixed;
+			z-index: 2;
+			top: 4rem;
+			right: 2rem;
+			// right: 1.5rem;
+
+
+			width: 1rem;
+			// width: 2rem;
+			height: 1rem;
+
+			background-color: white;
+			color: black;
+
+			display: block;
+			// margin: 0 auto;
+			text-align: center;
+			font-weight: 700;
+		}
 	}
 
-	.package_button {
+
+	.prop_button_div {
 		position: fixed;
 		top: 1rem;
 		right: 6rem;
-		z-index: 2;
+		// z-index: 2;
+		z-index: 20;
 
-		width: 3rem;
-		height: 3rem;
+		.prop_button {
+			width: 3rem;
+			height: 3rem;
+
+			pointer-events: none;
+		}
+
+		.prop_text {
+			position: fixed;
+			top: 4rem;
+			right: 7rem;
+			z-index: 2;
+
+
+			width: 1rem;
+			height: 1rem;
+
+			background-color: white;
+			color: black;
+
+			display: block;
+			// margin: 0 auto;
+			text-align: center;
+			font-weight: 700;
+		}
 	}
 
-	.control_button {
-		position: fixed;
-		top: 5rem;
-		right: 6rem;
-		z-index: 2;
+	// .control_button {
+	// 	position: fixed;
+	// 	top: 5rem;
+	// 	right: 6rem;
+	// 	z-index: 2;
 
-		width: 3rem;
-		height: 3rem;
-	}
+	// 	width: 3rem;
+	// 	height: 3rem;
+	// }
 
 	.debug_button {
 		position: fixed;
-		top: 10rem;
+		top: 15rem;
 		left: 1rem;
 		z-index: 1000;
 		width: 3rem;
@@ -63,9 +116,32 @@
 
 }
 
+.adm-auto-center-content {
+	// overflow-x: visible !important;
+
+	word-break: keep-all;
+	// overflow-wrap: break-word;
+	overflow-wrap: anywhere;
+	/* 对于长单词或URL，在必要时断开 */
+}
+
+
+.main_menu {
+	overflow-x: hidden !important;
+	overflow-y: auto !important;
+
+	max-height: 25rem !important;
+
+	// .adm-center-popup-wrap {
+	// 	opacity: 0.5;
+	// }
+}
+
 .main_menu,
-.package,
+.prop,
 .control {
+	// overflow-y: auto;
+
 	// width: 80%;
 	// width: 30rem !important;
 	// opacity: 0.5;
@@ -97,18 +173,29 @@
 	span {
 		@include font-size;
 	}
+
 }
 
-.package {
+.prop {
+	.adm-modal-body {
+		max-height: 25rem !important;
+	}
+
 	.ant-card {
 		margin-right: 1rem;
+	}
+
+	.disabled {
+		opacity: 0.3;
+		// pointer-events: none;
 	}
 
 	.prop_container {
 		position: relative;
 
-		width: 6rem;
-		height: 6rem;
+		// width: 6rem;
+		// height: 6rem;
+		padding: 0.1rem;
 	}
 
 	.prop_image {
@@ -118,8 +205,10 @@
 
 	.prop_count {
 		position: absolute;
-		top: 0;
-		left: 0.2rem;
+		// top: 0;
+		// left: 0.2rem;
+		bottom: 0;
+		right: 0.2rem;
 		z-index: 1;
 
 		background-color: black;
@@ -136,4 +225,135 @@
 		right: 0.2rem;
 		z-index: 1;
 	}
+
+	.side_bar {
+		width: 100%;
+
+		// @include font-size-level2;
+
+		font-size: 1rem !important;
+	}
 }
+
+.prop_modal_body {
+	overflow-x: hidden !important;
+	overflow-y: auto !important;
+
+	max-height: 25rem !important;
+
+	.adm-modal-content {
+		overflow-x: visible !important;
+		overflow-y: visible !important;
+	}
+
+	.adm-auto-center-content {
+		@include font-size;
+	}
+
+	.addToFastProp_text {
+		display: block;
+	}
+
+	.addToFastProp {
+		display: inline !important;
+	}
+}
+
+
+// /* 滚动条整体 */
+// .city::-webkit-scrollbar {
+// 	height: 5rem;
+// 	width: 5rem;
+// }
+
+// /* 两个滚动条交接处 -- x轴和y轴 */
+// .city::-webkit-scrollbar-corner {
+// 	background-color: transparent;
+// }
+
+// /* 滚动条滑块 */
+// .city::-webkit-scrollbar-thumb {
+// 	// border-radius: 10px;
+// 	border-radius: 2.5rem;
+// 	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+// 	background: #535353;
+// }
+
+// /* 滚动条轨道 */
+// .city::-webkit-scrollbar-track {
+// 	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+// 	border-radius: 2.5rem;
+// 	background: #ededed;
+// }
+
+// /* 滚动条两端按钮 */
+// .city::-webkit-scrollbar-button {}
+
+/* 滚动条整体 */
+.prop_modal_body::-webkit-scrollbar {
+	height: 5rem;
+	width: 5rem;
+}
+
+/* 两个滚动条交接处 -- x轴和y轴 */
+.prop_modal_body::-webkit-scrollbar-corner {
+	background-color: transparent;
+}
+
+/* 滚动条滑块 */
+.prop_modal_body::-webkit-scrollbar-thumb {
+	// border-radius: 10px;
+	border-radius: 2.5rem;
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	background: #535353;
+}
+
+/* 滚动条轨道 */
+.prop_modal_body::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	border-radius: 2.5rem;
+	background: #ededed;
+}
+
+/* 滚动条两端按钮 */
+.prop_modal_body::-webkit-scrollbar-button {}
+
+
+
+
+
+
+
+
+
+
+
+
+/* 滚动条整体 */
+.main_menu::-webkit-scrollbar {
+	height: 5rem;
+	width: 5rem;
+}
+
+/* 两个滚动条交接处 -- x轴和y轴 */
+.main_menu::-webkit-scrollbar-corner {
+	background-color: transparent;
+}
+
+/* 滚动条滑块 */
+.main_menu::-webkit-scrollbar-thumb {
+	// border-radius: 10px;
+	border-radius: 2.5rem;
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	background: #535353;
+}
+
+/* 滚动条轨道 */
+.main_menu::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	border-radius: 2.5rem;
+	background: #ededed;
+}
+
+/* 滚动条两端按钮 */
+.main_menu::-webkit-scrollbar-button {}

@@ -79,7 +79,7 @@ export let changeTransformToDefault = <T extends Object3D>(obj: T) => {
     return obj
 }
 
-export let group = (objects: Array<Object3D>, getIdFunc) => {
+export let group = (objects: Array<any>, getIdFunc) => {
     return objects.reduce((objectGroup, obj) => {
         let id = getIdFunc(obj)
 

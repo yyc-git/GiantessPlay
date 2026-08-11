@@ -1,18 +1,30 @@
-@import "../../../../../../../Main.scss";
+@use "../../../../../../../Main.scss" as *;
 
-$width: 10rem;
+// $width: 10rem;
+// $halfWidth: 5rem;
+$width: 8rem;
+$halfWidth: 4rem;
 
 .bar-main {
 	@include background-unset;
 
 	position: fixed;
+    z-index: 2;
 	// bottom: -3.5rem;
 	// bottom: -2.5rem;
-	top: 0.5rem;
+	// top: 0.5rem;
+	// bottom: 1rem;
 
-	// margin: 0 auto;
+	// // margin: 0 auto;
+
+	// // left: 0.5rem;
+	// left: 50%;
+	// margin-left: - $halfWidth;
+
+
+
+	top: 0.5rem;
 	left: 0.5rem;
-	// right: 0;
 
 	width: $width;
 
@@ -101,12 +113,22 @@ $width: 10rem;
 			right: 0;
 		}
 
+		.row_life_count {
+			left: 8.5rem;
+			width: 2rem;
+
+			.life_count_text {
+				@include font-size-level3;
+			}
+		}
 
 		.title {
 			position: relative;
-			left: 11rem;
+			// left: 11rem;
+			left: 10.5rem;
 
-			@include font-size-level2;
+			// @include font-size-level2;
+			@include font-size-level3;
 		}
 	}
 

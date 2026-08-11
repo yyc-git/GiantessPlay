@@ -1,0 +1,113 @@
+@use "../../../../../../Main.scss" as *;
+
+.fastprop-main {
+    position: fixed;
+    z-index: 2;
+
+    opacity: 1.0;
+    // opacity: 0.5;
+
+    // top: 10.5rem;
+    bottom: 1rem;
+    left: 50%;
+
+    width: 12rem;
+    margin-left: -6rem;
+
+    background-color: transparent;
+
+    .adm-grid {
+        // --gap-horizontal: 1.5rem;
+        --gap-vertical: 0.5rem;
+
+        // padding: 0;
+        // margin: 0;
+    }
+
+    // .positive {
+    //     border: 1px solid green;
+    // }
+
+    // .negative {
+    //     border: 1px solid red;
+    // }
+
+    .adm-grid-item {
+        // width: 1.5rem;
+        // height: 1.5rem;
+        width: 2rem;
+        height: 2rem;
+        // padding: 0;
+        // margin: 0;
+
+        .item {
+            position: relative;
+
+            // .ant-image {
+            //     .image {
+            //         width: 100%;
+            //         height: 100%;
+            //     }
+
+            //     .disabled {
+            //         opacity: 0.3;
+            //         // pointer-events: none;
+            //     }
+            // }
+            .image {
+                // width: 100%;
+                // height: 100%;
+                width: 2rem;
+                height: 2rem;
+            }
+
+            .disabled {
+                opacity: 0.3;
+                // pointer-events: none;
+            }
+
+
+            // .number {
+            //     width: 2rem;
+            //     height: 2rem;
+            //     overflow: hidden;
+
+            //     text-align: center;
+
+            //     position: absolute;
+            //     top: 1.5rem;
+            //     left: 0rem;
+
+            //     z-index: 3;
+
+            //     @include font-size-level4;
+            //     // font-weight: bold;
+            // }
+
+            .count {
+                position: absolute;
+                top: 0;
+                left: 0.4rem;
+                z-index: 1;
+
+                background-color: black;
+
+                // @include font-size-level3;
+                @include font-size-level4;
+            }
+
+            .text {
+                width: 2rem;
+                height: 1rem;
+
+                background-color: white;
+                color: black;
+
+                display: block;
+                margin: 0 auto;
+                text-align: center;
+                font-weight: 700;
+            }
+        }
+    }
+}

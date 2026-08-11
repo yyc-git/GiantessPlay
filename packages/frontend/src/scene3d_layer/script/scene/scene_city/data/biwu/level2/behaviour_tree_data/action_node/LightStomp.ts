@@ -1,5 +1,5 @@
 import { Vector3, Bone, Object3D, LinearTransfer, Box3 } from "three";
-import { actionNodeFunc, behaviourTreeNodeExecuteResult, collisionPart, damageType,  result } from "../../../../../type/StateType";
+import { actionNodeFunc, behaviourTreeNodeExecuteResult, collisionPart, damageType, result, usedGirl } from "../../../../../type/StateType";
 import { Console } from "meta3d-jiehuo-abstract";
 // import { triggerAction } from "../../../../../behaviour_tree/action_node/Utils";
 import { actionName, animationName, articluatedAnimationName } from "../../DataType";
@@ -11,9 +11,8 @@ import { getAbstractState, readState, setAbstractState, writeState } from "../..
 import { getBackLeftLightStompEndEventName, getBackRightLightStompEndEventName, getHangLeftLightStompEndEventName, getHangRightLightStompEndEventName, getQTEUpdateEventName } from "../../../../../../../../utils/EventUtils";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import * as Girl from "../../../../../girl/Girl";
-import { getBone } from "../../../../../utils/MMDUtils";
-import { getMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD";
-import { MutableMapUtils } from "meta3d-jiehuo-abstract";
+import { getBone, hasBone } from "../../../../../utils/MMDUtils";
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { SkinBlendAnimation } from "meta3d-jiehuo-abstract";
 import { getAnimationBlendDuration } from "../../../../Data";
@@ -25,7 +24,7 @@ import { TupleUtils } from "meta3d-jiehuo-abstract";
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
 import { ArticluatedAnimation } from "meta3d-jiehuo-abstract";
 import { stateMachine, tween } from "meta3d-jiehuo-abstract/src/type/StateType";
-import { computeForce, getCollisionPartOBB, updateAllCollisionShapes } from "../../../../../girl/Collision";
+import { getCollisionPartOBB, updateAllCollisionShapes } from "../../../../../girl/Collision";
 import * as DamageUtils from "../../../../../utils/DamageUtils";
 import { getGirlWeaponType, getPositionParrelToObj } from "../../../../../girl/Utils";
 import { getActualHeight } from "meta3d-utils/src/View";
@@ -46,8 +45,13 @@ import { markIsRunning } from "../../../../../utils/BehaviourManagerUtils";
 import { lookatTarget } from "../../../../../behaviour_tree/action_node/Utils";
 import { makeBoxHeightMax } from "../../../../../utils/Box3Utils";
 import { createTween } from "../../../Utils";
-import { getCustomData, phase, setCustomData } from "../BehaviourTreeData";
+import { getCustomData, hasCustomData, phase, setCustomData } from "../BehaviourTreeData";
 import { computeDamage } from "../../../ActionNodeUtils";
+import { MMD } from "meta3d-jiehuo-abstract";
+import { getNow } from "../../../../../Time";
+import { addTweens } from "../../../../../TweenManager";
+import { convertAutoDifficultyToRate } from "../../../../../difficulty/DifficultyUtils";
+import { ArrayUtils } from "meta3d-jiehuo-abstract";
 
 const _v1 = /*@__PURE__*/ new Vector3();
 const _b1 = /*@__PURE__*/ new Box3();
@@ -74,20 +78,29 @@ type data = {
 
 }
 
-let _getData = (state: state): data => {
-    let factor, hangFactor
-    if (isHard(state)) {
+let _getData = (state: state, usedGirl): data => {
+    let factor, timeFactor
+    if (isHard(state, usedGirl)) {
         factor = 2
-        hangFactor = 1.5
+        timeFactor = 1.5
     }
     else {
         factor = 1
-        hangFactor = 1
+        timeFactor = 1
     }
 
+    let autoDifficultyToRateInvert = 1 - convertAutoDifficultyToRate(state)
+
     return {
-        downForce: 8 * factor,
-        rubForce: 3 * factor,
+        // downForce: 8 * factor,
+        // rubForce: 3 * factor,
+
+        // downForce: 4 * factor,
+        // rubForce: 1.5 * factor,
+        downForce: 3 * factor,
+        rubForce: 1.2 * factor,
+
+
         // expandSize: 2,
         expandSize: 1.8,
         backTime: 500,
@@ -95,10 +108,17 @@ let _getData = (state: state): data => {
         rubToUpTime: 0.5,
         downToRubTime: 0.5,
         downToUpTime: 0.5,
-        downTime: 800 / factor,
+        // downTime: 800 / factor,
+        downTime: 800 / timeFactor,
         // followTime: 1000 / factor,
-        followTime: 1000,
-        hangTime: 1200 / hangFactor,
+        // followTime: 1000,
+        // hangTime: 1200 / timeFactor,
+        // followTime: 1100,
+        // followTime: NumberUtils.greaterThan((1000 * autoDifficultyToRateInvert) / timeFactor, 100),
+        followTime: NumberUtils.clamp((1300 * autoDifficultyToRateInvert) / timeFactor, 200, 1000),
+        // hangTime: 1400 / timeFactor,
+        // hangTime: NumberUtils.greaterThan((1200 * autoDifficultyToRateInvert) / timeFactor, 150),
+        hangTime: NumberUtils.clamp((1600 * autoDifficultyToRateInvert) / timeFactor, 600, 1200),
 
         // backRateWhenFinishUp: 0.2,
         backRateWhenFinishUp: 0.2,
@@ -111,17 +131,17 @@ let _getData = (state: state): data => {
     }
 }
 
-let _triggerAction = (state: state, id, actionName_): Promise<[state, any]> => {
+let _triggerAction = (state: state, usedGirl, id, actionName_): Promise<[state, any]> => {
     state = _setPhase(state, phase.Begin)
 
-    return triggerAction(state, actionName_).then(([state, result_]) => {
+    return triggerAction(state, usedGirl, actionName_).then(([state, result_]) => {
         if (result_ == result.Fail) {
             return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
         }
 
-        state = setId(state, actionName.LightStomp, id)
+        state = setId(state, usedGirl, actionName.LightStomp, id)
 
-        state = markIsRunning(state, true)
+        state = markIsRunning(state, usedGirl, true)
 
         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
     })
@@ -161,17 +181,17 @@ let _getLeftLegLimitRange = () => {
     }
 }
 
-let _expandRigthLimitRangeForFollow = (state, limitRange) => {
+let _expandRigthLimitRangeForFollow = (state, usedGirl, limitRange) => {
     return {
         ...limitRange,
-        maxX: limitRange.maxX + _getData(state).expandSize
+        maxX: limitRange.maxX + _getData(state, usedGirl).expandSize
     }
 }
 
-let _expandLeftLimitRangeForFollow = (state, limitRange) => {
+let _expandLeftLimitRangeForFollow = (state, usedGirl, limitRange) => {
     return {
         ...limitRange,
-        minX: limitRange.minX - _getData(state).expandSize
+        minX: limitRange.minX - _getData(state, usedGirl).expandSize
 
     }
 }
@@ -188,27 +208,27 @@ let _isInLegRange = (state, bone, limitRange) => {
     return result
 }
 
-let _isInRightLegRange = (state) => {
-    let d = getRightFootIKBone(state)
+let _isInRightLegRange = (state, usedGirl) => {
+    let d = getRightFootIKBone(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
     return _isInLegRange(state, bone, _getRightLegLimitRange())
 }
 
-let _isInLeftLegRange = (state) => {
-    let d = getLeftFootIKBone(state)
+let _isInLeftLegRange = (state, usedGirl) => {
+    let d = getLeftFootIKBone(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
     return _isInLegRange(state, bone, _getLeftLegLimitRange())
 }
 
-export let lightStomp: actionNodeFunc = (state, id) => {
+export let lightStomp: actionNodeFunc = (state, usedGirl, id) => {
     Console.log("lightStomp")
 
     // let actionName_
-    // switch (getCurrentPose(state)) {
+    // switch (getCurrentPose(state, usedGirl)) {
     //     case pose.Stand:
     //     case pose.Pick:
     //         actionName_ = actionName.Stomp
@@ -218,28 +238,28 @@ export let lightStomp: actionNodeFunc = (state, id) => {
     // }
 
 
-    // if (!hasTarget(state)) {
+    // if (!hasTarget(state, usedGirl)) {
     //     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
     // }
 
-    // state = _lookatTarget(state)
+    // state = _lookatTarget(state, (state, lookatQuaternion)=>lookatQuaternion, usedGirl)
 
-    // return triggerAction(state, actionName.HangRightLightStomp as any, id)
+    // return triggerAction(state, usedGirl, actionName.HangRightLightStomp as any, id)
 
-    if (_isInRightLegRange(state)) {
-        return _triggerAction(state, id, actionName.HangRightLightStomp)
+    if (_isInRightLegRange(state, usedGirl)) {
+        return _triggerAction(state, usedGirl, id, actionName.HangRightLightStomp)
     }
-    else if (_isInLeftLegRange(state)) {
-        return _triggerAction(state, id, actionName.HangLeftLightStomp)
+    else if (_isInLeftLegRange(state, usedGirl)) {
+        return _triggerAction(state, usedGirl, id, actionName.HangLeftLightStomp)
     }
 
-    state = lookatTarget(state)
+    state = lookatTarget(state, (state, lookatQuaternion) => lookatQuaternion, usedGirl)
 
-    if (_isInRightLegRange(state)) {
-        return _triggerAction(state, id, actionName.HangRightLightStomp)
+    if (_isInRightLegRange(state, usedGirl)) {
+        return _triggerAction(state, usedGirl, id, actionName.HangRightLightStomp)
     }
-    else if (_isInLeftLegRange(state)) {
-        return _triggerAction(state, id, actionName.HangLeftLightStomp)
+    else if (_isInLeftLegRange(state, usedGirl)) {
+        return _triggerAction(state, usedGirl, id, actionName.HangLeftLightStomp)
     }
 
     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
@@ -247,11 +267,11 @@ export let lightStomp: actionNodeFunc = (state, id) => {
 
 // let _finishWhenIdle = (state: state, id) => {
 //     if (!isCompletelyPlayingAnimation(state, animationName.Idle)) {
-//         state = resetIsTriggerAction(state)
-//         state = markFinish(state, id, behaviourTreeNodeExecuteResult.Success)
+//         state = resetIsTriggerAction(state, usedGirl)
+//         state = markFinish(state, usedGirl,  id, behaviourTreeNodeExecuteResult.Success)
 
-//         let helper = getMMDAnimationHelper(getAbstractState(state))
-//         MutableMapUtils.remove(helper.ikBoneCustomData, actionName.HangRightLightStomp)
+//         let helper = MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl)
+//         MutableRecordUtils.remove(helper.ikBoneCustomData, actionName.HangRightLightStomp)
 
 
 //         return state
@@ -297,8 +317,10 @@ let _followLittleMan = (bone: Bone, worldPosition, limitRange, state: state) => 
     // bone.position.setZ(bone.position.z + 5)
 }
 
-let _clearIKBoneCustomData = (state: state) => {
-    MutableMapUtils.remove(getMMDAnimationHelper(getAbstractState(state)).ikBoneCustomData, actionName.LightStomp)
+let _clearIKBoneCustomData = (state: state, usedGirl) => {
+    if (MMD.hasMMDAnimationHelper(getAbstractState(state), usedGirl)) {
+        MutableRecordUtils.remove(MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).ikBoneCustomData, actionName.LightStomp)
+    }
 
     return state
 }
@@ -311,12 +333,12 @@ export let isLeftFootIKBone = (bone) => {
     return bone.name == "左足ＩＫ"
 }
 
-export let getRightFootIKBone = (state: state) => {
-    return getBone(state, Girl.getGirl(state), "右足ＩＫ")
+export let getRightFootIKBone = (state: state, usedGirl) => {
+    return getBone(state, usedGirl, Girl.getGirl(state, usedGirl), "右足ＩＫ")
 }
 
-export let getLeftFootIKBone = (state: state) => {
-    return getBone(state, Girl.getGirl(state), "左足ＩＫ")
+export let getLeftFootIKBone = (state: state, usedGirl) => {
+    return getBone(state, usedGirl, Girl.getGirl(state, usedGirl), "左足ＩＫ")
 }
 
 let _createTween = (state: state,
@@ -324,10 +346,10 @@ let _createTween = (state: state,
         isFootIKBoneFunc,
         updateBoneFunc,
         onCompleteFunc
-    ],
+    ], usedGirl: usedGirl,
     sourceObject, targetObject, time): [state, tween] => {
     return createTween(
-        state,
+        state, usedGirl,
         [
             isFootIKBoneFunc,
             updateBoneFunc,
@@ -340,9 +362,10 @@ let _createTween = (state: state,
 
 export let backToHang = (state: state,
     [getBoneFunc, isFootIKBoneFunc, onCompleteFunc],
+    usedGirl: usedGirl,
     time
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -363,12 +386,12 @@ export let backToHang = (state: state,
             state => {
                 state = _setPhase(state, phase.None)
 
-                state = _clearIKBoneCustomData(state)
+                state = _clearIKBoneCustomData(state, usedGirl)
 
-                // return triggerAction(state, backActionName).then(TupleUtils.getTuple2First).then(writeState)
+                // return triggerAction(state, usedGirl, backActionName).then(TupleUtils.getTuple2First).then(writeState)
                 return onCompleteFunc(state).then(writeState)
             }
-        ],
+        ], usedGirl,
         {
             x: boneLocalPosition.x,
             y: boneLocalPosition.y,
@@ -377,7 +400,7 @@ export let backToHang = (state: state,
         x: originBoneLocalPosition.x,
         y: originBoneLocalPosition.y,
         z: originBoneLocalPosition.z,
-        // }, _getRandomTime(_getData(state).backTime))
+        // }, _getRandomTime(_getData(state, usedGirl).backTime))
     }, time)
 
     state = d2[0]
@@ -387,29 +410,32 @@ export let backToHang = (state: state,
     // state = _removeCurrentTween(state)
     state = _setCurrentTweens(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
 let _back = (state: state,
-    [getBoneFunc, isFootIKBoneFunc],
+    [getBoneFunc, isFootIKBoneFunc], usedGirl: usedGirl,
     backActionName) => {
     return backToHang(state,
         [getBoneFunc, isFootIKBoneFunc, state => {
-            return triggerAction(state, backActionName).then(TupleUtils.getTuple2First)
-        }],
-        _getRandomTime(_getData(state).backTime)
+            return triggerAction(state, usedGirl, backActionName).then(TupleUtils.getTuple2First)
+        }], usedGirl,
+        _getRandomTime(_getData(state, usedGirl).backTime)
     )
 }
 
 let _up = (state: state,
     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+    usedGirl: usedGirl,
     collisionPart_,
     backActionName,
     limitRange,
     otherFoorIKBone,
     boneLocalPositionBeforeDown,
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -428,16 +454,17 @@ let _up = (state: state,
             state => {
                 state = _setPhase(state, phase.None)
 
-                const rate = _getData(state).backRateWhenFinishUp
+                const rate = _getData(state, usedGirl).backRateWhenFinishUp
 
                 if (NumberUtils.isRandomRate(rate)) {
                     state = _back(state,
-                        [getBoneFunc, isFootIKBoneFunc],
+                        [getBoneFunc, isFootIKBoneFunc], usedGirl,
                         backActionName)
                 }
                 else {
                     state = _handleLightStomp(state,
                         [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                        usedGirl,
                         collisionPart_,
                         backActionName,
                         limitRange,
@@ -451,7 +478,7 @@ let _up = (state: state,
 
                 return Promise.resolve()
             }
-        ],
+        ], usedGirl,
         {
             x: boneLocalPosition.x,
             y: boneLocalPosition.y,
@@ -460,7 +487,7 @@ let _up = (state: state,
         x: boneLocalPositionBeforeDown.x,
         y: boneLocalPositionBeforeDown.y,
         z: boneLocalPositionBeforeDown.z,
-    }, _getRandomTime(_getData(state).upTime))
+    }, _getRandomTime(_getData(state, usedGirl).upTime))
 
     state = d2[0]
     let tween = d2[1]
@@ -468,13 +495,15 @@ let _up = (state: state,
     state = _setPhase(state, phase.Up)
     state = _setCurrentTweens(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
-let _computeRubDamage = (state, boxBefore) => {
-    const force = _getData(state).rubForce
+let _computeRubDamage = (state, usedGirl, boxBefore) => {
+    const force = _getData(state, usedGirl).rubForce
 
-    return computeDamage(state, boxBefore, buildDownDirection(), _getRandomForce(force)).then(TupleUtils.getTuple2First)
+    return computeDamage(state, usedGirl, boxBefore, buildDownDirection(), _getRandomForce(force)).then(TupleUtils.getTuple2First)
 }
 
 let _rub = (state: state,
@@ -483,6 +512,7 @@ let _rub = (state: state,
         isFootIKBoneFunc,
         isInLegRangeFunc
     ],
+    usedGirl: usedGirl,
     collisionPart_,
     backActionName,
     limitRange,
@@ -491,23 +521,23 @@ let _rub = (state: state,
 
     rubTimeScalar
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
     let boneLocalPosition = bone.position.clone()
 
 
-    let helper = getMMDAnimationHelper(getAbstractState(state))
+    let helper = MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl)
 
     let articluatedAnimationData = findArticluatedAnimationData(state, articluatedAnimationName.Rub)
 
-    let boxBefore = getCollisionPartOBB(state, collisionPart_).clone()
+    let boxBefore = getCollisionPartOBB(state, usedGirl, collisionPart_).clone()
 
     let tweens = playArticluatedAnimation(state,
         [
             object => {
-                MutableMapUtils.set(helper.ikBoneCustomData, actionName.LightStomp, (bone) => {
+                MutableRecordUtils.set(helper.ikBoneCustomData, actionName.LightStomp, (bone) => {
                     if (isFootIKBoneFunc(bone)) {
                         bone.position.copy(_v1.set(
                             object.x,
@@ -523,7 +553,7 @@ let _rub = (state: state,
             state => {
                 return [
                     boneLocalPosition,
-                    NumberUtils.getRandomFloat(_getData(state).rubMaxAmplitude / 2, _getData(state).rubMaxAmplitude),
+                    NumberUtils.getRandomFloat(_getData(state, usedGirl).rubMaxAmplitude / 2, _getData(state, usedGirl).rubMaxAmplitude),
                     rubTimeScalar
                 ]
             },
@@ -531,9 +561,9 @@ let _rub = (state: state,
                 DamageUtils.handleTweenRepeatComplete3(
                     [
                         state => {
-                            state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+                            state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, boxBefore.center))))
 
-                            return _computeRubDamage(state, boxBefore)
+                            return _computeRubDamage(state, usedGirl, boxBefore)
                         },
                         state => {
                             return !getIsHit(state)
@@ -541,14 +571,14 @@ let _rub = (state: state,
                         state => {
                             state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
                                 return Promise.resolve(_up(state,
-                                    [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                                    [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc], usedGirl,
                                     collisionPart_,
                                     backActionName,
                                     limitRange,
                                     otherFoorIKBone,
                                     boneLocalPositionBeforeDown,
                                 ))
-                            }, _getRandomTime(_getData(state).rubToUpTime), _buildKeyForDeferByTime()))
+                            }, _getRandomTime(_getData(state, usedGirl).rubToUpTime), _buildKeyForDeferByTime()))
 
                             return Promise.resolve(state)
                         },
@@ -560,15 +590,15 @@ let _rub = (state: state,
                     )
                 )
             },
-            () => {
+            NullableUtils.return_(() => {
                 let state = readState()
 
-                state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+                state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, boxBefore.center))))
 
-                return _computeRubDamage(state, boxBefore).then(state => {
+                return _computeRubDamage(state, usedGirl, boxBefore).then(state => {
                     let _ = writeState(state)
                 })
-            }
+            })
         ],
         articluatedAnimationData
     )
@@ -577,6 +607,8 @@ let _rub = (state: state,
     state = _setPhase(state, phase.Rub)
     // state = _removeCurrentTween(state)
     state = _setCurrentTweens(state, tweens)
+
+    state = addTweens(state, tweens)
 
     return state
 }
@@ -595,39 +627,50 @@ let _getDownOffset = () => {
     return NumberUtils.getRandomFloat(-2, 2)
 }
 
-let _getDownTarget = (state: state, otherFoorIKBone, targetWorldPositionWhenHange, boneWorldPosition, collisionPart_) => {
+let _getDownTarget = (state: state, usedGirl, otherFoorIKBone, targetWorldPositionWhenHange, boneWorldPosition, collisionPart_) => {
     let worldPosition = NullableUtils.getExn(
         targetWorldPositionWhenHange
     )
 
-    let bone2, d
+    let bone2, d, boneName
     switch (collisionPart_) {
         case collisionPart.LeftFoot:
-            d = getBone(state, Girl.getGirl(state), "左つま先ＩＫ")
-            state = d[0]
-            bone2 = d[1]
+            boneName = "左つま先ＩＫ"
             break
         case collisionPart.RightFoot:
-            d = getBone(state, Girl.getGirl(state), "右つま先ＩＫ")
-            state = d[0]
-            bone2 = d[1]
+            boneName = "右つま先ＩＫ"
             break
         default:
             throw new Error("err")
     }
 
+    let target = {
+        x: worldPosition.x + _getDownOffset(),
+        y: otherFoorIKBone.position.y * 1.08,
+        z: worldPosition.z + _getDownOffset(),
+    }
+
+    if (!hasBone(Girl.getGirl(state, usedGirl), boneName)) {
+        return target
+    }
+
+    d = getBone(state, usedGirl, Girl.getGirl(state, usedGirl), boneName)
+    state = d[0]
+    bone2 = d[1]
+
     let footBackDirection = boneWorldPosition.clone().sub(bone2.getWorldPosition(_v1)).normalize()
-    let distance = footBackDirection.multiplyScalar(getCollisionPartOBB(state, collisionPart_).halfSize.z * 0.8)
+    let distance = footBackDirection.multiplyScalar(getCollisionPartOBB(state, usedGirl, collisionPart_).halfSize.z * 0.8)
 
     return {
-        x: worldPosition.x + _getDownOffset() + distance.x,
-        y: otherFoorIKBone.position.y * 1.08,
-        z: worldPosition.z + _getDownOffset() + distance.z,
+        x: target.x + distance.x,
+        y: target.y,
+        z: target.z + distance.z,
     }
 }
 
 let _downAndUp = (state: state,
     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+    usedGirl: usedGirl,
     collisionPart_,
     backActionName,
     limitRange,
@@ -635,7 +678,7 @@ let _downAndUp = (state: state,
     otherFoorIKBone,
     boneLocalPositionBeforeDown,
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -659,15 +702,15 @@ let _downAndUp = (state: state,
             state => {
                 state = _setPhase(state, phase.None)
 
-                const force = _getData(state).downForce
+                const force = _getData(state, usedGirl).downForce
 
-                let collisionPartOBB = getCollisionPartOBB(state, collisionPart_)
+                let collisionPartOBB = getCollisionPartOBB(state, usedGirl, collisionPart_)
 
                 const factor = 0.3
-                let size = getGirlScale(state) * factor
+                let size = getGirlScale(state, usedGirl) * factor
                 state = setAbstractState(state, ParticleManager.emitStompDust(getAbstractState(state),
                     {
-                        speed: 10 * Math.max(getGirlScale(state) / 10, 1) * factor / 1.3,
+                        speed: 10 * Math.max(getGirlScale(state, usedGirl) / 10, 1) * factor / 1.3,
                         changeLife: 500,
                         life: 3000,
                         size: size,
@@ -676,22 +719,23 @@ let _downAndUp = (state: state,
                     }
                 ))
 
-                state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getLightStompSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+                state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getLightStompSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, collisionPartOBB.center))))
 
-                return computeDamage(state, collisionPartOBB, buildDownDirection(), _getRandomForce(force))
+                return computeDamage(state, usedGirl, collisionPartOBB, buildDownDirection(), _getRandomForce(force))
                     .then(([state, isHit]) => {
                         if (isHit) {
-                            state = addExcitement(state, excitement.Low)
+                            state = addExcitement(state, usedGirl, excitement.Low)
                         }
 
                         if (isHit && NumberUtils.isRandomRate(0.5)) {
                             state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
-                                state = addExcitement(state, excitement.Low)
+                                state = addExcitement(state, usedGirl, excitement.Low)
 
-                                let rubTimeScalar = _getRandomTime(_getData(state).rubTimeScalar)
+                                let rubTimeScalar = _getRandomTime(_getData(state, usedGirl).rubTimeScalar)
 
                                 state = _rub(state,
                                     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                                    usedGirl,
                                     collisionPart_,
                                     backActionName,
                                     limitRange,
@@ -708,51 +752,56 @@ let _downAndUp = (state: state,
                                 //     0.5
                                 // ))
 
-                                return startQTE(state)
-                            }, _getRandomTime(_getData(state).downToRubTime), _buildKeyForDeferByTime()))
+                                return startQTE(state, usedGirl, 1)
+                            }, _getRandomTime(_getData(state, usedGirl).downToRubTime), _buildKeyForDeferByTime()))
                         }
                         else {
                             state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
                                 return Promise.resolve(_up(state,
                                     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                                    usedGirl,
                                     collisionPart_,
                                     backActionName,
                                     limitRange,
                                     otherFoorIKBone,
                                     boneLocalPositionBeforeDown,
                                 ))
-                            }, _getRandomTime(_getData(state).downToUpTime), _buildKeyForDeferByTime()))
+                            }, _getRandomTime(_getData(state, usedGirl).downToUpTime), _buildKeyForDeferByTime()))
                         }
 
                         writeState(state)
                     })
             }
         ],
+        usedGirl,
         {
             x: boneWorldPosition.x,
             y: boneLocalPositionBeforeDown.y,
             z: boneWorldPosition.z,
         },
-        _getDownTarget(state, otherFoorIKBone, targetWorldPositionWhenHange, boneWorldPosition, collisionPart_),
-        _getRandomTime(_getData(state).downTime))
+        _getDownTarget(state, usedGirl, otherFoorIKBone, targetWorldPositionWhenHange, boneWorldPosition, collisionPart_),
+        _getRandomTime(_getData(state, usedGirl).downTime))
     state = d2[0]
     let tween = d2[1]
 
     state = _setPhase(state, phase.Down)
     state = _setCurrentTweens(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
 let _follow = (state: state,
     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+    usedGirl: usedGirl,
     collisionPart_,
     backActionName,
     limitRange,
     otherFoorIKBone,
     repeatCount
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -762,11 +811,11 @@ let _follow = (state: state,
 
 
     if (!isInLegRangeFunc(state, bone, limitRange)) {
-        const rate = _getData(state).backRateWhenExceedRange
+        const rate = _getData(state, usedGirl).backRateWhenExceedRange
 
         if (NumberUtils.isRandomRate(rate)) {
             return _back(state,
-                [getBoneFunc, isFootIKBoneFunc],
+                [getBoneFunc, isFootIKBoneFunc], usedGirl,
                 backActionName)
         }
 
@@ -775,7 +824,7 @@ let _follow = (state: state,
 
         return setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
             return Promise.resolve(_follow(state,
-                [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc], usedGirl,
                 collisionPart_,
                 backActionName,
                 limitRange,
@@ -812,6 +861,7 @@ let _follow = (state: state,
                 if (repeatCount > 1) {
                     state = _follow(state,
                         [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                        usedGirl,
                         collisionPart_,
                         backActionName,
                         limitRange,
@@ -825,7 +875,7 @@ let _follow = (state: state,
                 }
 
 
-                let d = getBoneFunc(state)
+                let d = getBoneFunc(state, usedGirl)
                 state = d[0]
                 let bone = d[1]
 
@@ -834,10 +884,11 @@ let _follow = (state: state,
 
                 state = _handleLightStomp(state,
                     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                    usedGirl,
                     collisionPart_,
                     backActionName,
                     limitRange,
-                    otherFoorIKBone, NullableUtils.return_(performance.now()),
+                    otherFoorIKBone, NullableUtils.return_(getNow(state)),
                     NullableUtils.return_(
                         bone.position.clone()
                     ),
@@ -849,7 +900,7 @@ let _follow = (state: state,
 
                 return Promise.resolve()
             }
-        ],
+        ], usedGirl,
         {
             x: boneWorldPosition.x,
             y: boneWorldPosition.y,
@@ -858,26 +909,29 @@ let _follow = (state: state,
         x: worldPosition.x,
         y: worldPosition.y,
         z: worldPosition.z,
-    }, _getRandomTime(_getData(state).followTime))
+    }, _getRandomTime(_getData(state, usedGirl).followTime))
     state = d2[0]
     let tween = d2[1]
 
     state = _setPhase(state, phase.Fllow)
     state = _setCurrentTweens(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
 let _handleLightStomp = (state: state,
     [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+    usedGirl: usedGirl,
     collisionPart_,
     backActionName,
     limitRange,
     otherFoorIKBone: Bone, hangTime: nullable<number>, boneLocalPositionBeforeDown,
     targetWorldPositionWhenHange: nullable<Vector3>
 ) => {
-    // if (performance.now() - startTime > 5000) {
-    // if (performance.now() - startTime > 100000) {
+    // if (getNow(state) - startTime > 5000) {
+    // if (getNow(state) - startTime > 100000) {
     //     return _back(state,
     //         [getBoneFunc, isFootIKBoneFunc],
     //         backActionName,
@@ -887,9 +941,9 @@ let _handleLightStomp = (state: state,
     if (!NullableUtils.isNullable(hangTime)) {
         hangTime = NullableUtils.getExn(hangTime)
 
-        if (performance.now() - hangTime >= _getRandomHangTime(_getData(state).hangTime)) {
+        if (getNow(state) - hangTime >= _getRandomHangTime(_getData(state, usedGirl).hangTime)) {
             return _downAndUp(state,
-                [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc], usedGirl,
                 collisionPart_,
                 backActionName,
                 limitRange,
@@ -905,6 +959,7 @@ let _handleLightStomp = (state: state,
         state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
             return Promise.resolve(_handleLightStomp(state,
                 [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+                usedGirl,
                 collisionPart_,
                 backActionName,
                 limitRange,
@@ -921,11 +976,12 @@ let _handleLightStomp = (state: state,
     state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
         return Promise.resolve(_follow(state,
             [getBoneFunc, isFootIKBoneFunc, isInLegRangeFunc],
+            usedGirl,
             collisionPart_,
             backActionName,
             limitRange,
             otherFoorIKBone,
-            NumberUtils.getRandomInteger(1, _getData(state).followMaxCount),
+            NumberUtils.getRandomInteger(1, _getData(state, usedGirl).followMaxCount),
         ))
     }, 1))
 
@@ -974,19 +1030,26 @@ let _setCurrentTweens = (state: state, tweens: Array<tween>) => {
     })
 }
 
-// export let stopCurrentTweens = (state: state) => {
-export let handleChangeToStressing = (state: state) => {
-    NullableUtils.forEach(tweens => {
-        ArticluatedAnimation.stopTweens(tweens)
-    },
-        getCustomData(state).tweens
-    )
+let _clearDeferData = (state: state) => {
+    if (hasCustomData(state)) {
+        NullableUtils.forEach(tweens => {
+            ArticluatedAnimation.stopTweens(tweens)
+        },
+            getCustomData(state).tweens
+        )
+    }
 
     state = setAbstractState(state, Flow.removeDeferExecFuncData(getAbstractState(state), _buildKeyForDeferByTime()))
 
-    // return markFinish(state, getIdExn(state, actionName.LightStomp), behaviourTreeNodeExecuteResult.Fail)
+    // return markFinish(state, usedGirl, getIdExn(state, usedGirl, actionName.LightStomp), behaviourTreeNodeExecuteResult.Fail)
     // return Promise.resolve(state)
     return state
+
+}
+
+// export let stopCurrentTweens = (state: state) => {
+export let handleChangeToStressing = (state: state) => {
+    return _clearDeferData(state)
 }
 
 // let _removeCurrentTween = (state: state) => {
@@ -996,12 +1059,14 @@ export let handleChangeToStressing = (state: state) => {
 let _buildKeyForDeferByTime = () => "LightStomp_DeferByTime"
 
 let _hangRightLightStompEndHandler = (state: state, { userData }) => {
-    let d = getLeftFootIKBone(state)
+    let { usedGirl } = userData
+
+    let d = getLeftFootIKBone(state, usedGirl)
     state = d[0]
     let bone1 = d[1]
 
 
-    d = getRightFootIKBone(state)
+    d = getRightFootIKBone(state, usedGirl)
     state = d[0]
     let bone2 = d[1]
 
@@ -1009,14 +1074,15 @@ let _hangRightLightStompEndHandler = (state: state, { userData }) => {
     )
 
 
-    // let startTime = performance.now()
+    // let startTime = getNow(state)
 
 
     state = _handleLightStomp(state,
         [getRightFootIKBone, isRightFootIKBone, _isInLegRange],
+        usedGirl,
         collisionPart.RightFoot,
         actionName.BackRightLightStomp,
-        _expandRigthLimitRangeForFollow(state, _getRightLegLimitRange()),
+        _expandRigthLimitRangeForFollow(state, usedGirl, _getRightLegLimitRange()),
         bone1, NullableUtils.getEmpty(),
         NullableUtils.getEmpty(),
         NullableUtils.getEmpty(),
@@ -1026,12 +1092,13 @@ let _hangRightLightStompEndHandler = (state: state, { userData }) => {
 }
 
 let _hangLeftLightStompEndHandler = (state: state, { userData }) => {
-    let d = getRightFootIKBone(state)
+    let { usedGirl } = userData
+    let d = getRightFootIKBone(state, usedGirl)
     state = d[0]
     let bone1 = d[1]
 
 
-    d = getLeftFootIKBone(state)
+    d = getLeftFootIKBone(state, usedGirl)
     state = d[0]
     let bone2 = d[1]
 
@@ -1040,14 +1107,15 @@ let _hangLeftLightStompEndHandler = (state: state, { userData }) => {
 
 
 
-    // let startTime = performance.now()
+    // let startTime = getNow(state)
 
 
     state = _handleLightStomp(state,
         [getLeftFootIKBone, isLeftFootIKBone, _isInLegRange],
+        usedGirl,
         collisionPart.LeftFoot,
         actionName.BackLeftLightStomp,
-        _expandLeftLimitRangeForFollow(state, _getLeftLegLimitRange()),
+        _expandLeftLimitRangeForFollow(state, usedGirl, _getLeftLegLimitRange()),
         bone1, NullableUtils.getEmpty(),
         NullableUtils.getEmpty(),
         NullableUtils.getEmpty(),
@@ -1057,9 +1125,10 @@ let _hangLeftLightStompEndHandler = (state: state, { userData }) => {
 }
 
 let _backLightStompEndHandler = (state: state, { userData }) => {
+    let { usedGirl } = userData
     state = _setPhase(state, phase.None)
 
-    return markFinish(state, getIdExn(state, actionName.LightStomp), behaviourTreeNodeExecuteResult.Success)
+    return markFinish(state, usedGirl, getIdExn(state, usedGirl, actionName.LightStomp), behaviourTreeNodeExecuteResult.Success)
 }
 
 // let _qteEndHandler = (state: state, { userData }) => {
@@ -1090,7 +1159,17 @@ export let dispose = (state: state) => {
     // state = setAbstractState(state, Event.off(getAbstractState(state), getQTEEndEventName(), _qteEndHandler))
     state = setAbstractState(state, Event.off(getAbstractState(state), getPointerDownEventName(), pointdownHandle))
 
-    state = _clearIKBoneCustomData(state)
+    state = stop(state)
+
+    return state
+}
+
+export let stop = (state: state) => {
+    state = ArrayUtils.reduce(Girl.getCurrentUsedGirls(state), (state, usedGirl) => {
+        return _clearIKBoneCustomData(state, usedGirl)
+    }, state)
+
+    state = _clearDeferData(state)
 
     return state
 }

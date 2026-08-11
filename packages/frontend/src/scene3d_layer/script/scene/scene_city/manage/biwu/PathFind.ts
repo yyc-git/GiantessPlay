@@ -4,19 +4,25 @@ import { range, setStep } from "meta3d-jiehuo-abstract/src/ai/PathFind"
 import { createGrid, destroyedHandler, setGrid, setGridForGirl } from "../city1/PathFind"
 import { getDestroyedEventName } from "../../utils/EventUtils"
 import { Event } from "meta3d-jiehuo-abstract"
+import { getMovableRange } from "./Utils"
 
 export let initWhenImportScene = (state: state) => {
     // let step = getStepByRenderAccuracy(state)
     let step = 2
 
+    let { minX, maxX, minZ, maxZ } = getMovableRange()
+
     const range: range = {
-        min: [-190, -52],
-        max: [50, 67]
+        // min: [-190, -52],
+        // max: [50, 67]
+        min: [minX, minZ],
+        max: [maxX, maxZ]
     }
 
     state = setAbstractState(state, setStep(getAbstractState(state), step))
 
-    state = setGrid(state, createGrid(state, range, step))
+    // state = setGrid(state, createGrid(state, range, step))
+    state = setGrid(state, range, step)
 
     state = setGridForGirl(state, range)
 

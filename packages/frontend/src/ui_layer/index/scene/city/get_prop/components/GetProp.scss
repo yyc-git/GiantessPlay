@@ -1,0 +1,50 @@
+@use "../../../../../../Main.scss" as *;
+
+.get-prop-main {
+	@include background-unset;
+
+	.adm-mask {
+		margin-top: 20%;
+
+		// width: 30%;
+		// height: 30%;
+		// margin-left: 35%;
+		width: 30%;
+		height: 20%;
+		margin-left: 20%;
+	}
+
+	.title {
+		@include font-size;
+		z-index: 2;
+
+		color: yellow !important;
+
+
+		.prop_image {
+			width: 2rem;
+			height: 2rem;
+		}
+	}
+
+	.row {
+		height: 100%;
+
+		.col {
+
+			.title_container {
+				width: 100%;
+			}
+
+			.level3 {
+				@include font-size-level3;
+				color: white !important;
+			}
+
+			// .level2 {
+			// 	@include font-size-level2;
+			// 	color: yellow !important;
+			// }
+		}
+	}
+}

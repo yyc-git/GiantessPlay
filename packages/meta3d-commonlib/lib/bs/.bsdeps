@@ -1,0 +1,21 @@
+10.1.4
+D:\Github\GTS-Play\node_modules\meta3d-commonlib
+1 -bs-package-output commonjs:lib\js:.bs.js -bs-package-output es6-global:lib\es6_global:.bs.js
+bsconfig.json	0x1.a2917fdced96ep+30
+src	0x1.a2917fe27e592p+30
+src\test	0x1.a2917fe27f5fp+30
+src\test\bdd	0x1.a2917fe280651p+30
+src\structure	0x1.a2917fe27d531p+30
+src\structure\utils	0x1.a2917fe27d531p+30
+src\structure\tuple	0x1.a2917fe27d531p+30
+src\structure\sparse_map	0x1.a2917fe27c4d1p+30
+src\structure\hash_map	0x1.a2917fe27b471p+30
+src\scene_graph	0x1.a2917fe27210ep+30
+src\scene_graph\component	0x1.a2917fe278382p+30
+src\scene_graph\component\test	0x1.a2917fe278382p+30
+src\math	0x1.a2917fe26efecp+30
+src\log	0x1.a2917fe26cf2cp+30
+src\copy	0x1.a2917fe26beccp+30
+src\contract	0x1.a2917fe26beccp+30
+===
+D:\Github\GTS-Play\node_modules\rescript\win32\rescript.exe	0x1.a382f99413178p+30

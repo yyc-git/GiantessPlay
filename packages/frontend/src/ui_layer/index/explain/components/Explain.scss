@@ -1,4 +1,4 @@
-@import "../../../../Main.scss";
+@use "../../../../Main.scss" as *;
 
 .explain-main {
 	@include background-unset;

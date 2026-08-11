@@ -15,6 +15,10 @@ const store = configureStore({
     info: InfoReducer,
     errorHandle: ErrorHandleReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 })
 
 export default store

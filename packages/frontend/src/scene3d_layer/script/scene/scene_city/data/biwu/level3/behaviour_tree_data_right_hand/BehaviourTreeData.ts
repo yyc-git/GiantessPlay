@@ -1,8 +1,8 @@
 import { Console } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../../../../type/StateType"
-import { attackRange, pose, targetPrior, targetType } from "../../../../type/StateType"
+import { attackRange, pose,  targetType } from "../../../../type/StateType"
 import { behaviourTreeData, controlNode } from "../../../behaviour_tree_data/BehaviourTreeDataType"
-import * as BehaviourTreeData from "../../../behaviour_tree_data/BehaviourTreeData"
+import * as BehaviourTreeData from "../../../behaviour_tree_data/utils/BehaviourTreeDataUtils"
 import * as BehaviourTreeDataAll from "../behaviour_tree_data_all/BehaviourTreeData"
 import { eventName } from "../GameEventData"
 import { isFinish } from "../../../../scenario/Command"
@@ -18,10 +18,13 @@ export enum extendActionNode {
     Add,
     OneFingerAttack,
     BeatAttack,
+    Rest,
 }
 
-export type actionNode = BehaviourTreeData.actionNode | extendActionNode
-export const actionNode = { ...BehaviourTreeData.actionNode, ...extendActionNode }
+// export type actionNode = BehaviourTreeData.actionNode | extendActionNode
+// export const actionNode = { ...BehaviourTreeData.actionNode, ...extendActionNode }
+export type actionNode =  extendActionNode
+export const actionNode = {  ...extendActionNode }
 
 
 
@@ -68,23 +71,23 @@ export let initWhenImportScene = (state: state) => {
 export let getData = ([
 ]): behaviourTreeData<actionNode> => {
     return {
-        returnFailCondition: (state: state) => {
+        conditionReturnFail: (state: state, usedGirl) => {
             return BehaviourTreeDataAll.getCustomData(state).rightHandAttackType != BehaviourTreeDataAll.attackType.None
         },
         node: controlNode.Selector,
         children: [
             {
-                returnFailCondition: (state: state) => NumberUtils.isRandomRate(BehaviourTreeDataAll.getCustomData(state).getRestRateFunc(state) * getRestRateFactor(state)),
+                conditionReturnFail: (state: state, usedGirl) => NumberUtils.isRandomRate(BehaviourTreeDataAll.getCustomData(state).getRestRateFunc(state) * getRestRateFactor(state)),
                 node: actionNode.Rest,
                 children: []
             },
             {
                 name: "fightRightHand",
-                returnFailCondition: (state: state) => true,
+                conditionReturnFail: (state: state, usedGirl) => true,
                 node: controlNode.Selector,
                 children: [
                     {
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             let data = BehaviourTreeDataAll.getCustomData(state)
 
                             return data.rightHandAttackType == BehaviourTreeDataAll.attackType.Add
@@ -94,14 +97,14 @@ export let getData = ([
                         children: []
                     },
                     {
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return BehaviourTreeDataAll.getCustomData(state).rightHandAttackType == BehaviourTreeDataAll.attackType.OneFingerAttack
                         },
                         node: actionNode.OneFingerAttack,
                         children: []
                     },
                     {
-                        returnFailCondition: (state: state) => {
+                        conditionReturnFail: (state: state, usedGirl) => {
                             return BehaviourTreeDataAll.getCustomData(state).rightHandAttackType == BehaviourTreeDataAll.attackType.BeatAttack
                         },
                         node: actionNode.BeatAttack,

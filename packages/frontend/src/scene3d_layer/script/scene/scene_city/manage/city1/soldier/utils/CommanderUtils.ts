@@ -1,19 +1,18 @@
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../../../../type/StateType"
-import * as Soldier from "../Soldier"
-import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { commander, xzRange } from "../../../../type/StateType"
 import { Map } from "immutable"
 import { Vector3 } from "three"
-import { armyValue } from "../../../../data/ValueType"
+import { armyValue, weaponValue } from "../../../../data/ValueType"
+import { getState, setState } from "./SoldierUtils"
 
 let _getState = (state: state) => {
-    return NullableUtils.getExn(Soldier.getState(state).commander)
+    return NullableUtils.getExn(getState(state).commander)
 }
 
 let _setState = (state: state, value: commander) => {
-    return Soldier.setState(state, {
-        ...Soldier.getState(state),
+    return setState(state, {
+        ...getState(state),
         commander: NullableUtils.return_(value)
     })
 }
@@ -38,7 +37,7 @@ let _getIncreaseArmyValueForAttack = (armyValue: armyValue) => {
         ...armyValue,
         // defenseFactor: armyValue.defenseFactor * 1.2,
         // moveSpeed: armyValue.moveSpeed * 1.2,
-        emitSpeed: Math.floor(armyValue.emitSpeed / 1.5),
+        // emitSpeed: Math.floor(armyValue.emitSpeed / 1.5),
         emitPrecision: armyValue.emitPrecision / 1.5,
     }
 }

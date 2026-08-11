@@ -15,14 +15,17 @@ import * as  CityScene3D from '../../../../../business_layer/CityScene3D';
 import { off, on } from "../../../../../business_layer/Event";
 import { getDestroyedEventName } from "../../../../../scene3d_layer/script/scene/scene_city/utils/EventUtils";
 import { isGirl } from "../../../../../scene3d_layer/script/scene/scene_city/girl/Girl";
-import { getLevelNumber, getSceneChapter, isGiantessRoad, isLittleRoad } from "../../../../../scene3d_layer/script/scene/scene_city/CityScene";
+import { getLevelNumber, getSceneChapter, isGiantessCharacterType, isLittleCharacterType } from "../../../../../scene3d_layer/script/scene/scene_city/CityScene";
 import { Camera } from "meta3d-jiehuo-abstract";
 import { getAbstractState } from "../../../../../scene3d_layer/state/State";
 import { getOrbitControls } from "meta3d-jiehuo-abstract/src/scene/Camera";
 import { startLoop } from "../../../../../business_layer/Loop";
 import { CameraControls } from "meta3d-jiehuo-abstract";
 import { defaultIconPrefixCls } from "antd/es/config-provider";
-import { enterLevel, exit } from "../../../../utils/MissionUtils";
+import { enterNextLevel, exit } from "../../../../utils/MissionUtils";
+import { getWholeGameTimeString } from "../../../../../scene3d_layer/script/scene/scene_city/manage/mission/Mission";
+import { getLanguageTextData, languageKey } from "../../../../../scene3d_layer/internation/Data";
+import { handleEventHandler } from "../../../../utils/ErrorUtils";
 
 let MissionFail: React.FC = () => {
 	let [isShowModal, setIsShowModal] = useState(true)
@@ -43,19 +46,19 @@ let MissionFail: React.FC = () => {
 
 	let _getTitle = () => {
 
-		// return isGiantessRoad(readState()) ? "小人胜利了" : "巨大娘胜利了"
+		// return isGiantessCharacterType(readState()) ? "小人胜利了" : "巨大娘胜利了"
 		// return "你倒下了"
-		return "再接再厉"
+		return getLanguageTextData(readState(), languageKey.MissionFailTitle)
 	}
 
-	let _isContinue = (state) => {
-		switch (getSceneChapter(state)) {
-			case scene.Biwu:
-				return false
-			default:
-				return isLittleRoad(state)
-		}
-	}
+	// let _isContinue = (state) => {
+	// 	switch (getSceneChapter(state)) {
+	// 		case scene.Biwu:
+	// 			return false
+	// 		default:
+	// 			return isLittleCharacterType(state)
+	// 	}
+	// }
 
 	// useEffect(() => {
 	// 	writeState(on(readState(), getDestroyedEventName(), _destroyedEventHandler))
@@ -76,9 +79,11 @@ let MissionFail: React.FC = () => {
 		content={
 			<>
 				<Row justify="center" className="row">
-					<Title className="game_time">{`游戏时间：${CityScene3D.getGameTime(readState())}`}</Title>
+					{/* <Title className="game_time">{`游戏时间：${CityScene3D.getGameTimeString(readState())}`}</Title> */}
+					<Title className="game_time">{`${getLanguageTextData(readState(), languageKey.TotalGameTime)}：${getWholeGameTimeString(readState())}`}</Title>
 				</Row>
 				<Row justify="center" className="button">
+					{/* 
 					{
 						_isContinue(readState()) ?
 							<Button key={"continue"} className="continue" onClick={_ => {
@@ -93,28 +98,28 @@ let MissionFail: React.FC = () => {
 								{`继续游戏`}
 							</Button >
 							: null
-					}
-					<Button key={"continue"} className="continue" type="primary" onClick={_ => {
+					} */}
+					{/* <Button key={"continue"} className="continue" type="primary" onClick={_ => {
 						let state = readState()
 
-						return enterLevel([
+						return enterNextLevel([
 							setIsShowModal,
 							dispatch
-						], [getSceneChapter(state), getLevelNumber(state)], page.Scene).then(writeState)
+						], [getSceneChapter(state), getLevelNumber(state)], page.Scene)
 					}}>
 						{`重新开始`}
-					</Button >
+					</Button > */}
 
-					<Button key={"index"} className="index" onClick={_ => {
+					<Button key={"index"} className="index" onClick={handleEventHandler(_ => {
 						return exit(dispatch)
-					}}>
-						{`返回首页`}
+					})}>
+						{getLanguageTextData(readState(), languageKey.BackToIndex)}
 					</Button >
 				</Row>
 			</>
 		}
 	>
-	</Modal>
+	</Modal >
 };
 
 export default MissionFail;

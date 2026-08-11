@@ -1,34 +1,47 @@
 import { Euler, Quaternion, Vector3 } from "three"
 import { state } from "../../../../type/StateType"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
-import { getMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { getAbstractState } from "../../../../state/State"
 import { isEnter } from "../scenario/ScenarioManager"
 import { getCurrentAnimationName } from "./Animation"
 import { TransformUtils } from "meta3d-jiehuo-abstract"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { animationName } from "../data/DataType"
+import { MMD } from "meta3d-jiehuo-abstract"
+import { getStompBlockService } from "../../../../mod/SkillGiantessMod"
+import { usedGirl } from "../type/StateType"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 const _e1 = /*@__PURE__*/ new Euler();
 const _q1 = /*@__PURE__*/ new Quaternion();
 
-let _getLookatKey = () => "headLookat"
+let _getLookatKey = (usedGirl) => `${usedGirl}_headLookat`
 
-export let headLookat = (state: state, targetPosition: Vector3, includeAnimations: any = [
-    animationName.Idle,
-    animationName.Walk,
-    animationName.Run,
-    animationName.Stomp]) => {
+export let headLookat = (state: state,
+    updateEulerFunc,
+    usedGirl: usedGirl,
+    targetPosition: Vector3,
+    includeAnimations: any = [
+        animationName.Idle,
+        animationName.Walk,
+        animationName.Run,
+        // animationName.Stomp
+    ].concat(
+        getStompBlockService(state).getAllAnimationNames()
+    )) => {
     if (isEnter(state)) {
-        state = disposeLookat(state)
+        state = disposeLookat(state, usedGirl)
 
         return state
     }
 
-    MutableMapUtils.set(getMMDAnimationHelper(getAbstractState(state)).notIKBoneCustomData, _getLookatKey(), (bone) => {
+    if (!MMD.hasMMDAnimationHelper(getAbstractState(state), usedGirl)) {
+        return state
+    }
+
+    MutableRecordUtils.set(MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).notIKBoneCustomData, _getLookatKey(usedGirl), (bone) => {
         if (bone.name == "頭") {
-            if (!includeAnimations.includes(getCurrentAnimationName(state))) {
+            if (!includeAnimations.includes(getCurrentAnimationName(state, usedGirl))) {
                 return
             }
 
@@ -54,8 +67,10 @@ export let headLookat = (state: state, targetPosition: Vector3, includeAnimation
                 euler.y = -(Math.PI + euler.y)
             }
 
-            // euler.x = 0
             euler.z = 0
+
+            euler = updateEulerFunc(state, euler)
+
 
             bone.quaternion.copy(
                 _q1.setFromEuler(
@@ -75,8 +90,12 @@ export let headLookat = (state: state, targetPosition: Vector3, includeAnimation
     return state
 }
 
-export let disposeLookat = (state: state) => {
-    MutableMapUtils.remove(getMMDAnimationHelper(getAbstractState(state)).notIKBoneCustomData, _getLookatKey())
+export let disposeLookat = (state: state, usedGirl) => {
+    if (!MMD.hasMMDAnimationHelper(getAbstractState(state), usedGirl)) {
+        return state
+    }
+
+    MutableRecordUtils.remove(MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).notIKBoneCustomData, _getLookatKey(usedGirl))
 
     return state
 }

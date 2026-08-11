@@ -24,6 +24,7 @@ export class MMDPhysics {
 
     /*! edit by meta3d */
     update(delta: number, isDisableTranslation: boolean, isUpdatePhysics: boolean): this;
+    dispose(): this;
 
 
     reset(): this;

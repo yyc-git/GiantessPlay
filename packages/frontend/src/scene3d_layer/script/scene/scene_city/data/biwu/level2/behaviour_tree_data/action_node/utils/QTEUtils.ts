@@ -70,7 +70,7 @@ export let getIsHit = (state) => {
     )
 }
 
-let _setIsHit = (state, value) => {
+export let setIsHit = (state, value) => {
     return _setCustomData(state, {
         ..._getCustomDataExn(state),
         isHit: value
@@ -101,7 +101,9 @@ let _getWidth = () => 20
 let _getActiveLineWidth = () => 5
 
 let _generateActiveLineLeft = () => {
-    return NumberUtils.getRandomInteger(0, _getWidth() - _getActiveLineWidth())
+    // return NumberUtils.getRandomInteger(0, _getWidth() - _getActiveLineWidth())
+    let remainWidth = _getWidth() - _getActiveLineWidth()
+    return NumberUtils.getRandomInteger(remainWidth * 0.3, remainWidth)
 }
 
 let _getMoveDeferName = () => "qte_move"
@@ -109,7 +111,7 @@ let _getMoveDeferName = () => "qte_move"
 let _handleEnd = (state: state, isHit) => {
     state = _setMoveLineLeft(state, 0)
     state = _setActiveLineLeft(state, 0)
-    state = _setIsHit(state, isHit)
+    state = setIsHit(state, isHit)
     state = _setIsStart(state, false)
 
     state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(isHit ? getQTESuccessSoundResourceId() : getQTEFailSoundResourceId(), getIsDebug(state), getSystemVolume(state))))
@@ -136,7 +138,7 @@ let _move = (state: state, speed) => {
     return Event.trigger(state, getAbstractState, getQTEUpdateEventName(), null)
 }
 
-export let startQTE = (state: state) => {
+export let startQTE = (state: state, usedGirl, speedFactor) => {
     state = _initCustomData(state)
 
     state = _setIsStart(state, true)
@@ -146,7 +148,7 @@ export let startQTE = (state: state) => {
     state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getQTEStartSoundResourceId(), getIsDebug(state), getSystemVolume(state))))
 
     // return _move(state, NumberUtils.clamp(0.5 * 1.5 / timeScalar, 0.2, 1))
-    return _move(state, 0.5 * 1.5 / _getTimeScalar(state))
+    return _move(state, speedFactor * 0.5 * 1.5 / _getTimeScalar(state, usedGirl))
 }
 
 let _isHit = (state: state) => {
@@ -156,9 +158,9 @@ let _isHit = (state: state) => {
     return moveLineLeft >= activeLineLeft && moveLineLeft <= activeLineLeft + _getActiveLineWidth()
 }
 
-let _getTimeScalar = (state: state) => {
+let _getTimeScalar = (state: state, usedGirl) => {
     let factor
-    if (isHard(state)) {
+    if (isHard(state, usedGirl)) {
         factor = 2
     }
     else {
@@ -167,7 +169,8 @@ let _getTimeScalar = (state: state) => {
 
     const value = 1.5 * factor
 
-    return NumberUtils.getRandomFloat(value * 0.5, value * 1.5)
+    // return NumberUtils.getRandomFloat(value * 0.5, value * 1.5)
+    return NumberUtils.getRandomFloat(value * 0.8, value * 1.3)
 }
 
 export let pointdownHandle = (state: state, { userData }): Promise<state> => {

@@ -1,14 +1,16 @@
 import { Box3, Box3Helper, Matrix3, Matrix4, Quaternion, Scene, Sphere, SphereGeometry, Vector3 } from "three"
-import { getCollisionState, getIsDebug, setCollisionState } from "../state/State"
-import { collision, name, state } from "../type/StateType"
+import { getCollisionState, getIsDebug, getIsNotTestPerf, setCollisionState } from "../state/State"
+import { camp, collision, name, state } from "../type/StateType"
 import { OBB } from "../three/OBB"
-import { NullableUtils, OBBHelper, TransformUtils } from "../Main"
+import { ArrayUtils, NullableUtils, OBBHelper, TransformUtils } from "../Main"
 import { getEmpty, isNullable, return_ } from "../utils/NullableUtils"
 import { push } from "../utils/ArrayUtils"
 import { InstanceSourceLOD } from "../lod/InstanceSourceLOD"
 import { nullable } from "../utils/nullable"
 import { getBox, getName, getOctreeForStaticLODContainer, getTransform } from "../lod/LOD"
 import { boxCollisionResult } from "../utils/CollisionUtils"
+import { LODQueue } from "../lod/lod2/LODQueue"
+import { LODContainer } from "../lod/lod2/LODContainer"
 
 const _q = new Quaternion();
 const _m = new Matrix4();
@@ -27,14 +29,14 @@ const _v2 = new Vector3();
 // 	})
 // }
 
-export let getPlayerCollisionableContainers = (state: state) => {
-	return getCollisionState(state).playerCollisionContainers
+export let getPlayerMoveCollisionableContainers = (state: state) => {
+	return getCollisionState(state).playerMoveCollisionContainers
 }
 
-export let setPlayerCollisionableContainers = (state: state, collisionContainers) => {
+export let setPlayerMoveCollisionableContainers = (state: state, collisionContainers) => {
 	return setCollisionState(state, {
 		...getCollisionState(state),
-		playerCollisionContainers: collisionContainers
+		playerMoveCollisionContainers: collisionContainers
 	})
 }
 
@@ -49,9 +51,13 @@ export let setPlayerCollisionableContainers = (state: state, collisionContainers
 // 	})
 // }
 
-export let queryRangeCollisionByBox = (state: state, box: Box3): Array<[Array<Matrix4>, Array<Box3>, Array<string>]> => {
-	let data = getPlayerCollisionableContainers(state).reduce((result, container) => {
-		let [transforms, boxes, names] = container.queryRangeByBox(state, box, [], [], [])
+export let queryRangeCollisionByBox = (state: state, getCampFunc, specificState,
+	allArmyContainers,
+	box: Box3, camp: nullable<camp>): Array<[Array<Matrix4>, Array<Box3>, Array<string>]> => {
+	// box: Box3): Array<[Array<Matrix4>, Array<Box3>, Array<string>]> => {
+	let data = allArmyContainers.reduce((result, container) => {
+		// let [transforms, boxes, names] = container.queryRangeByBoxAndCamp(state, getCampFunc, specificState, box, camp, [], [], [])
+		let [transforms, boxes, names] = NullableUtils.isNullable(camp) ? container.queryRangeByBox(state, box, [], [], []) : container.queryRangeByBoxAndCamp(state, getCampFunc, specificState, box, NullableUtils.getExn(camp), [], [], [])
 
 		if (transforms.length == 0) {
 			return result
@@ -77,11 +83,13 @@ export let queryRangeCollisionByBox = (state: state, box: Box3): Array<[Array<Ma
 
 
 // export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: string): [nullable<boxCollisionResult>, nullable<Matrix4>, nullable<Box3>, nullable<name>] => {
-export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: string): nullable<[Matrix4, Box3, name]> => {
-	let result = getPlayerCollisionableContainers(state).reduce((result, container) => {
-		if (!NullableUtils.isNullable(result)) {
-			return result
-		}
+// export let queryCollisionByBoxAndSkip = (state: state, allContainers: Array<LODQueue>, box: Box3, skippedNames: Array<string>): nullable<[Matrix4, Box3, name]> => {
+// export let queryCollisionByBoxAndSkip = (state: state, allContainers: Array<LODQueue>, box: Box3, skippedNames: Array<string>): Array<[Matrix4, Box3, name]> => {
+export let queryCollisionByBoxAndSkip = (state: state, allContainers: Array<LODQueue>, box: Box3, skippedNames: Array<string>): Array<Box3> => {
+	let result = allContainers.reduce<Array<Box3>>((result, container) => {
+		// if (!NullableUtils.isNullable(result)) {
+		// 	return result
+		// }
 
 		let [transforms, boxes, names] = container.queryRangeByBox(state, box, [], [], [])
 
@@ -90,21 +98,24 @@ export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: s
 		}
 
 		return names.reduce((result, name, i) => {
-			if (!NullableUtils.isNullable(result)) {
-				return result
-			}
+			// if (!NullableUtils.isNullable(result)) {
+			// 	return result
+			// }
 
-			if (name != skippedName) {
-				return NullableUtils.return_([transforms[i], boxes[i], name])
+			// if (name != skippedName) {
+			if (!skippedNames.includes(name)) {
+				// return NullableUtils.return_([transforms[i], boxes[i], name])
+				// return ArrayUtils.push(result, [transforms[i], boxes[i], name])
+				return ArrayUtils.push(result, boxes[i])
 			}
 
 			return result
 		}, result)
-	}, NullableUtils.getEmpty())
+	}, [])
 
-	if (!NullableUtils.isNullable(result)) {
-		return result
-	}
+	// if (!NullableUtils.isNullable(result)) {
+	// 	return result
+	// }
 
 	let indices = getOctreeForStaticLODContainer(state).queryRangeByBox(state, box)
 
@@ -118,14 +129,16 @@ export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: s
 
 
 		return indices.reduce((result, index) => {
-			if (!NullableUtils.isNullable(result)) {
-				return result
-			}
+			// if (!NullableUtils.isNullable(result)) {
+			// 	return result
+			// }
 
 			let name = getName(state, index)
 
-			if (name != skippedName) {
-				return NullableUtils.return_([getTransform(state, index), getBox(state, index), name])
+			if (!skippedNames.includes(name)) {
+				// return NullableUtils.return_([getTransform(state, index), getBox(state, index), name])
+				// return ArrayUtils.push(result, [getTransform(state, index), getBox(state, index), name])
+				return ArrayUtils.push(result, getBox(state, index))
 			}
 
 			return result
@@ -137,7 +150,7 @@ export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: s
 
 // export let queryCapsuleCollision = (state: state, capsule: Capsule) => {
 // 	let capsuleBox = capsule.toBox()
-// 	let data = getPlayerCollisionableContainers(state).reduce((data, container) => {
+// 	let data = getPlayerMoveCollisionableContainers(state).reduce((data, container) => {
 // 		if (data[0] !== null) {
 // 			return data
 // 		}
@@ -177,7 +190,7 @@ export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: s
 
 // export let queryBoxCollision = (state: state, box: Box3): [nullable<boxCollisionResult>, nullable<Matrix4>, nullable<Box3>, nullable<name>] => {
 // export let queryBoxCollision = (state: state, box: Box3): [nullable<Matrix4>, nullable<Box3>, nullable<name>] => {
-// 	let data = getPlayerCollisionableContainers(state).reduce((data, container) => {
+// 	let data = getPlayerMoveCollisionableContainers(state).reduce((data, container) => {
 // 		if (data[0] !== null) {
 // 			return data
 // 		}
@@ -203,40 +216,47 @@ export let queryCollisionByBoxAndSkip = (state: state, box: Box3, skippedName: s
 
 // 	return data
 // }
-// export let queryBoxCollision = (state: state, box: Box3): [nullable<Matrix4>, nullable<Box3>, nullable<name>] => {
-export let queryBoxCollision = (state: state, box: Box3): nullable<[Matrix4, Box3, name]> => {
-	let data = getPlayerCollisionableContainers(state).reduce((data, container) => {
-		if (!NullableUtils.isNullable(data[0])) {
-			return data
-		}
 
-		return container.queryByBox(state, box)
-	}, [null, null, null])
+// export let queryBoxCollision = (state: state, allContainers, box: Box3, isOnlyCollisionWithStatic: boolean): Array<[Matrix4, Box3, name]> => {
+// 	let data = []
+// 	if (!isOnlyCollisionWithStatic) {
+// 		data = allContainers.reduce((data, container) => {
+// 			return ArrayUtils.pushArrs(
+// 				data,
+// 				container.queryRangeByBox(state, box)
+// 			)
+// 		}, data)
+// 	}
 
+// 	return getOctreeForStaticLODContainer(state).queryRangeByBoxForParticle(state, box).reduce((data, index) => {
+// 		return ArrayUtils.push(data, [
+// 			getTransform(state, index),
+// 			getBox(state, index),
+// 			getName(state, index),
+// 		])
+// 	}, data)
+// }
+export let queryBoxCollision = (state: state, allContainers, box: Box3, isOnlyCollisionWithStatic: boolean): Array<Box3> => {
+	let data = []
+	if (!isOnlyCollisionWithStatic) {
+		data = allContainers.reduce((data, container) => {
+			let [_, boxes, _names] = container.queryRangeByBox(state, box)
 
-	if (NullableUtils.isNullable(data[0])) {
-		// let d = getOctreeForStaticLODContainer(state).queryByBoxForCollision(state, box)
-		let d = getOctreeForStaticLODContainer(state).queryByBoxForParticle(state, box)
-		if (!NullableUtils.isNullable(d)) {
-			let index = NullableUtils.getExn(d)
-
-			data = [
-				getTransform(state, index),
-				getBox(state, index),
-				getName(state, index),
-			]
-		}
+			return ArrayUtils.pushArrs(
+				data,
+				boxes
+			)
+		}, data)
 	}
 
-	if (NullableUtils.isNullable(data[0])) {
-		return NullableUtils.getEmpty()
-	}
-
-	return [
-		NullableUtils.getExn(data[0]),
-		NullableUtils.getExn(data[1]),
-		NullableUtils.getExn(data[2]),
-	]
+	return getOctreeForStaticLODContainer(state).queryRangeByBoxForParticle(state, box).reduce((data, index) => {
+		// return ArrayUtils.push(data, [
+		// 	getTransform(state, index),
+		// 	getBox(state, index),
+		// 	getName(state, index),
+		// ])
+		return ArrayUtils.push(data, getBox(state, index))
+	}, data)
 }
 
 export let queryPointCollision = (collisionableContainers, point: Vector3) => {
@@ -254,7 +274,7 @@ export let queryPointCollision = (collisionableContainers, point: Vector3) => {
 export let createOBB = (scene, state: state, debugColor = 0xfff333) => {
 	let obb = new OBB()
 
-	if (getIsDebug(state)) {
+	if (getIsDebug(state) && getIsNotTestPerf(state)) {
 		let helper = new OBBHelper.OBBHelper(obb, debugColor)
 
 		scene.add(helper)
@@ -266,7 +286,7 @@ export let createOBB = (scene, state: state, debugColor = 0xfff333) => {
 export let createAABB = (scene, state: state, debugColor = 0xfff333) => {
 	let box3 = new Box3()
 
-	if (getIsDebug(state)) {
+	if (getIsDebug(state) && getIsNotTestPerf(state)) {
 		let helper = new Box3Helper(box3, debugColor)
 
 		scene.add(helper)
@@ -300,7 +320,7 @@ export let updateOBB = (obb: OBB, center: Vector3, quat: Quaternion, halfSize: V
 
 export let createState = (): collision => {
 	return {
-		playerCollisionContainers: [],
+		playerMoveCollisionContainers: [],
 		// cameraCollisionOctrees: [],
 		// emitterCollisionContainers: [],
 	}

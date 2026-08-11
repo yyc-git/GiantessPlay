@@ -1,6 +1,6 @@
 import { Camera, Object3D, OrthographicCamera, PerspectiveCamera, Vector3 } from "three"
 import { camera, state } from "../type/StateType"
-import { getIsDebug, getIsProduction, getRenderState, getSceneState, setSceneState } from "../state/State"
+import { getIsDebug, getIsProduction, getRenderState, getSceneState, readState, setSceneState } from "../state/State"
 import { getEmpty, getExn, getWithDefault, map, return_ } from "../utils/NullableUtils"
 import { getHeight, getWidth } from "meta3d-utils/src/View"
 import { init as initCameraControls, createState as createCameraControlsState, disposeState } from "./CameraControls"
@@ -9,7 +9,7 @@ import { getCurrentScene } from "./Scene"
 import { findTerrainGeometry } from "../terrain/Terrain"
 import { OrbitControls } from "../three/OrbitControls"
 import { getDelta, isMobile } from "../Device"
-import { FirstPersonControls } from "../Main"
+import { FirstPersonControls, NullableUtils, Render } from "../Main"
 
 // let _createOrbitControls = (state: state, renderer) => {
 //     // let camera = new PerspectiveCamera(60, getWidth() / getHeight(), 0.1, 10000)
@@ -33,9 +33,15 @@ import { FirstPersonControls } from "../Main"
 //     return controls
 // }
 
-export let isCanLock = (state) => {
+export let getDomElement = (state: state) => {
+    // return getRenderState(state).renderer.domElement
+    return getOrbitControls(state).domElement as HTMLElement
+}
+
+export let isCanLock = (state: state) => {
     // return !getIsDebug(state) && !isMobile()
     return getIsProduction(state) && !isMobile()
+        && (!NullableUtils.isNullable(getDomElement(state)) && typeof getDomElement(state).requestPointerLock === "function")
 }
 
 export let getOrbitControls = (state: state) => {
@@ -71,8 +77,13 @@ export let getFirstPersonControls = (state: state) => {
 //     })
 // }
 
+export let getCurrentCameraNullable = (state: state) => {
+    return getSceneState(state).camera.currentCamera
+}
+
+
 export let getCurrentCamera = (state: state) => {
-    return getExn(getSceneState(state).camera.currentCamera)
+    return getExn(getCurrentCameraNullable(state))
 }
 
 export let setCurrentCamera = (state: state, camera) => {
@@ -115,7 +126,7 @@ export let createState = (): camera => {
         currentControls: null,
         orbitControls: null,
         cameraControls: createCameraControlsState(),
-        trackballControls: null,
+        // trackballControls: null,
         firstPersonControls: null,
     }
 }
@@ -126,16 +137,17 @@ export let createState = (): camera => {
 //     })
 // }
 
-export let init = (state: state, funcs) => {
-    let renderer = getRenderState(state).renderer
+export let init = (state: state, funcs, domElement) => {
+    // let renderer = getRenderState(state).renderer
+    // let domElement = Render.getDomElement()
 
     state = setSceneState(state, {
         ...getSceneState(state),
         camera: {
             ...getSceneState(state).camera,
-            orbitControls: return_(new OrbitControls(new PerspectiveCamera(), renderer.domElement)),
+            orbitControls: return_(new OrbitControls(new PerspectiveCamera(), domElement)),
             // trackballControls: return_(new TrackballControls(new OrthographicCamera(), renderer.domElement)),
-            firstPersonControls: return_(FirstPersonControls.create(renderer.domElement)),
+            firstPersonControls: return_(FirstPersonControls.create(domElement)),
             // firstPersonControls: return_(new FirstPersonControls(new PerspectiveCamera(), renderer.domElement)),
         }
     })
@@ -260,7 +272,7 @@ export let dispose = (cameraState: camera) => {
         currentControls: null,
         // orbitControls: null,
         cameraControls: disposeState(cameraState.cameraControls),
-        trackballControls: null
+        // trackballControls: null
     }
 }
 
@@ -268,3 +280,9 @@ export let dispose = (cameraState: camera) => {
 // let _handleResize = (trackballControls: TrackballControls) => {
 //     trackballControls.handleResize()
 // }
+
+export let updatePosition = (camera: Camera, position) => {
+    camera.position.copy(position)
+
+    return camera
+}

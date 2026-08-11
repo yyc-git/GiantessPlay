@@ -1,0 +1,6 @@
+jump_stomp
+
+sit related
+
+walk
+run

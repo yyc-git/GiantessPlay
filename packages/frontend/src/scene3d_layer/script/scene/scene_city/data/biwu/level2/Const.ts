@@ -1,5 +1,4 @@
 import { getName as getSceneName } from "../../../CityScene"
-import { getName } from "../../../girl/Girl"
 import { animationName } from "./DataType"
 
 export let getAnimationFrameCountMap = () => {

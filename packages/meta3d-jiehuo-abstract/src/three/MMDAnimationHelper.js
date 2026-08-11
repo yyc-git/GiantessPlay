@@ -10,6 +10,16 @@ import { CCDIKSolver } from "three/examples/jsm/animation/CCDIKSolver";
 // import { MMDPhysics } from "three/examples/jsm/animation/MMDPhysics";
 import { MMDPhysics } from "./MMDPhysics";
 
+function _loopHandler(event) {
+
+	const tracks = event.action._clip.tracks;
+
+	if (tracks.length > 0 && tracks[0].name.slice(0, 6) !== '.bones') return;
+
+	// objects.looped = true;
+
+}
+
 /**
  * MMDAnimationHelper handles animation of MMD assets loaded by MMDLoader
  * with MMD special features as IK, Grant, and Physics.
@@ -126,11 +136,12 @@ class MMDAnimationHelper {
 	 * @param {THREE.SkinnedMesh|THREE.Camera|THREE.Audio} object
 	 * @return {MMDAnimationHelper}
 	 */
-	remove(object) {
+	/*! edit by meta3d */
+	remove(object, disposeClipAndMixerFunc) {
 
 		if (object.isSkinnedMesh) {
 
-			this._removeMesh(object);
+			this._removeMesh(object, disposeClipAndMixerFunc);
 
 		} else if (object.isCamera) {
 
@@ -442,7 +453,29 @@ class MMDAnimationHelper {
 
 	}
 
-	_removeMesh(mesh) {
+	/*! edit by meta3d */
+	_removeMesh(mesh, disposeClipAndMixerFunc) {
+		if (this.objects.has(mesh)) {
+			let object = this.objects.get(mesh);
+			if (object.physics != null) {
+				object.physics.dispose()
+			}
+
+			let mixer = object.mixer
+
+
+			this.animations[mesh.id].forEach(([_, clip]) => {
+				disposeClipAndMixerFunc(clip, mixer, mesh)
+			})
+
+			mixer.removeEventListener('loop', _loopHandler);
+
+			object.mixer = null
+		}
+
+
+
+
 
 		let found = false;
 		let writeIndex = 0;
@@ -450,12 +483,12 @@ class MMDAnimationHelper {
 		for (let i = 0, il = this.meshes.length; i < il; i++) {
 
 			if (this.meshes[i] === mesh) {
-
 				this.objects.delete(mesh);
 				found = true;
 
 
 				/*!edit by meta3d */
+
 				delete this.animations[mesh.id]
 
 
@@ -578,15 +611,17 @@ class MMDAnimationHelper {
 
 
 			// TODO: find a workaround not to access ._clip looking like a private property
-			objects.mixer.addEventListener('loop', function (event) {
+			// objects.mixer.addEventListener('loop', function (event) {
 
-				const tracks = event.action._clip.tracks;
+			// 	const tracks = event.action._clip.tracks;
 
-				if (tracks.length > 0 && tracks[0].name.slice(0, 6) !== '.bones') return;
+			// 	if (tracks.length > 0 && tracks[0].name.slice(0, 6) !== '.bones') return;
 
-				// objects.looped = true;
+			// 	// objects.looped = true;
 
-			});
+			// });
+			/*! edit by meta3d */
+			objects.mixer.addEventListener('loop', _loopHandler);
 
 		}
 
@@ -1088,6 +1123,11 @@ class MMDAnimationHelper {
 
 	}
 
+
+	/*! edit by meta3d */
+	clearCache(mesh) {
+		this.objects.get(mesh).backupBones = undefined
+	}
 }
 
 // Keep working quaternions for less GC
@@ -1134,7 +1174,15 @@ function updateOne(mesh, boneIndex, ikSolver, grantSolver, ikBoneCustomData, not
 	if (grantSolver && boneData.grant &&
 		!boneData.grant.isLocal && boneData.grant.affectRotation) {
 
-		const parentIndex = boneData.grant.parentIndex;
+		/*! edit by meta3d */
+		// const parentIndex = boneData.grant.parentIndex;
+		let parentIndex = boneData.grant.parentIndex;
+		if (parentIndex == -1) {
+			parentIndex = boneData.parent
+		}
+
+
+
 		const ratio = boneData.grant.ratio;
 
 		if (!_grantResultMap.has(parentIndex)) {
@@ -1354,7 +1402,6 @@ class GrantSolver {
 		return this;
 
 	}
-
 }
 
 export { MMDAnimationHelper };

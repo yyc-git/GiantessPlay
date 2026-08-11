@@ -4,15 +4,23 @@ import { actionNodeFunc, behaviourTreeNodeExecuteResult, targetType } from "../.
 import { markFinish } from "../BehaviourTreeManager"
 import { Console } from "meta3d-jiehuo-abstract"
 import { markIsRunning } from "../../utils/BehaviourManagerUtils"
+// import { isCanRest } from "../../../../../mod/PropOtherMod"
 
-export let rest: actionNodeFunc = (state, id) => {
+export let rest: actionNodeFunc = (state, usedGirl, id) => {
     Console.log("rest")
 
-    state = markIsRunning(state, true)
+    // if (!isCanRest(state)) {
+    //     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // }
 
-    state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
-        return markFinish(state, id, behaviourTreeNodeExecuteResult.Success)
-    }, 50))
+    state = markIsRunning(state, usedGirl, true)
+
+    // state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
+    //     return markFinish(state, usedGirl,  id, behaviourTreeNodeExecuteResult.Success)
+    // }, 50))
+    state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
+        return markFinish(state, usedGirl, id, behaviourTreeNodeExecuteResult.Success)
+    }, 2))
 
     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
 }

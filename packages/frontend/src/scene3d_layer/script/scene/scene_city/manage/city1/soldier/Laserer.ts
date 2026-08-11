@@ -1,6 +1,6 @@
 import { getAbstractState, readState, setAbstractState, writeState } from "../../../../../../state/State"
 import { state } from "../../../../../../type/StateType"
-import { getScene, getBasicBulletGunEmmitSoundResourceId, getState as getCitySceneState, setState as setCitySceneState, getName as getCitySceneName, getLaserBulletGunEmmitSoundResourceId } from "../../../CityScene"
+import { getScene, getState as getCitySceneState, setState as setCitySceneState, getName as getCitySceneName, getLaserBulletGunEmmitSoundResourceId } from "../../../CityScene"
 import { getIsDebug } from "../../../../Scene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { soldier, objectStateName, particleNeedCollisionCheckLoopFrames, damageType, collisionPart } from "../../../type/StateType"
@@ -23,7 +23,7 @@ import { Flow } from "meta3d-jiehuo-abstract"
 import { buildDownDirection, buildRandomDirectionInXZ } from "../../../../../../utils/DirectionUtils"
 import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { InstanceSourceLOD as InstanceSourceLODType } from "meta3d-jiehuo-abstract/src/lod/InstanceSourceLOD"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { bulletParticle, fontType, fsm_state, labelAnimation, lodQueueIndex, name, staticLODContainerIndex, tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import * as Girl from "../../../girl/Girl"
@@ -35,33 +35,33 @@ import { GPUSkin } from "meta3d-jiehuo-abstract"
 import { LODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/LODQueue"
 import { Device } from "meta3d-jiehuo-abstract"
 import { InstancedSkinLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedSkinLOD2"
-import { armyValue, emitPrecision, emitSpeed, emitVolume, emitterLife, emitterSize, emitterSpeed, objectValue } from "../../../data/ValueType"
+import { armyValue, emitPrecision, emitSpeed, emitterVolume, emitterLife, emitterSize, emitterSpeed, objectValue } from "../../../data/ValueType"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Loader } from "meta3d-jiehuo-abstract"
-import { add, buildQueue } from "../../../utils/LODQueueUtils"
+import { add, buildQueue } from "../../../utils/AviailableLODQueueUtils"
 import { fixZFighting } from "meta3d-jiehuo-abstract/src/utils/MaterialUtils"
 import { solveBlackBoardProblem } from "meta3d-jiehuo-abstract/src/utils/TextureUtils"
 import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import { buildStatus } from "../../../utils/LODContainerUtils"
 import { getRandomCollisionPart, isNearGirl } from "../../../utils/CollisionUtils"
 import { buildMultipleTweens, computeEuler, computeMoveTime, getMoveData, position, singleMoveData } from "../../../utils/MoveUtils"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
+
 import { LabelManager } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { convertPositionFromThreejsToBlender } from "../../../utils/BlenderUtils"
 import { ModelLoader } from "meta3d-jiehuo-abstract"
-import { parseCharacter, parseCharacterQueue } from "../WholeScene"
+import { getNearDistance, parseCharacterQueue } from "../WholeScene"
 import { Render } from "meta3d-jiehuo-abstract"
 import { ParticleManager } from "meta3d-jiehuo-abstract"
 // import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
-import { queryAllOBBShapesCollisionWithBox } from "../../../girl/Collision"
+import { queryOBBShapeCollisionWithBox } from "../../../girl/Collision"
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getVolume } from "../../../utils/SoundUtils"
-import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, setParticleNeedCollisionCheckLoopCount, getParticleNeedCollisionCheckLoopCount, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy } from "../../../utils/ArmyUtils"
+import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy } from "../../../utils/ArmyUtils"
 import { LOD } from "meta3d-jiehuo-abstract"
 import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { buildBloodDecalQueue, buildNameInShadowQueue, createBloodData, createDestroyingState, createStressingState, removeShadow, restoreShadow, updateShadow, handlePickdown as handlePickdownUtils } from "../../../utils/CharacterUtils"
-import { defenseFactor, excitement, forceSize, hp, speed } from "../../../data/DataType"
+import { armorStrength, armorRatio, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, excitement, forceSize, hp, speed, armorType } from "../../../data/DataType"
 import { updateTransform as updateTransformUtils, getLocalTransform as getLocalTransformUtils, getBoxForPick as getBoxForPickUtils } from "../../../girl/PickPoseUtils"
 import { getGiantessTransformFunc, getPickTransformPrefix } from "../../../utils/SkeletonUtils"
 import { isMaxArmySpeed } from "../../../utils/ConfigUtils"
@@ -76,11 +76,19 @@ import {
     getLasererResourceId,
     getEmitWorkFrameCount,
     getShootWorkFrameCount,
+    getDeathHeadshotAnimationResourcePath,
+    getLieAnimationResourcePath,
+    getStandupFromLieAnimationResourcePath,
 } from "../../../army_data/SoldierData"
 import { addBoneGroup, setBonePositionOffset } from "../../../utils/BoneUtils"
 import * as Soldier from "./Soldier"
 import * as LaserGun from "../../../weapon/LaserGun"
 import { computeTimeSecond } from "../../../utils/AnimationUtils"
+import { getNamePrefixLaserer, isLasererUtils } from "./utils/SoldierUtils"
+import { updateArmyValue } from "../../../difficulty/HeatImplementer"
+import { getCampExn } from "../Army"
+import { setAttackFactor, setCritRatioFactor, setDefenseFactor, setEmitSpeedFactor, setMoveSpeed } from "../../../StaticDynamicUnit"
+import { getParticleNeedCollisionCheckLoopCount } from "../../../utils/ArmyUtils2"
 
 
 const _b = new Box3()
@@ -95,12 +103,18 @@ enum animationClipIndex {
     Run = 0,
     Shoot = 1,
     Death = 2,
-    Shake = 3,
-    Idle = 4,
-    Controlled = 5,
+    DeathHeadshot = 3,
+    Shake = 4,
+    Idle = 5,
+    PickedControlled = 6,
+    Lie = 7,
+    StandupFromLie = 8,
+    // FlyBack = 9,
+    // StandupFromFlyBack = 10,
+    // Dizzy = 11,
 }
 
-export let getNamePrefix = () => `${Soldier.getNamePrefix()}_laserer`
+export let getNamePrefix = getNamePrefixLaserer
 
 export let buildCategoryName = getNamePrefix
 
@@ -108,22 +122,26 @@ export let buildSkinLODName = () => {
     return `${getNamePrefix()}_lod`
 }
 
-export let isLaserer = (name: string) => {
-    return name.includes(getNamePrefix())
-}
+export let isLaserer = isLasererUtils
 
-export let getValue = (state:state): armyValue => {
-    return {
+export let getValue = (state: state) => {
+    return updateArmyValue<armyValue>(state, {
         excitement: excitement.High,
         defenseFactor: defenseFactor.Low,
+        armorType: armorType.Light,
+        armorRatio: armorRatio.None,
+        armorStrength: armorStrength.Zero,
+        attackFactor: attackFactor.VeryLow2,
+        emitSpeedFactor: emitSpeedFactor.Low,
+        critRatioFactor: critRatioFactor.Low,
+        //missRatio: missRatio.VeryLow,
         hp: hp.Low,
 
         moveSpeed: speed.Low,
 
-        emitSpeed: emitSpeed.Middle,
-        emitVolume: emitVolume.Small,
+        // emitSpeed: emitSpeed.Middle,
         emitPrecision: emitPrecision.High,
-    }
+    })
 }
 
 export let getModelQueue = (state: state) => {
@@ -137,71 +155,92 @@ export let getShadowQueue = (state: state) => {
 export let initWhenImportScene = (state: state) => {
     let { resourceId, resourcePath } = getModelData(state, modelName.Laserer)
 
-    return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), resourceId), resourcePath,).then(rocketeer => {
+    return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), resourceId), resourcePath,).then(laserer => {
         return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Idle), getIdleAnimationResourcePath(getCitySceneName())).then(idle => {
             return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Run), getRunningAnimationResourcePath(getCitySceneName())).then(run => {
                 return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Shoot), getShootingAnimationResourcePath(getCitySceneName())).then(shoot => {
                     return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Shake), getShakeAnimationResourcePath(getCitySceneName())).then(shake => {
                         return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Death), getDeathAnimationResourcePath(getCitySceneName())).then(death => {
-                            return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Controlled), getControlledAnimationResourcePath(getCitySceneName())).then(controlled => {
+                            return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.DeathHeadshot), getDeathHeadshotAnimationResourcePath(getCitySceneName())).then(deathHeadshot => {
+                                return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.PickedControlled), getControlledAnimationResourcePath(getCitySceneName())).then(pickedControlled => {
+                                    return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.Lie), getLieAnimationResourcePath(getCitySceneName())).then(lie => {
+                                        return ModelLoader.parseFbx(getAbstractState(state), Loader.getResource(getAbstractState(state), animationName.StandupFromLie), getStandupFromLieAnimationResourcePath(getCitySceneName())).then(standupFromLie => {
 
-                                state = Soldier.setState(state, {
-                                    ...Soldier.getState(state),
-                                    initialQuaternionMap: Soldier.getState(state).initialQuaternionMap.set(modelName.Laserer,
-                                        Soldier.getSoldierSkinMesh(rocketeer).quaternion.clone()
-                                    ),
+                                            state = Soldier.setState(state, {
+                                                ...Soldier.getState(state),
+                                                initialQuaternionMap: Soldier.getState(state).initialQuaternionMap.set(modelName.Laserer,
+                                                    Soldier.getSoldierSkinMesh(laserer).quaternion.clone()
+                                                ),
+                                            })
+
+
+                                            laserer = addBoneGroup(laserer)
+
+                                            state = setBonePositionOffset(state, laserer, getModelData(state, modelName.Laserer).positionOffset)
+
+                                            let data = parseCharacterQueue(
+                                                state, [
+                                                buildCategoryName,
+                                                Soldier.getSoldierSkinMesh,
+                                                Soldier.setData,
+                                                buildSkinLODName,
+                                                //Soldier.getFPS,
+                                                box => {
+                                                    return box.clone().setFromCenterAndSize(box.getCenter(_v1), _v1.set(1, 15, 2))
+                                                }
+                                            ],
+                                                laserer,
+                                                [
+                                                    run.animations[0],
+                                                    shoot.animations[0],
+                                                    death.animations[0],
+                                                    deathHeadshot.animations[0],
+                                                    shake.animations[0],
+                                                    idle.animations[0],
+                                                    pickedControlled.animations[0],
+                                                    lie.animations[0],
+                                                    standupFromLie.animations[0],
+                                                    // flyBack.animations[0],
+                                                    // standupFromFlyBack.animations[0],
+                                                    // dizzy.animations[0],
+                                                ],
+                                                getNearDistance,
+                                                getScene(state),
+                                                // _v1.set(0.2, 0.2, 0.4),
+                                                // NullableUtils.return_(_v1.set(1, 15, 2))
+                                            )
+                                            state = data[0]
+                                            let allClipDurations = data[1]
+                                            let allClipSteps = data[2]
+
+                                            return Soldier.setClipData(state, buildCategoryName(), allClipDurations, allClipSteps)
+                                        })
+                                    })
                                 })
-
-
-                                rocketeer = addBoneGroup(rocketeer)
-
-                                state = setBonePositionOffset(state, rocketeer, getModelData(state, modelName.Laserer).positionOffset)
-
-                                let data = parseCharacterQueue(
-                                    state, [
-                                    buildCategoryName,
-                                    Soldier.getSoldierSkinMesh,
-                                    Soldier.setData,
-                                    buildSkinLODName,
-                                    Soldier.getFPS
-                                ],
-                                    rocketeer,
-                                    [
-                                        run.animations[0],
-                                        shoot.animations[0],
-                                        death.animations[0],
-                                        shake.animations[0],
-                                        idle.animations[0],
-                                        controlled.animations[0],
-                                    ],
-                                    500,
-                                    getScene(state)
-                                )
-                                state = data[0]
-                                let allClipDurations = data[1]
-                                let allClipSteps = data[2]
-
-                                return Soldier.setClipData(state, buildCategoryName(), allClipDurations, allClipSteps)
                             })
                         })
                     })
                 })
             })
         })
-    }).then(Soldier.initWhenImportScene)
-}
-
-let _getFullHp = (state) => {
-    return getValue(state).hp
+    })
 }
 
 export let initialAttributes = (state, name, index) => {
+    let { defenseFactor, moveSpeed, attackFactor, critRatioFactor, emitSpeedFactor } = getValue(state)
+
+    state = setDefenseFactor(state, name, defenseFactor)
+    state = setMoveSpeed(state, name, moveSpeed)
+    state = setAttackFactor(state, name, attackFactor)
+    state = setEmitSpeedFactor(state, name, emitSpeedFactor)
+    state = setCritRatioFactor(state, name, critRatioFactor)
+    // state = setMissRatio(state, name,)
+
     return Soldier.setState(state, {
         ...Soldier.getState(state),
         lodQueueIndexMap: Soldier.getState(state).lodQueueIndexMap.set(name, index),
         stateMachineMap: Soldier.getState(state).stateMachineMap.set(name, StateMachine.create(name, createInitialState())),
-        defenseFactorMap: Soldier.getState(state).defenseFactorMap.set(name, getValue(state).defenseFactor),
-        hpMap: Soldier.getState(state).hpMap.set(name, _getFullHp(name)),
+        hpMap: Soldier.getState(state).hpMap.set(name, getFullHp(state)),
     })
 }
 
@@ -215,10 +254,10 @@ let _getShootClipIndex = (name) => {
 }
 
 let _getControlledClipIndex = (name) => {
-    return animationClipIndex.Controlled
+    return animationClipIndex.PickedControlled
 }
 
-let _getShakeClipIndex = (name) => {
+let _getShakeClipIndex = (name, damageType_) => {
     return animationClipIndex.Shake
 }
 
@@ -226,37 +265,32 @@ let _getRunClipIndex = (name) => {
     return animationClipIndex.Run
 }
 
-let _getDeathClipIndex = (name) => {
-    return animationClipIndex.Death
+let _getDeathClipIndex = Soldier.getDeathClipIndex(animationClipIndex.Death, animationClipIndex.DeathHeadshot, animationClipIndex.Lie)
+
+let _getLieClipIndex = (name) => {
+    return animationClipIndex.Lie
 }
+
+let _getStandupClipIndex = (name) => {
+    return animationClipIndex.StandupFromLie
+}
+
 
 export let damage = (damageFunc) => {
     return damageFunc(
         [
             _getShakeClipIndex,
             _getDeathClipIndex,
+            _getIdleClipIndex,
+            _getLieClipIndex,
+            _getStandupClipIndex,
             createInitialState,
+            getValue
         ]
     )
 }
 
-export let createInitialState = (): fsm_state<state> => {
-    return {
-        name: objectStateName.Initial,
-        enterFunc: (state) => Promise.resolve(state),
-        executeFunc: (state, name) => {
-            let clipIndex = _getIdleClipIndex(name)
-
-            state = setAbstractState(state, GPUSkin.playLoop(
-                getAbstractState(state),
-                name, clipIndex
-            ))
-
-            return Promise.resolve(state)
-        },
-        exitFunc: (state: state) => Promise.resolve(state),
-    }
-}
+export let createInitialState = Soldier.createInitialState(_getIdleClipIndex)
 
 let _getBulletStartLocalPosition = (soldierScale) => {
     // return new Vector3(-0.915845, 7.97347, 4.49601).multiply(soldierScale)
@@ -287,21 +321,22 @@ export let createShootState = (): fsm_state<state> => {
                     return setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
                         let {
                             emitSpeed,
-                            emitVolume,
                             emitPrecision
                         } = armyValue
                         let {
+                            emitterVolume,
                             emitterSpeed,
                             emitterLife,
                             emitterSize,
                         } = weaponValue
 
                         state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
-                            SoundManager.buildNeedToPlaySoundData(getLaserBulletGunEmmitSoundResourceId(), getIsDebug(state), getVolume(state, emitVolume, soldierPosition, 0))
+                            SoundManager.buildNeedToPlaySoundData(getLaserBulletGunEmmitSoundResourceId(), getIsDebug(state), getVolume(state, emitterVolume, soldierPosition, 0))
                         ))
 
                         state = setAbstractState(state, ParticleManager.emitLaserBullet(getAbstractState(state), {
                             fromName: name,
+                            camp: getCampExn(state, name),
                             speed: emitterSpeed,
                             life: emitterLife,
                             size: emitterSize,
@@ -314,10 +349,10 @@ export let createShootState = (): fsm_state<state> => {
                                 targetPosition.clone().sub(soldierPosition).normalize(),
                                 emitPrecision
                             ).toArray(),
-                        }, getParticleNeedCollisionCheckLoopCount(state)))
+                        }, getParticleNeedCollisionCheckLoopCount(state, emitterSpeed)))
 
                         return Promise.resolve(state)
-                    }, computeTimeSecond(getShootWorkFrameCount()), name))
+                    }, computeTimeSecond(state, getShootWorkFrameCount(), name), name))
                 },
 
 
@@ -325,7 +360,9 @@ export let createShootState = (): fsm_state<state> => {
                 LaserGun.getValue(state),
                 Soldier.getInitialQuaternion(state, modelName.Laserer),
 
-                name, clipIndex, lodQueue, lODQueueAndShadowLODQueueIndex)
+                name, clipIndex,
+                _getIdleClipIndex(state),
+                lodQueue, lODQueueAndShadowLODQueueIndex)
 
             return Promise.resolve(state)
         },
@@ -333,25 +370,14 @@ export let createShootState = (): fsm_state<state> => {
     }
 }
 
-export let createControlledState = (): fsm_state<state> => {
-    return {
-        name: objectStateName.Controlled,
-        enterFunc: (state) => Promise.resolve(state),
-        executeFunc: (state, _, stateMachine) => {
-            let name = stateMachine.name
+export let createPickedControlledState = Soldier.createSoldierControlledState(_getControlledClipIndex, objectStateName.PickedControlled)
 
-            let clipIndex = _getControlledClipIndex(name)
+export let createUBControlledState = Soldier.createSoldierControlledState(_getControlledClipIndex, objectStateName.UBControlled)
 
-            state = setAbstractState(state, GPUSkin.playLoop(
-                getAbstractState(state),
-                name, clipIndex
-            ))
+export let createBreastControlledState = Soldier.createSoldierControlledState(_getControlledClipIndex, objectStateName.BreastControlled)
 
-            return Promise.resolve(state)
-        },
-        exitFunc: (state: state, stateMachine) => Promise.resolve(state),
-    }
-}
+export let createShoeControlledState = Soldier.createSoldierControlledState(_getControlledClipIndex, objectStateName.ShoeControlled)
+
 
 let _getShadowQueue = (state: state, name: string) => {
     let categoryName
@@ -395,13 +421,49 @@ export let update = (state: state) => {
 
 export let getPickedTransform = Soldier.getPickedTransform(modelName.Laserer)
 
-export let handlePickup = (state: state, name: name) => {
-    return Soldier.handlePickup(state, createControlledState, name)
+export let getUBControlledTransform = Soldier.getUBControlledTransform(modelName.Laserer)
+
+export let getPutToBreastTransform = Soldier.getPutToBreastTransform(modelName.Laserer)
+
+export let getPutToShoeTransform = Soldier.getPutToShoeTransform(modelName.Laserer)
+
+export let handlePickup = (state: state, usedGirl, name: name) => {
+    return Soldier.handlePickup(state, createPickedControlledState, name)
 }
 
 export let updateTransform = Soldier.updateTransform
 
 export let handlePickdown = Soldier.handlePickdown([createInitialState, _getShadowQueue])
+
+export let handleFall = Soldier.handleFall([
+    _getControlledClipIndex, _getIdleClipIndex, _getStandupClipIndex, _getLieClipIndex,
+    _getShadowQueue
+])
+
+export let handleRepel = Soldier.handleRepel([
+    _getIdleClipIndex, _getControlledClipIndex,
+    _getShadowQueue
+])
+
+export let handleUBControl = (state: state, usedGirl, name: name) => {
+    return Soldier.handleUBControl(state, createUBControlledState, name)
+}
+
+export let handlePutToBreast = (state: state, usedGirl, name: name) => {
+    return Soldier.handlePutToBreast(state, createBreastControlledState, name)
+}
+
+export let handlePutToShoe = (state: state, usedGirl, name: name) => {
+    return Soldier.handlePutToShoe(state, createShoeControlledState, name)
+}
+
+
+export let updateUBControlledTransform = Soldier.updateUBControlledTransform
+
+export let updatePutToBreastTransform = Soldier.updatePutToBreastTransform
+
+export let updatePutToShoeTransform = Soldier.updatePutToShoeTransform
+
 
 export let getLocalTransform = Soldier.getLocalTransform
 
@@ -411,3 +473,17 @@ export let getBoxForPick = Soldier.getBoxForPick
 export let getModelQueueIndex = Soldier.getModelQueueIndex
 
 export let getHp = Soldier.getHp
+
+export let getHpRatio = (state, name) => {
+    return Soldier.getHpWithDefault(state, name) / getFullHp(state)
+}
+
+export let updateHp = Soldier.updateHp
+
+export let getFullHp = (state) => {
+    return getValue(state).hp
+}
+
+export let getSnapshot = () =>  `./resource/ui/in_game/snapshot/laserer.png`
+
+export let getModelName = () =>  modelName.Laserer

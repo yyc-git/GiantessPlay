@@ -1,7 +1,15 @@
 import { pose as poseEnum } from "../../../type/StateType"
 import { state } from "../../../../../../type/StateType"
-import { data, getSizeFactor, multiplyScalar } from "../../CollisionShapeData"
-import { mmdCharacter } from "../../mmd/MMDData"
+import { data } from "mmd-character-protocol/src/service/ServiceType"
+import { getSizeFactor, multiplyScalar } from "../../../../../../mod/Mod"
+import { mmdCharacter } from "./mmd/MMDData"
+// import { mmdCharacter } from "mmd-character-extend/src/json/Type"
+// import { data, getSizeFactor, multiplyScalar } from "../../CollisionShapeData"
+// import { mmdCharacter } from "../../mmd/MMDData"
+
+// export enum mmdCharacter {
+// 	Haku_QP2 = "Haku_QP2",
+// }
 
 
 export enum collisionPart {
@@ -59,12 +67,12 @@ export type pose = poseEnum | extendedPose
 export const pose = { ...poseEnum, ...extendedPose }
 
 
-export let getData = (state: state): data<pose, collisionPart> => {
+export let getData = (state: state): data<mmdCharacter, pose, collisionPart> => {
 	return [
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightFoot1,
 			twoBones: {
@@ -112,8 +120,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftFoot1,
 			twoBones: {
@@ -165,8 +173,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightFoot2,
 			twoBones: {
@@ -214,8 +222,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftFoot2,
 			twoBones: {
@@ -263,8 +271,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightShank1,
 			twoBones: {
@@ -311,8 +319,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftShank1,
 			twoBones: {
@@ -359,8 +367,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightShank2,
 			twoBones: {
@@ -407,8 +415,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftShank2,
 			twoBones: {
@@ -456,8 +464,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightThigh,
 			twoBones: {
@@ -505,8 +513,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftThigh,
 			twoBones: {
@@ -554,8 +562,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.TrigoneAndButt,
 			twoBones: {
@@ -603,8 +611,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.Torso,
 			oneBone: {
@@ -656,8 +664,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LowBreast,
 			oneBone: {
@@ -690,17 +698,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 
 		{
-			mmds: [mmdCharacter.Meiko, mmdCharacter.Haku_QP, mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.LeftUpperArm,
 			twoBones: {
@@ -721,17 +719,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 			},
 		},
 		{
-			mmds: [mmdCharacter.Meiko, mmdCharacter.Haku_QP, mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.RightUpperArm,
 			twoBones: {
@@ -753,16 +741,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 		},
 
 		{
-			mmds: [mmdCharacter.Meiko, mmdCharacter.Haku_QP, mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.RightUpperArm,
 			twoBones: {
@@ -785,18 +764,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 
 		{
-			mmds: [mmdCharacter.Meiko, mmdCharacter.Haku_QP, mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.LeftLowerArm,
 			twoBones: {
@@ -834,18 +802,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 			},
 		},
 		{
-			mmds: [mmdCharacter.Meiko, mmdCharacter.Haku_QP, mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.RightLowerArm,
 			twoBones: {
@@ -887,20 +844,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 
 		{
-			mmds: [mmdCharacter.Haku_QP,
-			mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-
-			mmdCharacter.Meiko,
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.LeftHand,
 			twoBones: {
@@ -925,20 +869,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 			},
 		},
 		{
-			mmds: [mmdCharacter.Haku_QP,
-			mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-
-			mmdCharacter.Meiko,
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.RightHand,
 			twoBones: {
@@ -964,22 +895,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 		},
 
 		{
-			mmds: [mmdCharacter.Haku_QP,
-			mmdCharacter.Haku_Lady,
-			mmdCharacter.Baixi_Maid,
-
-			// mmdCharacter.Luoli1,
-			mmdCharacter.Meiko,
-
-			mmdCharacter.XiaHui,
-			mmdCharacter.Moye,
-			mmdCharacter.Miku1,
-			mmdCharacter.Nero,
-			mmdCharacter.Changee,
-			mmdCharacter.Xiaye1,
-			mmdCharacter.Vanilla,
-			mmdCharacter.Xiaye2,
-			mmdCharacter.Meibiwusi,
+			mmds: [mmdCharacter.Haku_QP2,
 			],
 			collisionPart: collisionPart.Head,
 			oneBone: {
@@ -1023,8 +939,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftBreast,
 			oneBone: {
@@ -1074,7 +990,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 				rightDirectionScalar: [
 					{
 						pose: pose.All,
-						value: 0
+						value: 0.01
 					},
 					{
 						pose: pose.HeavyStressingLie,
@@ -1084,7 +1000,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 				upDirectionScalar: [
 					{
 						pose: pose.All,
-						value: 0.025
+						// value: 0.025
+						value: 0.035
 					},
 					{
 						pose: pose.HeavyStressingLie,
@@ -1111,8 +1028,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 		},
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightBreast,
 			oneBone: {
@@ -1184,7 +1101,7 @@ export let getData = (state: state): data<pose, collisionPart> => {
 				upDirectionScalar: [
 					{
 						pose: pose.All,
-						value: 0.03
+						value: 0.035
 					},
 					{
 						pose: pose.HeavyStressingLie,
@@ -1212,8 +1129,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftNipple,
 			oneBone: {
@@ -1296,8 +1213,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 		},
 		{
 			mmds: [
-				mmdCharacter.Haku_QP,
-				mmdCharacter.Haku_Lady,
+				mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightNipple,
 			oneBone: {
@@ -1396,8 +1313,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 
 
 		{
-			mmds: [mmdCharacter.Haku_QP,
-			mmdCharacter.Haku_Lady,
+			mmds: [mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.RightFinger,
 			oneBone: {
@@ -1433,8 +1350,8 @@ export let getData = (state: state): data<pose, collisionPart> => {
 			},
 		},
 		{
-			mmds: [mmdCharacter.Haku_QP,
-			mmdCharacter.Haku_Lady,
+			mmds: [mmdCharacter.Haku_QP2,
+
 			],
 			collisionPart: collisionPart.LeftFinger,
 			oneBone: {

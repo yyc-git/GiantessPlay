@@ -90,7 +90,7 @@ export let update = (state: state) => {
             })
         },
         (particle, _, i, now) => {
-            return updateOffsetParticle(particle, now, _getColCount(), _getRowCount())
+            return updateOffsetParticle(particle, now, _getColCount(), _getRowCount(), [-0.35, -0.35])
         },
         updateGeometryAttributeForOffset
     ], getExn(_getState(state).geometry))

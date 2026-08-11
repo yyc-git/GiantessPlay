@@ -1,6 +1,6 @@
 import { MutableMapUtils } from "../Main"
 import { getGPUSkinState, setGPUSkinState } from "../state/State"
-import { gpuSkin, state } from "../type/StateType"
+import { gpuSkin, objectName, state } from "../type/StateType"
 import { getExn, getWithDefault, map, return_ } from "../utils/NullableUtils"
 import * as GPUSkeleton from "./GPUSkeleton"
 import * as GPUSkinAnimation from "./GPUSkinAnimation"
@@ -40,7 +40,8 @@ export let registerAnimation = GPUSkeleton.registerAnimation
 export let getMaxDuration = () => {
 	// return 2
 	// return 3
-	return 5
+	// return 5
+	return 6
 	// return 20
 }
 
@@ -54,6 +55,8 @@ export let playLoop = GPUSkinAnimation.playLoop
 
 export let playLastFrame = GPUSkinAnimation.playLastFrame
 
+// export let playSpecificFrame = GPUSkinAnimation.playSpecificFrame
+
 export let initAnimationData = GPUSkinAnimation.initAnimationData
 
 export let createState = (): gpuSkin => {
@@ -65,9 +68,33 @@ export let createState = (): gpuSkin => {
 		playedClipIndexMap: MutableMapUtils.create(),
 		onceClipOnCompleteFuncMap: MutableMapUtils.create(),
 		// isOnceClipOnCompleteFuncExecutedMap: MutableMapUtils.create(),
+
+		animationDurationFactorMap: MutableMapUtils.create(),
 	}
 }
 
+export let disposeData = (state: state, name: objectName) => {
+	// console.log("dispose data: ", name)
+
+	return setGPUSkinState(state, {
+		...getGPUSkinState(state),
+		instancedSkeletonAnimationTimeMap: MutableMapUtils.remove(getGPUSkinState(state).instancedSkeletonAnimationTimeMap, name),
+		playedClipIndexMap: MutableMapUtils.remove(getGPUSkinState(state).playedClipIndexMap, name),
+		onceClipOnCompleteFuncMap: MutableMapUtils.remove(getGPUSkinState(state).onceClipOnCompleteFuncMap, name),
+		clipDurationsMap: MutableMapUtils.remove(getGPUSkinState(state).clipDurationsMap, name),
+		clipStepsMap: MutableMapUtils.remove(getGPUSkinState(state).clipStepsMap, name),
+		animationDurationFactorMap: MutableMapUtils.remove(getGPUSkinState(state).animationDurationFactorMap, name),
+	})
+}
+
+
 export let dispose = (state: state) => {
+	MutableMapUtils.clear(getGPUSkinState(state).clipDurationsMap)
+	MutableMapUtils.clear(getGPUSkinState(state).clipStepsMap)
+	MutableMapUtils.clear(getGPUSkinState(state).instancedSkeletonAnimationTimeMap)
+	MutableMapUtils.clear(getGPUSkinState(state).playedClipIndexMap)
+	MutableMapUtils.clear(getGPUSkinState(state).onceClipOnCompleteFuncMap)
+	MutableMapUtils.clear(getGPUSkinState(state).animationDurationFactorMap)
+
 	return setGPUSkinState(state, createState())
 }

@@ -12,7 +12,7 @@ import { markFinish } from "../../../../../behaviour_tree/BehaviourTreeManager"
 // import * as BehaviourTreeDataLeftHand from "../../behaviour_tree_data_left_hand/BehaviourTreeData"
 // import * as BehaviourTreeDataRightHand from "../../behaviour_tree_data_right_hand/BehaviourTreeData"
 
-export let twoHandsOneFingerToDefault: actionNodeFunc = (state, id) => {
+export let twoHandsOneFingerToDefault: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("twoHandsOneFingerToDefault")
 
     return triggerActionWithCompleteFunc(state, [
@@ -20,7 +20,7 @@ export let twoHandsOneFingerToDefault: actionNodeFunc = (state, id) => {
         (state, id) => {
             state = resetAttackType(state, handType.TwoHandsOneFingerAttack)
 
-            return markFinish(state, id, behaviourTreeNodeExecuteResult.Success, getKey())
+            return markFinish(state, usedGirl,  id, behaviourTreeNodeExecuteResult.Success, getKey())
         }
-    ], actionName.TwoHandsOneFingerToDefault as any, id, getKey())
+    ], usedGirl, actionName.TwoHandsOneFingerToDefault as any, id, getKey())
 }

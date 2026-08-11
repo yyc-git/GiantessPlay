@@ -65,7 +65,7 @@ export let activateAllActionsForNotMMD = (state: state, targetName, animationNam
 		action.play()
 	})
 
-	return state
+	// return state
 }
 
 export let deactivateAllActionsForNotMMD = (state: state, targetName, animationNames) => {
@@ -167,8 +167,8 @@ export let executeCrossFade = (startAction, endAction, fadeOutDuration, fadeInDu
 
 }
 
-export let getWeight = (state: state, mesh: SkinnedMesh, animationName) => {
-	return getMMDAnimationHelper(state).findAnimationAction(mesh, animationName).getEffectiveWeight()
+export let getWeight = (state: state, usedGirl, mesh: SkinnedMesh, animationName) => {
+	return getMMDAnimationHelper(state, usedGirl).findAnimationAction(mesh, animationName).getEffectiveWeight()
 }
 
 export let getWeightForNotMMD = (action) => {

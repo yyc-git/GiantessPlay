@@ -1,14 +1,16 @@
 {
-	"name": "giantessplay",
+	"name": "gts-demo",
 	"private": true,
-	"license": "MIT",
-	"author": "yyc",
+	"license": "",
 	"scripts": {
 		"clean": "lerna clean",
-		"bootstrap": "lerna bootstrap"
+		"bootstrap": "lerna bootstrap",
+		"webpack_demo": "cd packages/frontend && npm run webpack_demo"
 	},
 	"workspaces": [
-		"packages/*"
+		"packages/*",
+		"demos/*",
+		"mods/*"
 	],
 	"config": {
 		"commitizen": {

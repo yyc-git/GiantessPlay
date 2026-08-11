@@ -1,4 +1,4 @@
-import { config, state } from "../../type/StateType"
+import { config, language, state } from "../../type/StateType"
 import * as CityScene from "./scene_city/CityScene"
 // import * as WarehouseScene from "./scene_warehouse/WarehouseScene"
 import { scene } from "../../../ui_layer/global/store/GlobalStoreType"
@@ -28,8 +28,24 @@ export let getAllScenes = (state: state) => {
     }, [])
 }
 
+export let getLanguage = (state: state) => {
+    return getConfigState(state).language
+}
+
+export let setLanguage = (state: state, language) => {
+    return setConfigState(state, {
+        ...getConfigState(state),
+        language
+    })
+}
+
+export let isChinese = (state = readState()) => getLanguage(state) == language.Chinese
+
+export let isEnglish = (state = readState()) => getLanguage(readState()) == language.English
+
 export let createConfigState = (): config => {
     return {
+        language: language.Chinese,
         isStaticCastShadow: true,
         isGirlRestoreHp: true,
 
@@ -44,7 +60,8 @@ export let createConfigState = (): config => {
 
         littleManConfig: {
             // isSelectLittleMan: false,
-            isOnlyStomp: false,
+            // isOnlyStomp: false,
+            // isOnlyPickup: false,
             isNotExecuteGiantessAI: false,
         }
     }
@@ -53,7 +70,10 @@ export let createConfigState = (): config => {
 let _disposeConfig = (state: state) => {
     return {
         ...state,
-        config: createConfigState()
+        config: {
+            ...createConfigState(),
+            language: getConfigState(state).language,
+        }
     }
 }
 
@@ -64,7 +84,14 @@ export let disposeCurrentScene = (state: state) => {
 
     // currentSceneData = NullableUtils.getExn(currentSceneData)
 
-    state = setAbstractState(state, ArticluatedAnimation.removeAllArticluatedAnimations(getAbstractState(state)))
+    if (CityScene.isDisposed(state)) {
+        return Promise.resolve(state)
+    }
+    state = CityScene.markIsDisposed(state, true)
+
+
+
+    state = setAbstractState(state, ArticluatedAnimation.disposeAllArticluatedAnimations(getAbstractState(state)))
 
     state = _disposeConfig(state)
 
@@ -110,12 +137,12 @@ export let updateCurrentScene = (state: state, name) => {
     })
 }
 
-let _getCamera = (state: state) => {
+export let getCamera = (state: state) => {
     return state.camera
 }
 
 export let enterScene = (state: state, targetScene: scene, levelNumber: number) => {
-    state = setAbstractState(state, Camera.setCurrentCamera(getAbstractState(state), _getCamera(state)))
+    state = setAbstractState(state, Camera.setCurrentCamera(getAbstractState(state), getCamera(state)))
 
     // switch (targetScene) {
     //     case scene.Play:
@@ -125,6 +152,8 @@ export let enterScene = (state: state, targetScene: scene, levelNumber: number) 
     //     default:
     //         throw new Error("error")
     // }
+
+    state = CityScene.markIsDisposed(state, false)
 
     return CityScene.enterScene(state, targetScene, levelNumber)
 }
@@ -179,7 +208,8 @@ export let setIsProduction = (state: state, isProduction) => {
     }))
 
 
-    if (isProduction) {
+    // if (isProduction) {
+    if (isProduction && !getIsDebug(state)) {
         return setAbstractState(state, State.setConfigState(getAbstractState(state), {
             ...State.getConfigState(getAbstractState(state)),
             isNotTestPerf: true,
@@ -225,6 +255,28 @@ export let setIsSkipGameEvent = (state: state, value) => {
         ...State.getConfigState(getAbstractState(state)),
         isSkipGameEvent: value
     }))
+}
+
+export let getIsShowDemo = (state: state) => {
+    return State.getConfigState(getAbstractState(state)).isShowDemo
+}
+
+export let setIsShowDemo = (state: state, value) => {
+    state = setAbstractState(state, State.setConfigState(getAbstractState(state), {
+        ...State.getConfigState(getAbstractState(state)),
+        isShowDemo: value
+    }))
+
+    if (value) {
+        state = setIsProduction(state, true)
+
+        return setAbstractState(state, State.setConfigState(getAbstractState(state), {
+            ...State.getConfigState(getAbstractState(state)),
+            isDebug: false,
+        }))
+    }
+
+    return state
 }
 
 

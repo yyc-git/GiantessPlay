@@ -15,7 +15,8 @@ export class ScreenShake {
 
 
 
-	private _getTargetFunc
+	// private _moveCameraFunc
+	private _moveCameraFunc
 
 	// private _startPoint = undefined
 
@@ -51,7 +52,8 @@ export class ScreenShake {
 				// this._movedDistance = 0
 
 
-				camera.lookAt(this._getTargetFunc(specificState))
+				// camera.lookAt(this._moveCameraFunc(specificState))
+				// this._moveCameraFunc(specificState, new Vector3(0, 0, 0))
 
 			}
 		}
@@ -62,7 +64,7 @@ export class ScreenShake {
 	// vecToAdd param is the offset of the camera position at the climax of its wave.
 	// public shake(camera, distance, milliseconds) {
 	// public shake(distance, milliseconds) {
-	public shake(getTargetFunc, distance, milliseconds) {
+	public shake(moveCameraFunc, distance, milliseconds) {
 		this.enabled = true
 		this._timestampStart = Date.now()
 		this._timestampEnd = this._timestampStart + milliseconds
@@ -74,7 +76,7 @@ export class ScreenShake {
 		// this._startPoint = new Vector3().copy(camera.position)
 		// this._endPoint = new Vector3().addVectors(camera.position, vecToAdd)
 
-		this._getTargetFunc = getTargetFunc
+		this._moveCameraFunc = moveCameraFunc
 	}
 
 
@@ -155,8 +157,10 @@ export class ScreenShake {
 
 		}
 
-		let target = this._getTargetFunc(specificState)
-		camera.lookAt(target.clone().setY(target.y + move))
+		// let target = this._moveCameraFunc(specificState)
+		// camera.lookAt(target.clone().setY(target.y + move))
+		this._moveCameraFunc(specificState, new Vector3(0, move, 0))
+
 		// Console.log(
 		// 	target.clone().setY(target.y + move).y
 		// )

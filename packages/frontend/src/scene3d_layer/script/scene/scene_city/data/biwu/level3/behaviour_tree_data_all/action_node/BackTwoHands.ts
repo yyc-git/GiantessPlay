@@ -8,8 +8,8 @@ import * as Girl from "../../../../../manage/biwu/Girl";
 import { getCustomData, setCustomData } from "../BehaviourTreeData"
 import { getKey } from "../BehaviourTreeData"
 
-export let backTwoHands: actionNodeFunc = (state, id) => {
+export let backTwoHands: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("backTwoHands")
 
-    return triggerAction(state, actionName.BackTwoHands as any, id, Girl.triggerAction, getKey())
+    return triggerAction(state, usedGirl, actionName.BackTwoHands as any, id, Girl.triggerAction, getKey())
 }

@@ -1,11 +1,11 @@
 import { state } from "./type/StateType"
-import { getCanvas, getRenderer } from "./Render";
-import { getRenderState, getStatsState, setStatsState } from "./state/State";
+import { getRenderer } from "./Render";
+import { getIsNotTestPerf, getRenderState, getStatsState, setStatsState } from "./state/State";
 import GLBench from 'gl-bench/dist/gl-bench';
 import RendererStats from 'three-webgl-stats';
-import { getRootDom, rotateDom } from"meta3d-utils/src/LandscapeUtils";
+import { getRootDom, rotateDom } from "meta3d-utils/src/LandscapeUtils";
 
-export let addStats = (state: state) => {
+export let addStats = (state: state, renderer) => {
     let rendererStats = new RendererStats()
 
     // rendererStats.domElement.querySelectorAll("div").forEach(div => div.style.fontSize ='10px')
@@ -16,10 +16,10 @@ export let addStats = (state: state) => {
     rendererStats.domElement.style.zIndex = '1000'
     getRootDom().appendChild(rendererStats.domElement)
 
-    getRenderer(state).info.autoReset = false
+    renderer.info.autoReset = false
 
     state = setStatsState(state, {
-        glBench: new GLBench(getRenderState(state).renderer.getContext(), {
+        glBench: new GLBench(renderer.getContext(), {
             trackGPU: false,
         }),
         rendererStats: rendererStats
@@ -34,12 +34,46 @@ export let addStats = (state: state) => {
 //     return Promise.resolve(state)
 // }
 
-export let init = () => {
+// export let init = () => {
+//     let glBenchDom = document.querySelector("#gl-bench") as HTMLElement
+
+//     if (glBenchDom !== null) {
+//         getRootDom().appendChild(glBenchDom)
+//     }
+// }
+
+export let initWhenImportScene = (state: state) => {
+    if (getIsNotTestPerf(state)) {
+        return state
+    }
+
+    // getRenderer(state).info.autoReset = false
+    state = addStats(state, getRenderer(state))
+
     let glBenchDom = document.querySelector("#gl-bench") as HTMLElement
 
     if (glBenchDom !== null) {
         getRootDom().appendChild(glBenchDom)
     }
+
+
+    return state
+}
+
+export let dispose = (state: state) => {
+    // let { rendererStats, glBench } = getStatsState(state)
+
+    // rendererStats.dispose()
+    // glBench.end()
+
+
+    let glBenchDom = document.querySelector("#gl-bench") as HTMLElement
+
+    if (glBenchDom !== null) {
+        getRootDom().removeChild(glBenchDom)
+    }
+
+    return state
 }
 
 export let begin = (state: state) => {

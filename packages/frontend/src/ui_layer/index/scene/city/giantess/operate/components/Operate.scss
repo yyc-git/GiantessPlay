@@ -11,7 +11,6 @@
         width: 3rem;
         height: 3rem;
 
-
         /*! 禁止长按
         对微信浏览器有用（对安卓浏览器无效）
         */
@@ -38,7 +37,8 @@
         top: 0;
         right: 0;
 
-        z-index: 3;
+        // z-index: 3;
+        z-index: 4;
 
         background-color: gray;
         opacity: 0.8;
@@ -67,7 +67,8 @@
     .button {
         position: fixed;
 
-        z-index: 2;
+        // z-index: 2;
+        z-index: 3;
 
         // opacity: 0.3;
 
@@ -75,16 +76,16 @@
     }
 
     // .bigger {
-    //     width: 3rem;
-    //     height: 3rem;
+    //     width: 2rem;
+    //     height: 2rem;
 
     //     bottom: 7rem;
     //     right: 6rem;
     // }
 
     // .smaller {
-    //     width: 3rem;
-    //     height: 3rem;
+    //     width: 2rem;
+    //     height: 2rem;
 
     //     bottom: 7rem;
     //     right: 2rem;

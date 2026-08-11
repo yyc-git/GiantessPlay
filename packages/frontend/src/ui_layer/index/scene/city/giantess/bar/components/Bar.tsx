@@ -21,78 +21,93 @@ let Bar: React.FC = () => {
 
 	return <Layout className="bar-main">
 		{
-			NullableUtils.getWithDefault(
-				NullableUtils.map(giantessStatus => {
-					return <>
-						<section className="hp">
-							<Row justify="center" className="row">
-								<Col className="col" >
-									<Title className="title">{`${giantessStatus.target}`}</Title>
-								</Col>
-							</Row>
-							<Row justify="center" className="row">
-								<Col className="col" >
-									{
-										renderImage("./resource/ui/in_game/bar_background.png",
-											"bar_hp_background",
-											false
-										)
-									}
+				NullableUtils.getWithDefault(
+					NullableUtils.map(giantessStatus => {
+						return <>
+							<Row justify="center" className="hp">
+								<Row justify="center" className="row">
+									<Col className="col" >
+										<Title className="title">{`${giantessStatus.target}`}</Title>
+									</Col>
+								</Row>
+								<Row justify="center" className="row">
+									<Col className="col" >
+										{
+											renderImage("./resource/ui/in_game/bar_background.png",
+												"bar_hp_background",
+												false
+											)
+										}
 
-								</Col>
-							</Row>
-							<Row justify="center" className="row">
-								<Col className="col" >
-									{
-										renderImage2(_getHpBarImageSrc(giantessStatus),
-											"bar_hp",
-											giantessStatus.hpStyle
-										)
-									}
-								</Col>
-							</Row>
+									</Col>
+								</Row>
+								<Row justify="center" className="row">
+									<Col className="col" >
+										{
+											renderImage2(_getHpBarImageSrc(giantessStatus),
+												"bar_hp",
+												giantessStatus.hpStyle
+											)
+										}
+									</Col>
+								</Row>
 
-							<Row justify="center" className="row row_hp_number">
-								<Col className="col" >
-									<Title className="hp_number" >{`${giantessStatus.hp}/${giantessStatus.fullHp}`}</Title>
-								</Col>
-							</Row>
+								<Row justify="center" className="row row_hp_number">
+									<Col className="col" >
+										<Title className="hp_number" >{`${giantessStatus.hp}/${giantessStatus.fullHp}`}</Title>
+									</Col>
+								</Row>
 
-						</section>
 
-						<section className="excitement">
-							<Row justify="center" className="row">
-								<Col className="col" >
-									{
-										renderImage("./resource/ui/in_game/bar_background.png",
-											"bar_excitement_background",
-											false
-										)
-									}
+								<Row justify="center" className="row row_life_count">
+									<Col className="col" span={12}>
+										{
+											renderImage("./resource/ui/in_game/life_count.png",
+												"life_count",
+												false
+											)
+										}
+									</Col>
+									<Col className="col" span={12}>
+										<Title className="life_count_text" >{`${giantessStatus.lifeCount}`}</Title>
+									</Col>
+								</Row>
 
-								</Col>
-							</Row>
-							<Row justify="center" className="row">
-								<Col className="col" >
-									{
-										renderImage2("./resource/ui/in_game/bar_excitement.png",
-											"bar_excitement",
-											giantessStatus.excitementStyle
-										)
-									}
-								</Col>
 							</Row>
 
-							<Row justify="center" className="row row_excitement_number">
-								<Col className="col" >
-									<Title className="excitement_number" >{`${giantessStatus.excitement}/${giantessStatus.fullExcitement}`}</Title>
-								</Col>
+							<Row justify="center" className="excitement">
+								<Row justify="center" className="row">
+									<Col className="col" >
+										{
+											renderImage("./resource/ui/in_game/bar_background.png",
+												"bar_excitement_background",
+												false
+											)
+										}
+
+									</Col>
+								</Row>
+								<Row justify="center" className="row">
+									<Col className="col" >
+										{
+											renderImage2("./resource/ui/in_game/bar_excitement.png",
+												"bar_excitement",
+												giantessStatus.excitementStyle
+											)
+										}
+									</Col>
+								</Row>
+
+								<Row justify="center" className="row row_excitement_number">
+									<Col className="col" >
+										<Title className="excitement_number" >{`${giantessStatus.excitement}/${giantessStatus.fullExcitement}`}</Title>
+									</Col>
+								</Row>
 							</Row>
-						</section>
-					</>
-				}, giantessStatus),
-				null
-			)
+						</>
+					}, giantessStatus),
+					null
+				)
 		}
 	</Layout >
 };

@@ -30,10 +30,16 @@ export enum animationName {
     Run = "Soldier_Run",
     Shake = "Soldier_Shake",
     Death = "Soldier_Death",
+    DeathHeadshot = "Soldier_DeathHeadshot",
     Shoot = "Soldier_Shoot",
     Swiping = "Soldier_Swiping",
 
-    Controlled = "Soldier_Controlled",
+    PickedControlled = "Soldier_Controlled",
+    Lie = "Soldier_Lie",
+    StandupFromLie = "Soldier_StandupFromLie",
+    // FlyBack = "Soldier_FlyBack",
+    // StandupFromFlyBack = "Soldier_StandupFromFlyBack",
+    // Dizzy = "Soldier_Dizzy",
 
     Emit = "Soldier_Emit",
     Pointing = "Soldier_Pointing",
@@ -173,15 +179,27 @@ export let getShootingAnimationResourcePath = (name) => `./resource/${name}/sold
 
 export let getDeathAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Death.fbx`
 
+export let getDeathHeadshotAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/DeathHeadshot.fbx`
+
 export let getShakeAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Shake.fbx`
 
-export let getControlledAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Controlled.fbx`
+export let getControlledAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/PickedControlled.fbx`
 
 export let getEmitAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Emit.fbx`
 
 export let getPointingAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Pointing.fbx`
 
 export let getSwipingAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Swiping.fbx`
+
+export let getLieAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Lie.fbx`
+
+export let getStandupFromLieAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/StandupFromLie.fbx`
+
+// export let getFlyBackAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/FlyBack.fbx`
+
+// export let getStandupFromFlyBackAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/StandupFromFlyBack.fbx`
+
+// export let getDizzyAnimationResourcePath = (name) => `./resource/${name}/soldier/animations/Dizzy.fbx`
 
 export let getEmitWorkFrameCount = () => 85
 
@@ -237,6 +255,11 @@ export let getLoadData = () => {
             type: resourceType.ArrayBuffer
         },
         {
+            id: animationName.DeathHeadshot,
+            path: getDeathHeadshotAnimationResourcePath(getName()),
+            type: resourceType.ArrayBuffer
+        },
+        {
             id: animationName.Run,
             path: getRunningAnimationResourcePath(getName()),
             type: resourceType.ArrayBuffer
@@ -257,7 +280,7 @@ export let getLoadData = () => {
             type: resourceType.ArrayBuffer
         },
         {
-            id: animationName.Controlled,
+            id: animationName.PickedControlled,
             path: getControlledAnimationResourcePath(getName()),
             type: resourceType.ArrayBuffer
         },
@@ -271,5 +294,30 @@ export let getLoadData = () => {
             path: getPointingAnimationResourcePath(getName()),
             type: resourceType.ArrayBuffer
         },
+        {
+            id: animationName.Lie,
+            path: getLieAnimationResourcePath(getName()),
+            type: resourceType.ArrayBuffer
+        },
+        {
+            id: animationName.StandupFromLie,
+            path: getStandupFromLieAnimationResourcePath(getName()),
+            type: resourceType.ArrayBuffer
+        },
+        // {
+        //     id: animationName.FlyBack,
+        //     path: getFlyBackAnimationResourcePath(getName()),
+        //     type: resourceType.ArrayBuffer
+        // },
+        // {
+        //     id: animationName.StandupFromFlyBack,
+        //     path: getStandupFromFlyBackAnimationResourcePath(getName()),
+        //     type: resourceType.ArrayBuffer
+        // },
+        // {
+        //     id: animationName.Dizzy,
+        //     path: getDizzyAnimationResourcePath(getName()),
+        //     type: resourceType.ArrayBuffer
+        // },
     ])
 }

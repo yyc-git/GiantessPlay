@@ -56,6 +56,7 @@ Grid.prototype._buildNodes = function (width, height, matrix) {
     for (i = 0; i < height; ++i) {
         nodes[i] = new Array(width);
         for (j = 0; j < width; ++j) {
+            /*! edit by meta3d */
             // nodes[i][j] = new Node(j, i);
             // nodes[i][j] = Util.createNode(j, i)
             nodes[i][j] = {
@@ -91,9 +92,23 @@ Grid.prototype._buildNodes = function (width, height, matrix) {
 
 
 Grid.prototype.getNodeAt = function (x, y) {
-    return this.nodes[y][x];
+    // return this.nodes[y][x];
+    let n = this.nodes[y]
+
+    // if (n == undefined) {
+    //     return null
+    // }
+    if (y >= this.nodes.length) {
+        return null
+    }
+
+    return n[x];
 };
 
+
+let _fastGetNodeAt = function (nodes, x, y) {
+    return nodes[y][x];
+};
 
 /**
  * Determine whether the node at the given position is walkable.
@@ -232,35 +247,116 @@ Grid.prototype.fastGetNeighbors = function (node) {
     var x = node.x,
         y = node.y,
         neighbors = [],
-        s0 = false,
-        //  d0 = false,
-        s1 = false,
-        //  d1 = false,
-        s2 = false,
-        //  d2 = false,
-        s3 = false,
-        //  d3 = false,
+        // s0 = false,
+        // //  d0 = false,
+        // s1 = false,
+        // //  d1 = false,
+        // s2 = false,
+        // //  d2 = false,
+        // s3 = false,
+        // //  d3 = false,
         nodes = this.nodes;
 
     // ↑
     if (this.isWalkableAt(x, y - 1)) {
         neighbors.push(nodes[y - 1][x]);
-        s0 = true;
+        // s0 = true;
     }
     // →
     if (this.isWalkableAt(x + 1, y)) {
         neighbors.push(nodes[y][x + 1]);
-        s1 = true;
+        // s1 = true;
     }
     // ↓
     if (this.isWalkableAt(x, y + 1)) {
         neighbors.push(nodes[y + 1][x]);
-        s2 = true;
+        // s2 = true;
     }
     // ←
     if (this.isWalkableAt(x - 1, y)) {
         neighbors.push(nodes[y][x - 1]);
-        s3 = true;
+        // s3 = true;
+    }
+
+    return neighbors;
+    // if (diagonalMovement === DiagonalMovement.Never) {
+    //     return neighbors;
+    // }
+
+    // if (diagonalMovement === DiagonalMovement.OnlyWhenNoObstacles) {
+    //     d0 = s3 && s0;
+    //     d1 = s0 && s1;
+    //     d2 = s1 && s2;
+    //     d3 = s2 && s3;
+    // } else if (diagonalMovement === DiagonalMovement.IfAtMostOneObstacle) {
+    //     d0 = s3 || s0;
+    //     d1 = s0 || s1;
+    //     d2 = s1 || s2;
+    //     d3 = s2 || s3;
+    // } else if (diagonalMovement === DiagonalMovement.Always) {
+    //     d0 = true;
+    //     d1 = true;
+    //     d2 = true;
+    //     d3 = true;
+    // } else {
+    //     throw new Error('Incorrect value of diagonalMovement');
+    // }
+
+    // // ↖
+    // if (d0 && this.isWalkableAt(x - 1, y - 1)) {
+    //     neighbors.push(nodes[y - 1][x - 1]);
+    // }
+    // // ↗
+    // if (d1 && this.isWalkableAt(x + 1, y - 1)) {
+    //     neighbors.push(nodes[y - 1][x + 1]);
+    // }
+    // // ↘
+    // if (d2 && this.isWalkableAt(x + 1, y + 1)) {
+    //     neighbors.push(nodes[y + 1][x + 1]);
+    // }
+    // // ↙
+    // if (d3 && this.isWalkableAt(x - 1, y + 1)) {
+    //     neighbors.push(nodes[y + 1][x - 1]);
+    // }
+
+    // return neighbors;
+};
+
+
+/*! edit by meta3d */
+Grid.prototype.getAllNeighbors = function (node) {
+    var x = node.x,
+        y = node.y,
+        neighbors = [],
+        // s0 = false,
+        // //  d0 = false,
+        // s1 = false,
+        // //  d1 = false,
+        // s2 = false,
+        // //  d2 = false,
+        // s3 = false,
+        // //  d3 = false,
+        nodes = this.nodes;
+
+    // ↑
+    if (this.isInside(x, y - 1)) {
+        neighbors.push(nodes[y - 1][x]);
+        //     s0 = true;
+    }
+    // →
+    if (this.isInside(x + 1, y)) {
+        neighbors.push(nodes[y][x + 1]);
+        //     s1 = true;
+    }
+    // ↓
+    if (this.isInside(x, y + 1)) {
+        neighbors.push(nodes[y + 1][x]);
+        //     s2 = true;
+    }
+    // ←
+    if (this.isInside(x - 1, y)) {
+        neighbors.push(nodes[y][x - 1]);
+        //     s3 = true;
     }
 
     return neighbors;
@@ -349,7 +445,10 @@ Grid.prototype.clone = function () {
         // newNodes[i] = new Array(width);
         for (j = 0; j < width; ++j) {
             // newNodes[i][j] = new Node(j, i, thisNodes[i][j].walkable);
-            let node = this.getNodeAt(j, i)
+            // let node = this.getNodeAt(j, i)
+            let node = _fastGetNodeAt(thisNodes, j, i)
+
+
             // if (node.g !== undefined) {
             if (node.g !== null) {
                 // count += 1

@@ -1,28 +1,26 @@
 import { Vector3, Object3D, Euler, Ray, PerspectiveCamera } from "three"
-import { road, renderAccuracyLevel, state } from "../type/StateType"
+import { characterType, state } from "../type/StateType"
 import { Map, isCollection } from "immutable"
 import { getEmpty, getExn, getWithDefault, isNullable, map, return_ } from "../utils/NullableUtils"
 import { getIsDebug, getPickState, getSceneState, setSceneState } from "../state/State"
 import { getKeyDownEventName, getKeyUpEventName, on, off } from "../Event"
-import { getCurrentCamera, getOrbitControls, isCanLock } from "./Camera"
+import { getCurrentCamera, getOrbitControls, isCanLock, updatePosition } from "./Camera"
 import { isMobile } from "../Device"
 import * as nipplejs from 'nipplejs'
-import { getRoad, getCurrentScene, isRoad, isGiantessRoad, isLittleRoad } from "./Scene"
+import { getCharacterType, getCurrentScene, isCharacterType, isGiantessCharacterType, isLittleCharacterType } from "./Scene"
 import { findTerrainGeometry } from "../terrain/Terrain"
 import { computeAfterAddVelocity, handleCameraCollision } from "../collision/CameraCollision"
 import { getWeight } from "../animation/SkinBlendAnimation"
 import { getFrameIndex } from "../animation/SkinAnimation"
 import { between } from "../utils/NumberUtils"
 import type { OrbitControls } from "../three/OrbitControls"
-import { getRenderSetting } from "../setting/RenderSetting"
 import { addDeferExecFuncData } from "../Flow"
 import { NullableUtils, NumberUtils } from "../Main"
 import { nullable } from "../utils/nullable"
-import { getDirectionDataFromKeyState, getDirectionDataFromState, getKeyState, getState, setKeyState as setKeyStateUtils, setState } from "./utils/CameraControlsUtils"
+import { getState, setState } from "./utils/CameraControlsUtils"
 import * as LittleManThirdPersonControls from "./little_man/ThirdPersonControls"
 import * as GiantessThirdPersonControls from "./giantess/ThirdPersonControls"
 import { ensureCheck, test } from "../utils/Contract"
-import { initKeyState } from "./CameraControls"
 
 
 // let getSize = () => "3rem"
@@ -73,8 +71,7 @@ import { initKeyState } from "./CameraControls"
 
 // export let initWhenUse = (state: state, [getAbstractStateFunc, setAbstractStateFunc, readSpecificStateFunc, writeSpecificStateFunc]) => {
 
-
-let _setTarget = (orbitControls: OrbitControls, target: Vector3) => {
+export let setTarget = (orbitControls: OrbitControls, target: Vector3) => {
     orbitControls.target = target
 }
 
@@ -82,9 +79,14 @@ export let updateControls = (state: state, [near, far], isCameraCollision, orbit
     camera.near = near
     camera.far = far
 
-    camera.position.copy(position)
+    // // TODO remove
+    // if (isNaN(position.x)) {
+    //     console.error(position)
+    // }
 
-    _setTarget(orbitControls, orbitControlsTarget)
+    camera = updatePosition(camera, position)
+
+    setTarget(orbitControls, orbitControlsTarget)
 
     orbitControls.maxDistance = maxDistance
 
@@ -101,7 +103,7 @@ export let updateControls = (state: state, [near, far], isCameraCollision, orbit
     return state
 }
 
-export let initControls = (state: state, [near, far]: [number, number], isCameraCollision, orbitControls: OrbitControls, camera: PerspectiveCamera, orbitControlsTarget, position, minDistance, maxDistance, maxPolarAngle: number, isDebug) => {
+export let initControls = (state: state, [near, far]: [number, number], isCameraCollision, orbitControls: OrbitControls, camera: PerspectiveCamera, orbitControlsTarget, position, minDistance, maxDistance, maxPolarAngle: number, isDebug, getCameraRotateSpeedRatio: number) => {
     camera.fov = 60
 
     updateControls(state,
@@ -109,7 +111,7 @@ export let initControls = (state: state, [near, far]: [number, number], isCamera
         isCameraCollision,
         orbitControls, camera, orbitControlsTarget, position, minDistance, maxDistance)
 
-    _setTarget(orbitControls, orbitControlsTarget)
+    setTarget(orbitControls, orbitControlsTarget)
 
     orbitControls.maxDistance = maxDistance
 
@@ -134,8 +136,14 @@ export let initControls = (state: state, [near, far]: [number, number], isCamera
         orbitControls.rotateSpeed = 0.5
     }
     else {
-        state = initKeyState(state)
+        // state = initKeyState(state)
+
+        // orbitControls.rotateSpeed = 1
+        orbitControls.rotateSpeed = 0.8
     }
+
+
+    orbitControls.rotateSpeed *= getCameraRotateSpeedRatio
 
     return state
 }
@@ -225,7 +233,7 @@ export let initControls = (state: state, [near, far]: [number, number], isCamera
 // }
 
 export let updateCamera = (state: state, velocity: Vector3, orbitControlsTarget: Vector3, isCameraCollision) => {
-    _setTarget(getOrbitControls(state), orbitControlsTarget)
+    setTarget(getOrbitControls(state), orbitControlsTarget)
 
     let camera = getCurrentCamera(state)
 
@@ -261,9 +269,9 @@ export let updateCamera = (state: state, velocity: Vector3, orbitControlsTarget:
     return state
 }
 
-export let computeTransformForCamera = (state: state, orbitControls, road_: road): number => {
+export let computeTransformForCamera = (state: state, orbitControls, characterType_: characterType): number => {
     let controlRotationAngle
-    if (isRoad(state, road_)) {
+    if (isCharacterType(state, characterType_)) {
         controlRotationAngle = orbitControls.getAzimuthalAngle()
     }
     else {

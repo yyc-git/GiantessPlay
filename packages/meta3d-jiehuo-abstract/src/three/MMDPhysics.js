@@ -385,6 +385,40 @@ class MMDPhysics {
 
 	}
 
+
+
+	/*! edit by meta3d */
+	/*! still has memory leak problem!!!
+	https://forum.playcanvas.com/t/changing-default-physics-engine/37806
+	https://forum.playcanvas.com/t/freeing-memory-from-ammo-js/35859
+	* 
+	*/
+	dispose() {
+		this.manager.transforms.forEach(v => {
+			Ammo.destroy(v)
+		})
+		this.manager.quaternions.forEach(v => {
+			Ammo.destroy(v)
+		})
+		this.manager.vector3s.forEach(v => {
+			Ammo.destroy(v)
+		})
+
+
+		this.bodies.forEach(b => {
+			Ammo.destroy(b.body)
+			// Ammo.destroy(b.bone)
+			Ammo.destroy(b.boneOffsetForm)
+			Ammo.destroy(b.boneOffsetFormInverse)
+		})
+		this.constraints.forEach(c => {
+			Ammo.destroy(c.constraint)
+		})
+
+		Ammo.destroy(this.world)
+
+		return this
+	}
 }
 
 /**

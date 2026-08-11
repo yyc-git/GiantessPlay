@@ -1,0 +1,12 @@
+{
+    "name": "meta3d-structure-utils",
+    "version": "1.3.0",
+    "scripts": {
+        "watch": "tsc -w"
+    },
+    "dependencies": {
+    },
+    "devDependencies": {
+        "typescript": "^4.2.3"
+    }
+}

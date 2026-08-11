@@ -1,12 +1,17 @@
 import { state } from "../../../../../../type/StateType"
 import { getIsSkipScenario } from "../../../../Scene"
-import { actionName, excitement } from "../../DataType"
+import { updateBossGiantessValue } from "../../../difficulty/HeatImplementer"
+import { getBossGirlDamageData, getLevelGirlDamageData } from "../../../girl/Utils"
+import { actionName, armorStrength, armorRatio, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, excitement, stressingRateFactor, abstorbHpRate, } from "../../DataType"
+import { getAllSkillDataForLevelOrBoss } from "../../GirlDataUtils"
 import { girlValue } from "../../ValueType"
 
 export let getValue = (state: state): girlValue => {
     let hp, restoreHpTime, biggerMaxTime, initialScale
 
-    hp = 150000
+    // hp = 150000
+    // hp = 50000
+    hp = 35000
     restoreHpTime = 50000
     biggerMaxTime = 60000
 
@@ -17,18 +22,24 @@ export let getValue = (state: state): girlValue => {
     }
 
     return {
+        ...getBossGirlDamageData(),
+
+
+
         maxExcitement: 100,
         scaleFactorWithExcitement: 1,
         initialScale: initialScale,
 
-        minScaleAsSmallGiantess: 10,
-        minScaleAsMiddleGiantess: 30,
-        volumeFactorForGiantess: 0.01,
-        volumeFactorForNotGiantess: 0.01,
+        // minScaleAsSmallGiantess: 10,
+        // minScaleAsMiddleGiantess: 30,
+        // minScaleAsBigGiantess: 50,
+        volumeFactorForMiddleOrBigGiantess: 0.01,
+        volumeFactorForSmallGiantess: 0.01,
 
-        minScale: 10,
+        scaleIncrease: 10,
         // maxScale: 200,
-        maxScale: 400,
+        maxScale: 200,
+        minScale: 8,
 
         screenShakeDistanceFactor: 0.25,
         screenShakeTime: 150,
@@ -38,64 +49,23 @@ export let getValue = (state: state): girlValue => {
         hp: hp,
         // hp: 1,
         // hp: 3000000,
-        defenseFactor: 1,
+        // defenseFactor: 1,
+        // defenseFactor: defenseFactor.Low,
 
 
         restoreHpTime: restoreHpTime,
         restoreHpSpeedRate: 1 / 100,
-        abstorbHpRate: 10 / 100,
+        abstorbHpRate: abstorbHpRate.Middle,
 
-        allSkillData: [
-            {
-                name: actionName.Bigger,
-                excitement: excitement.MostHigh
-            },
-            {
-                name: actionName.Smaller,
-                excitement: excitement.Zero
-            },
-
-            {
-                name: actionName.Pickup,
-                excitement: excitement.High
-            },
-            {
-                name: actionName.Stomp,
-                excitement: excitement.Zero
-            },
-            {
-                name: actionName.Run,
-                excitement: excitement.Zero
-            },
-            {
-                name: actionName.StandToCrawl,
-                excitement: excitement.VeryHigh
-            },
-            {
-                name: actionName.Eat,
-                excitement: excitement.High
-            },
-            {
-                name: actionName.Pinch,
-                excitement: excitement.Middle
-            },
-            {
-                name: actionName.Pickdown,
-                excitement: excitement.Zero
-            },
-            {
-                name: actionName.BreastPress,
-                excitement: excitement.High
-            },
-            {
-                name: actionName.CrawlToStand,
-                excitement: excitement.Zero
-            },
-        ],
+        allSkillData: getAllSkillDataForLevelOrBoss(state),
 
 
         // biggerSubExcitementTime: 20000,
         // biggerSubExcitementScalar: excitement.VeryLow,
         biggerMaxTime: biggerMaxTime,
+
+        armorRatio: armorRatio.MostHigh,
+        armorStrength: armorStrength.VeryLow3,
+        stressingRateFactor: stressingRateFactor.Middle,
     }
 }

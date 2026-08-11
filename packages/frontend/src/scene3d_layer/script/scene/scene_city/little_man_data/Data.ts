@@ -1,42 +1,52 @@
-// const _v1 = new Vector3();
-// const _v2 = new Vector3();
-
-import { getLittleManShootEmitEventName, getLittleManShootStartEventName, getLittleManStandupEndEventName, getLittleManStatusUpdateEventName, getLittleManSwipingEmitEventName, getLittleManSwipingStartEventName } from "../../../../utils/EventUtils"
+import { getAllAnimationNamesExceptDeathAnimations, getAnimationBlendData as getAnimationBlendDataMod, getAnimationCollisionData as getAnimationCollisionDataMod } from "../../../../mod/SkillLittleManMod"
+import { state } from "../../../../type/StateType"
+import { getLittleManShootEmitEventName, getLittleManShootStartEventName, getLittleManStandupEndEventName, } from "../../../../utils/EventUtils"
 import { getIsDebug } from "../../Scene"
-import { animationBlendData } from "../data/DataType"
+import { getModAPI } from "../Mod"
+import { getIsControlledUnitCanAttack } from "../build/Career"
 import { littleManActionState, objectStateName } from "../type/StateType"
-import { getFirstFrameIndex, getLastFrameIndex } from "../utils/DataUtils"
+import { getEarlyFrameIndex, getLateFrameIndex } from "../utils/DataUtils"
 import { getAnimationFrameCount } from "./Const"
-import { actionName, animationName, animationCollisionData, track } from "./DataType"
+import { actionName, animationName, animationCollisionData, track, animationBlendData } from "./DataType"
 
-let _getAllAnimationNamesExceptDeathAnimations = () => {
+let _getAllAnimationNamesExceptDeathAnimations = (state: state) => {
 	return [
 		animationName.Idle,
-		animationName.Controlled,
+		animationName.PickedControlled,
 		animationName.Run,
 		animationName.Shake,
 		animationName.Shoot,
-		animationName.Swiping,
+		// animationName.Swiping,
 		animationName.Standup,
 		animationName.Lie,
 		animationName.ClimbToTop,
 		animationName.ClimbToDown,
 		// animationName.Death,
-	]
+	].concat(
+		getAllAnimationNamesExceptDeathAnimations(state) as any
+	)
 }
 
 export let getAnimationBlendData = (
+	state: state,
 	[{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, isEndFunc, isPreviousStateFunc]
 ): animationBlendData<animationName> => {
 	return [
 		{
 			condition: state => {
-				// return isEndFunc(state, animationName.Idle, getIsDebug(state))
+				// return isEndFunc(state,animationName.Idle, getIsDebug(state))
 				return isMoveFunc(state)
 			},
 			currentAnimationNames: [animationName.Idle],
 			nextAnimationName: animationName.Run,
 			weight: 0.1,
+		},
+		{
+			condition: state => {
+				return isMoveFunc(state)
+			},
+			currentAnimationNames: [animationName.Shoot],
+			nextAnimationName: animationName.Shoot,
 		},
 
 		{
@@ -45,7 +55,13 @@ export let getAnimationBlendData = (
 			},
 			currentAnimationNames: [animationName.Run],
 			nextAnimationName: animationName.Idle,
-			weight: 0.1,
+		},
+		{
+			condition: state => {
+				return !isMoveFunc(state)
+			},
+			currentAnimationNames: [animationName.Shoot],
+			nextAnimationName: animationName.Shoot,
 		},
 
 
@@ -68,9 +84,19 @@ export let getAnimationBlendData = (
 			weight: 0.5,
 			// noBlend: true,
 		},
+		// {
+		// 	condition: state => {
+		// 		return isTriggerActionFunc(state, actionName.Shoot) && getIsControlledUnitCanAttack(state)
+		// 	},
+		// 	currentAnimationNames: [animationName.PickedControlled],
+		// 	nextAnimationName: animationName.Shoot,
+		// 	// weight: 0.5,
+		// 	weight: 0.1,
+		// 	// noBlend: true,
+		// },
 		{
 			condition: state => {
-				// return isEndFunc(state, animationName.Shoot, getIsDebug(state)) && isActionStateFunc(state, littleManActionState.Initial)
+				// return isEndFunc(state,animationName.Shoot, getIsDebug(state)) && isActionStateFunc(state, littleManActionState.Initial)
 				return isActionStateFunc(state, littleManActionState.Initial)
 			},
 			currentAnimationNames: [animationName.Shoot],
@@ -79,78 +105,79 @@ export let getAnimationBlendData = (
 			// noBlend: true
 		},
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Swiping)
-			},
-			currentAnimationNames: [animationName.Idle],
-			nextAnimationName: animationName.Swiping,
-			// weight: 0.5,
-			weight: 0.1,
-			// noBlend: true,
-		},
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Swiping)
-			},
-			currentAnimationNames: [animationName.Run],
-			nextAnimationName: animationName.Swiping,
-			weight: 0.5,
-			// noBlend: true,
-		},
-		{
-			condition: state => {
-				// return isEndFunc(state, animationName.Swiping, getIsDebug(state)) && isActionStateFunc(state, littleManActionState.Initial)
-				return isActionStateFunc(state, littleManActionState.Initial)
-			},
-			currentAnimationNames: [animationName.Swiping],
-			nextAnimationName: animationName.Idle,
-			weight: 0.5,
-			// noBlend: true
-		},
-
-
-
-
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Controlled)
-			},
-			// currentAnimationNames: [animationName.Idle],
-			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(),
-			nextAnimationName: animationName.Controlled,
-			noBlend: true
-		},
 		// {
 		// 	condition: state => {
-		// 		return isTriggerActionFunc(state, actionName.Controlled)
+		// 		return isTriggerActionFunc(state, actionName.Swiping)
+		// 	},
+		// 	currentAnimationNames: [animationName.Idle],
+		// 	nextAnimationName: animationName.Swiping,
+		// 	// weight: 0.5,
+		// 	weight: 0.1,
+		// 	// noBlend: true,
+		// },
+		// {
+		// 	condition: state => {
+		// 		return isTriggerActionFunc(state, actionName.Swiping)
 		// 	},
 		// 	currentAnimationNames: [animationName.Run],
-		// 	nextAnimationName: animationName.Controlled,
-		// 	noBlend: true
+		// 	nextAnimationName: animationName.Swiping,
+		// 	weight: 0.5,
+		// 	// noBlend: true,
 		// },
 		// {
 		// 	condition: state => {
-		// 		return isTriggerActionFunc(state, actionName.Controlled)
-		// 	},
-		// 	currentAnimationNames: [animationName.Shoot],
-		// 	nextAnimationName: animationName.Controlled,
-		// 	noBlend: true
-		// },
-		// {
-		// 	condition: state => {
-		// 		return isTriggerActionFunc(state, actionName.Controlled)
+		// 		// return isEndFunc(state,animationName.Swiping, getIsDebug(state)) && isActionStateFunc(state, littleManActionState.Initial)
+		// 		return isActionStateFunc(state, littleManActionState.Initial)
 		// 	},
 		// 	currentAnimationNames: [animationName.Swiping],
-		// 	nextAnimationName: animationName.Controlled,
+		// 	nextAnimationName: animationName.Idle,
+		// 	weight: 0.5,
+		// 	// noBlend: true
+		// },
+
+
+
+
+		{
+			condition: state => {
+				return isTriggerActionFunc(state, actionName.PickedControlled)
+			},
+			// currentAnimationNames: [animationName.Idle],
+			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(state),
+			nextAnimationName: animationName.PickedControlled,
+			noBlend: true,
+			weight: 0.0,
+		},
+		// {
+		// 	condition: state => {
+		// 		return isTriggerActionFunc(state, actionName.PickedControlled)
+		// 	},
+		// 	currentAnimationNames: [animationName.Run],
+		// 	nextAnimationName: animationName.PickedControlled,
 		// 	noBlend: true
 		// },
 		// {
 		// 	condition: state => {
-		// 		return isTriggerActionFunc(state, actionName.Controlled)
+		// 		return isTriggerActionFunc(state, actionName.PickedControlled)
+		// 	},
+		// 	currentAnimationNames: [animationName.Shoot],
+		// 	nextAnimationName: animationName.PickedControlled,
+		// 	noBlend: true
+		// },
+		// {
+		// 	condition: state => {
+		// 		return isTriggerActionFunc(state, actionName.PickedControlled)
+		// 	},
+		// 	currentAnimationNames: [animationName.Swiping],
+		// 	nextAnimationName: animationName.PickedControlled,
+		// 	noBlend: true
+		// },
+		// {
+		// 	condition: state => {
+		// 		return isTriggerActionFunc(state, actionName.PickedControlled)
 		// 	},
 		// 	currentAnimationNames: [animationName.Standup],
-		// 	nextAnimationName: animationName.Controlled,
+		// 	nextAnimationName: animationName.PickedControlled,
 		// 	noBlend: true
 		// },
 
@@ -160,7 +187,7 @@ export let getAnimationBlendData = (
 				return isTriggerActionFunc(state, actionName.Lie)
 			},
 			// currentAnimationNames: [animationName.Idle],
-			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(),
+			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(state),
 			nextAnimationName: animationName.Lie,
 			noBlend: true,
 			weight: 0.0,
@@ -203,7 +230,7 @@ export let getAnimationBlendData = (
 			condition: state => {
 				return isTriggerActionFunc(state, actionName.ClimbToTop)
 			},
-			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(),
+			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(state),
 			nextAnimationName: animationName.ClimbToTop,
 			noBlend: true,
 			weight: 0.0,
@@ -213,7 +240,7 @@ export let getAnimationBlendData = (
 			condition: state => {
 				return isTriggerActionFunc(state, actionName.ClimbToDown)
 			},
-			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(),
+			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(state),
 			nextAnimationName: animationName.ClimbToDown,
 			noBlend: true,
 			weight: 0.0,
@@ -225,7 +252,7 @@ export let getAnimationBlendData = (
 				return isTriggerActionFunc(state, actionName.Shake)
 			},
 			// currentAnimationNames: [animationName.Idle],
-			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(),
+			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(state),
 			weight: 0.0,
 			nextAnimationName: animationName.Shake
 		},
@@ -265,7 +292,7 @@ export let getAnimationBlendData = (
 		// 	condition: state => {
 		// 		return isTriggerActionFunc(state, actionName.Shake)
 		// 	},
-		// 	currentAnimationNames: [animationName.Controlled],
+		// 	currentAnimationNames: [animationName.PickedControlled],
 		// 	weight: 0.0,
 		// 	nextAnimationName: animationName.Shake
 		// },
@@ -281,7 +308,7 @@ export let getAnimationBlendData = (
 		{
 			condition: state => {
 				return isEndFunc(state, animationName.Shake, getIsDebug(state))
-					&& !isPreviousStateFunc(state, objectStateName.Controlled)
+					&& !isPreviousStateFunc(state, objectStateName.PickedControlled)
 					&& !isPreviousStateFunc(state, objectStateName.MeleeAttack)
 					&& !isPreviousStateFunc(state, objectStateName.RemoteAttack)
 			},
@@ -292,20 +319,20 @@ export let getAnimationBlendData = (
 		},
 		{
 			condition: state => {
-				return isEndFunc(state, animationName.Shake, getIsDebug(state)) && isPreviousStateFunc(state, objectStateName.Controlled)
+				return isEndFunc(state, animationName.Shake, getIsDebug(state)) && isPreviousStateFunc(state, objectStateName.PickedControlled)
 			},
 			currentAnimationNames: [animationName.Shake],
-			nextAnimationName: animationName.Controlled,
+			nextAnimationName: animationName.PickedControlled,
 			noBlend: true
 		},
-		{
-			condition: state => {
-				return isEndFunc(state, animationName.Shake, getIsDebug(state)) && isPreviousStateFunc(state, objectStateName.MeleeAttack)
-			},
-			currentAnimationNames: [animationName.Shake],
-			nextAnimationName: animationName.Swiping,
-			noBlend: true
-		},
+		// {
+		// 	condition: state => {
+		// 		return isEndFunc(state,animationName.Shake, getIsDebug(state)) && isPreviousStateFunc(state, objectStateName.MeleeAttack)
+		// 	},
+		// 	currentAnimationNames: [animationName.Shake],
+		// 	nextAnimationName: animationName.Swiping,
+		// 	noBlend: true
+		// },
 		{
 			condition: state => {
 				return isEndFunc(state, animationName.Shake, getIsDebug(state)) && isPreviousStateFunc(state, objectStateName.RemoteAttack)
@@ -323,7 +350,7 @@ export let getAnimationBlendData = (
 			condition: state => {
 				return isTriggerActionFunc(state, actionName.Idle)
 			},
-			currentAnimationNames: [animationName.Controlled],
+			currentAnimationNames: [animationName.PickedControlled],
 			// weight: 0.0,
 			nextAnimationName: animationName.Idle
 		},
@@ -342,7 +369,7 @@ export let getAnimationBlendData = (
 		{
 			condition: state => {
 				return isEndFunc(state, animationName.Standup, getIsDebug(state))
-				//  && isPreviousStateFunc(state, objectStateName.Controlled)
+				//  && isPreviousStateFunc(state, objectStateName.PickedControlled)
 			},
 			currentAnimationNames: [animationName.Standup],
 			noBlend: true,
@@ -374,7 +401,7 @@ export let getAnimationBlendData = (
 			condition: state => {
 				return isTriggerActionFunc(state, actionName.Death)
 			},
-			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(),
+			currentAnimationNames: _getAllAnimationNamesExceptDeathAnimations(state),
 			weight: 0.0,
 			noBlend: true,
 			isOnlyPlayOnce: true,
@@ -384,7 +411,7 @@ export let getAnimationBlendData = (
 		// 	condition: state => {
 		// 		return isTriggerActionFunc(state, actionName.Death)
 		// 	},
-		// 	currentAnimationNames: [animationName.Controlled],
+		// 	currentAnimationNames: [animationName.PickedControlled],
 		// 	weight: 0.0,
 		// 	isOnlyPlayOnce: true,
 		// 	nextAnimationName: animationName.Death
@@ -436,6 +463,12 @@ export let getAnimationBlendData = (
 			noBlend: true,
 		},
 	]
+		.concat(
+			getAnimationBlendDataMod(
+				state,
+				[{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, isEndFunc, isPreviousStateFunc]
+			) as any
+		)
 }
 
 export let getAnimationBlendDuration = (
@@ -450,18 +483,16 @@ export let getAnimationBlendDuration = (
 	return 0.5
 }
 
-
-
-export let getAnimationCollisionData = (): Array<animationCollisionData> => {
+export let getAnimationCollisionData = (state: state): Array<animationCollisionData> => {
 	return [
 		{
 			name: animationName.Shoot,
 
 			timeline: [
 				{
-					// frameIndex: getLastFrameIndex(getAnimationFrameCount(state, animationName.Shoot)),
-					frameIndex: getFirstFrameIndex(),
-					// frameRange: [getFirstFrameIndex(), getFirstFrameIndex() + 5],
+					// frameIndex: getLateFrameIndex(getAnimationFrameCount(state, animationName.Shoot)),
+					frameIndex: getEarlyFrameIndex(),
+					// frameRange: [getEarlyFrameIndex(), getEarlyFrameIndex() + 5],
 					// frameRange: 10,
 					frameRange: 15,
 
@@ -470,7 +501,7 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 					}): any => {
 						return {
 							eventName: getLittleManShootStartEventName(),
-							eventData: {}
+							eventData: null
 						}
 					}
 
@@ -487,7 +518,7 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 					}): any => {
 						return {
 							eventName: getLittleManShootEmitEventName(),
-							eventData: {}
+							eventData: null
 						}
 					}
 
@@ -503,66 +534,20 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 				// },
 			]
 		},
-		{
-			name: animationName.Swiping,
-
-			timeline: [
-				{
-					frameIndex: getFirstFrameIndex(),
-					frameRange: 20,
-
-					track: track.Event,
-					value: (state, {
-					}): any => {
-						return {
-							eventName: getLittleManSwipingStartEventName(),
-							eventData: {}
-						}
-					}
-
-				},
-				{
-					frameIndex: 39,
-					frameRange: 20,
-
-
-					track: track.Event,
-					value: (state, {
-					}): any => {
-						return {
-							eventName: getLittleManSwipingEmitEventName(),
-							eventData: {}
-						}
-					}
-
-				},
-				// {
-				// 	frameIndex: 35,
-
-				// 	track: track.Audio,
-				// 	value: (state, _) => {
-				// 		return getLaughSoundResourceId()
-				// 	}
-
-				// },
-			]
-		},
-
-
 		// {
-		// 	name: animationName.ClimbToTop,
+		// 	name: animationName.Swiping,
 
 		// 	timeline: [
 		// 		{
-		// 			// frameIndex: getLastFrameIndex(getAnimationFrameCount(animationName.ClimbToTop)),
-		// 			frameIndex: getAnimationFrameCount(animationName.ClimbToTop) - 1,
+		// 			frameIndex: getEarlyFrameIndex(),
+		// 			frameRange: 20,
 
 		// 			track: track.Event,
 		// 			value: (state, {
 		// 			}): any => {
 		// 				return {
-		// 					eventName: getLittleManClimbToTopEventName(),
-		// 					eventData: {}
+		// 					eventName: getLittleManSwipingStartEventName(),
+		// 					eventData: {usedGirl}
 		// 				}
 		// 			}
 
@@ -577,7 +562,53 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 		// 			}): any => {
 		// 				return {
 		// 					eventName: getLittleManSwipingEmitEventName(),
-		// 					eventData: {}
+		// 					eventData: {usedGirl}
+		// 				}
+		// 			}
+
+		// 		},
+		// 		// {
+		// 		// 	frameIndex: 35,
+
+		// 		// 	track: track.Audio,
+		// 		// 	value: (state, _) => {
+		// 		// 		return getLaughSoundResourceId()
+		// 		// 	}
+
+		// 		// },
+		// 	]
+		// },
+
+
+		// {
+		// 	name: animationName.ClimbToTop,
+
+		// 	timeline: [
+		// 		{
+		// 			// frameIndex: getLateFrameIndex(getAnimationFrameCount(animationName.ClimbToTop)),
+		// 			frameIndex: getAnimationFrameCount(animationName.ClimbToTop) - 1,
+
+		// 			track: track.Event,
+		// 			value: (state, {
+		// 			}): any => {
+		// 				return {
+		// 					eventName: getLittleManClimbToTopEventName(),
+		// 					eventData: {usedGirl}
+		// 				}
+		// 			}
+
+		// 		},
+		// 		{
+		// 			frameIndex: 39,
+		// 			frameRange: 20,
+
+
+		// 			track: track.Event,
+		// 			value: (state, {
+		// 			}): any => {
+		// 				return {
+		// 					eventName: getLittleManSwipingEmitEventName(),
+		// 					eventData: {usedGirl}
 		// 				}
 		// 			}
 
@@ -608,7 +639,7 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 		// 			}): any => {
 		// 				return {
 		// 					eventName: getLittleManDeathNeedFixPositionYOffsetEventName(),
-		// 					eventData: {}
+		// 					eventData: {usedGirl}
 		// 				}
 		// 			}
 
@@ -625,7 +656,7 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 		// 		// 	}): any => {
 		// 		// 		return {
 		// 		// 			eventName: getLittleManShootEmitEventName(),
-		// 		// 			eventData: {}
+		// 		// 			eventData: {usedGirl}
 		// 		// 		}
 		// 		// 	}
 
@@ -639,19 +670,21 @@ export let getAnimationCollisionData = (): Array<animationCollisionData> => {
 
 			timeline: [
 				{
-					frameIndex: getLastFrameIndex(getAnimationFrameCount(animationName.Standup)),
+					frameIndex: getLateFrameIndex(getAnimationFrameCount(state, animationName.Standup)),
 
 					track: track.Event,
 					value: (state, {
 					}): any => {
 						return {
 							eventName: getLittleManStandupEndEventName(),
-							eventData: {}
+							eventData: null
 						}
 					}
 
 				},
 			]
 		},
-	]
+	].concat(
+		getAnimationCollisionDataMod(state) as any
+	)
 }

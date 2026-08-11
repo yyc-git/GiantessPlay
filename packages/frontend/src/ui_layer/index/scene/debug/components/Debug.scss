@@ -1,4 +1,4 @@
-@import "../../../../../Main.scss";
+@use "../../../../../Main.scss" as *;
 
 .debug {
 	// .adm-center-popup-wrap {
@@ -16,7 +16,7 @@
 	z-index: 1000;
 	max-width: 70%;
 	// height: 20%;
-	height: 0;
+	// height: 0;
 
 	.adm-selector {
 		display: inline;
@@ -53,3 +53,33 @@
 		}
 	}
 }
+
+
+/* 滚动条整体 */
+.debug::-webkit-scrollbar {
+	height: 5rem;
+	width: 5rem;
+}
+
+/* 两个滚动条交接处 -- x轴和y轴 */
+.debug::-webkit-scrollbar-corner {
+	background-color: transparent;
+}
+
+/* 滚动条滑块 */
+.debug::-webkit-scrollbar-thumb {
+	// border-radius: 10px;
+	border-radius: 2.5rem;
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	background: #535353;
+}
+
+/* 滚动条轨道 */
+.debug::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	border-radius: 2.5rem;
+	background: #ededed;
+}
+
+/* 滚动条两端按钮 */
+.debug::-webkit-scrollbar-button {}

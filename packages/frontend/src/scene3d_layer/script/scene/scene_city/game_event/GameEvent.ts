@@ -7,7 +7,8 @@ import * as CityScene from "../CityScene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { Box3, Vector3 } from "three"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
-import { isFinish } from "../scenario/Command"
+import { isAllFinish, isFinish } from "../scenario/Command"
+import { execute } from "../scenario/ScenarioManager"
 
 // const _q = new Quaternion();
 // const _m = new Matrix4();
@@ -39,9 +40,14 @@ let _setState = (state: state, scenarioState: gameEvent) => {
 // }
 
 let _triggerEvent = <eventName>(state: state, eventName: eventName) => {
-	return NullableUtils.getExn(CityScene.getConfigData(state).gameEventData.find(d => {
+	let { scenarioName, getCommandFunc } = NullableUtils.getExn(CityScene.getConfigData(state).gameEventData.find(d => {
 		return d.eventName == eventName
-	})).func(state)
+	}))
+
+
+	state = execute(state, getCommandFunc, scenarioName)
+
+	return Promise.resolve(state)
 }
 
 export let triggerMainEvent = <eventName>(state: state, eventName: eventName) => {
@@ -95,6 +101,8 @@ export let triggerSubEventWhenNotTrigger = <eventName>(state: state, eventName: 
 
 export let createState = (): gameEvent => {
 	return {
+		isStopGameEvent: false,
+
 		currentMainEventName: NullableUtils.getEmpty(),
 		currentSubEventName: NullableUtils.getEmpty(),
 
@@ -148,5 +156,17 @@ export let isCurrentSubEventName = (state: state, eventName) => {
 }
 
 export let isSubEventNameTriggering = (state: state, eventName) => {
-	return isCurrentSubEventName(state, eventName) && !isFinish(state)
+	// return isCurrentSubEventName(state, eventName) && !isFinish(state, usedGirl)
+	return isCurrentSubEventName(state, eventName) && !isAllFinish(state)
+}
+
+export let isStopGameEvent = (state: state) => {
+	return _getState(state).isStopGameEvent
+}
+
+export let setIsStopGameEvent = (state: state, value) => {
+	return _setState(state, {
+		..._getState(state),
+		isStopGameEvent: value
+	})
 }

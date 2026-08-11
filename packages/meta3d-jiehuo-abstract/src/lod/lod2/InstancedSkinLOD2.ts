@@ -5,24 +5,40 @@ import { InstancedSkinnedMesh } from "../../gpu_skin/InstancedSkinnedMesh";
 import { forEach, getExn, getWithDefault, map } from "../../utils/NullableUtils";
 import { requireCheck, test } from "../../utils/Contract";
 // import { getClipData } from "../../gpu_skin/GPUSkin";
-import { changeToHash, push, reducePromise } from "../../utils/ArrayUtils";
+import { changeToHash, push, reduce, reducePromise } from "../../utils/ArrayUtils";
+import { nullable } from "../../utils/nullable";
+import { NullableUtils } from "../../Main";
+import { getFloat32ArrayAndReset } from "../../Optimize";
 
 export class InstancedSkinLOD2 extends InstancedLOD2Abstract {
-	public fps: number
+	// public fps: number
 
 	// constructor(scene, camera) {
 	// 	super(scene, camera)
 	// }
 
-	protected createInstancedMesh(oldInstancedMesh, mesh: THREE.SkinnedMesh, geometry: any, material: any, count: any) {
-		let instancedSkinnedMesh = new InstancedSkinnedMesh(geometry, material, count)
+	private _disposeOldInstancedMesh(oldInstancedMesh: nullable<InstancedSkinnedMesh>) {
+		NullableUtils.forEach(oldInstancedMesh => {
+			oldInstancedMesh.dispose()
+		}, oldInstancedMesh)
+	}
+
+	protected createInstancedMesh(state, oldInstancedMesh, mesh: THREE.SkinnedMesh, geometry: any, material: any, count: any): [state, InstancedSkinnedMesh] {
+		this._disposeOldInstancedMesh(oldInstancedMesh)
+
+		let d = getFloat32ArrayAndReset(state, count * 2, true)
+		state = d[0]
+		let data = d[1]
+
+		let instancedSkinnedMesh = new InstancedSkinnedMesh(data, geometry, material, count)
+
 		instancedSkinnedMesh.bind(mesh.skeleton, mesh.bindMatrix)
 
 		// forEach(oldInstancedMesh => {
 		// 	instancedSkinnedMesh.copyFromOldOne(oldInstancedMesh)
 		// }, oldInstancedMesh)
 
-		return instancedSkinnedMesh
+		return [state, instancedSkinnedMesh]
 	}
 
 	protected addData(instancedMesh: InstancedSkinnedMesh, data: data) {
@@ -138,17 +154,18 @@ export let add = (state: state, skinLOD2: InstancedSkinLOD2) => {
 	}
 }
 
-export let update = <specificState>(specificState: specificState, getAbstractStateFunc) => {
+export let update = <specificState>(specificState: specificState, [getAbstractStateFunc, setAbstractStateFunc]) => {
 	let state = getAbstractStateFunc(specificState)
 
-	return reducePromise<specificState, InstancedSkinLOD2>(state.lod.skinLOD2s.toArray(), (specificState, skinLOD2) => {
-		skinLOD2.update(state)
+	return reduce<specificState, InstancedSkinLOD2>(state.lod.skinLOD2s.toArray(), (specificState, skinLOD2) => {
+		state = skinLOD2.update(state, specificState)
+		specificState = setAbstractStateFunc(specificState, state)
 
-		return reducePromise(skinLOD2.getAllLevelInstancedMeshes(), (specificState, instancedSkinnedMesh) => {
+		return reduce(skinLOD2.getAllLevelInstancedMeshes(), (specificState, instancedSkinnedMesh) => {
 			return instancedSkinnedMesh.update(
 				specificState,
 				getAbstractStateFunc,
-				skinLOD2.fps,
+				// skinLOD2.fps,
 				// getClipData(state, skinLOD2.name)
 			)
 		}, specificState)

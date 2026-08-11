@@ -40,21 +40,32 @@ export let getRootMotionData = (): rootMotionData => {
 				// },
 				{
 					frameIndexRange: [0, 7],
+					// frameIndexRange: [0, 6],
 					// frameIndexRange: [4, 7],
 					// speedFactor: 0.5
 					speedFactor: 2
 				},
 				{
 					frameIndexRange: [8, 10],
-					speedFactor: 4
+					// frameIndexRange: [7, 10],
+					speedFactor: 5
+					// speedFactor: 8
 				},
 				{
 					frameIndexRange: [11, 16],
 					speedFactor: 2
 				},
 				{
-					frameIndexRange: [17,22],
-					speedFactor: 1
+					frameIndexRange: [17, 18],
+					// speedFactor: 1
+					speedFactor: 4
+				},
+				{
+					frameIndexRange: [19, 22],
+					// speedFactor: 4
+					// speedFactor: 1
+					// speedFactor: 4
+					speedFactor: 2
 				},
 				// {
 				// 	frameIndexRange: [17, 18],
@@ -71,6 +82,7 @@ export let getRootMotionData = (): rootMotionData => {
 				{
 					frameIndexRange: [23, 30],
 					speedFactor: 2
+					// speedFactor: 4
 				},
 				{
 					frameIndexRange: [31, 32],
@@ -104,10 +116,10 @@ export let getRootMotionData = (): rootMotionData => {
 		{
 			name: animationName.CrawlMove,
 			value: [
-				{
-					frameIndexRange: [0, 39],
-					speedFactor: 2
-				},
+				// {
+				// 	frameIndexRange: [0, 39],
+				// 	speedFactor: 2
+				// },
 
 				// {
 				// 	frameIndexRange: [0, 7],
@@ -133,6 +145,27 @@ export let getRootMotionData = (): rootMotionData => {
 				// 	frameIndexRange: [38, 39],
 				// 	speedFactor: 3,
 				// },
+
+				{
+					frameIndexRange: [0, 7],
+					speedFactor: 2,
+				},
+				{
+					frameIndexRange: [8, 10],
+					speedFactor: 0.5,
+				},
+				{
+					frameIndexRange: [11, 29],
+					speedFactor: 2,
+				},
+				{
+					frameIndexRange: [30, 31],
+					speedFactor: 0.5,
+				},
+				{
+					frameIndexRange: [32, 39],
+					speedFactor: 2,
+				},
 
 			]
 		}

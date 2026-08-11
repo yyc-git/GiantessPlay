@@ -1,24 +1,25 @@
-import { Group, Scene } from "three"
+import { Cache, Group, Scene } from "three"
 import { Object3D } from "three"
 import { getSceneState, setSceneState } from "../state/State"
-import { name, road, scene, state } from "../type/StateType"
+import { name, characterType, scene, state } from "../type/StateType"
 import { nullable } from "../utils/nullable"
 import { forEach, getExn, getWithDefault, map, return_ } from "../utils/NullableUtils"
 // import * as ParkScene from "./scene_park/ParkScene"
 // import * as Warehouse1Scene from "./scene_warehouse/WarehouseScene"
 import { createState as createCameraState, init as initCamera, update as updateCamera } from "./Camera"
-import { ArticluatedAnimation, Camera, Collision, Device, Flow, Instance, MMD, ParticleManager, Pick, SkinAnimation, SoundManager, LabelManager, ThirdPersonControls, Render, PathFind, GPUSkin, Event, Object3DUtils, NullableUtils } from "../Main"
+import { ArticluatedAnimation, Camera, Collision, Device, Flow, Instance, MMD, ParticleManager, Pick, SkinAnimation, SoundManager, LabelManager, ThirdPersonControls, Render, PathFind, GPUSkin, Event, Object3DUtils, NullableUtils, Stats, Version } from "../Main"
 import { dispose as disposeLOD } from "../lod/LOD"
 import { dispose as disposeLight } from "../light/Light"
 import { Map } from "immutable"
+import { removeAndDispose } from "./utils/DisposeUtils"
 
 export let createState = (): scene => {
     return {
         scene: createScene(_getName()),
         currentScene: null,
         camera: createCameraState(),
-        // road: road.Giantess,
-        road: road.LittleMan,
+        // characterType: characterType.Giantess,
+        characterType: characterType.None,
         pickableOctrees: [],
     }
 }
@@ -132,12 +133,12 @@ export let findObjects = (obj: Object3D, isMatchFunc) => {
 // export let init = (state: state, [getAbstractStateFunc, setAbstractStateFunc], currentCamera) => {
 //     return initCamera(state, [getAbstractStateFunc, setAbstractStateFunc], currentCamera)
 // }
-export let init = (state: state, funcs) => {
-    return initCamera(state, funcs)
+export let init = (state: state, funcs, domElement) => {
+    return initCamera(state, funcs, domElement)
 }
 
-export let initWhenImportScene = (state: state) => {
-    return Event.initWhenImportScene(state)
+export let initWhenImportScene = (state: state, getAbstractStateFunc) => {
+    return Event.initWhenImportScene(state, getAbstractStateFunc)
 }
 
 // let _updateCurrentScene = (state: state) => {
@@ -176,12 +177,6 @@ export let update = <specificState>(specificState: specificState, [updateCurrent
 // }
 
 export let dispose = (state: state) => {
-    state = setSceneState(state, {
-        ...getSceneState(state),
-        currentScene: null,
-        camera: Camera.dispose(getSceneState(state).camera)
-    })
-
     state = Instance.dispose(state)
     // state = Device.dispose(state)
     state = Pick.dispose(state)
@@ -195,11 +190,13 @@ export let dispose = (state: state) => {
     state = ParticleManager.dispose(state)
     state = Flow.dispose(state)
 
-    state = Render.dispose(state)
+    state = Stats.dispose(state)
 
     state = PathFind.dispose(state)
 
     state = GPUSkin.dispose(state)
+
+    state = Version.dispose(state)
 
     // state = ThirdPersonControls.dispose(state)
 
@@ -209,6 +206,24 @@ export let dispose = (state: state) => {
     state = MMD.dispose(state)
 
     state = setPickableOctrees(state, [])
+
+    state = Event.dispose(state)
+
+
+    state = Render.dispose(state)
+
+
+    NullableUtils.forEach(currentScene => {
+        removeAndDispose(getScene(state), currentScene)
+    }, _getCurrentScene(state))
+
+
+    state = setSceneState(state, {
+        ...createState(),
+        camera: Camera.dispose(getSceneState(state).camera)
+    })
+
+    // console.log(Cache.files);
 
     return state
 }
@@ -226,26 +241,34 @@ export let setPickableOctrees = (state, pickableOctrees) => {
     })
 }
 
-export let getRoad = (state: state) => {
-    return getSceneState(state).road
+export let getCharacterType = (state: state) => {
+    return getSceneState(state).characterType
 }
 
-export let setRoad = (state: state, value) => {
+export let setCharacterType = (state: state, value) => {
     return setSceneState(state, {
         ...getSceneState(state),
-        road: value
+        characterType: value
     })
 }
 
 
-export let isRoad = (state: state, value: road) => {
-    return getRoad(state) == value
+export let isCharacterType = (state: state, value: characterType) => {
+    return getCharacterType(state) == value
 }
 
-export let isGiantessRoad = (state: state) => {
-    return getRoad(state) == road.Giantess
+export let isGiantessCharacterType = (state: state) => {
+    return getCharacterType(state) == characterType.Giantess
 }
 
-export let isLittleRoad = (state: state) => {
-    return getRoad(state) == road.LittleMan
+export let isLittleCharacterType = (state: state) => {
+    return getCharacterType(state) == characterType.LittleMan
+}
+
+export let isNoneCharacterType = (state: state) => {
+    return getCharacterType(state) == characterType.None
+}
+
+export let isPlayerCharacterType = (state: state) => {
+    return isLittleCharacterType(state) || isGiantessCharacterType(state)
 }

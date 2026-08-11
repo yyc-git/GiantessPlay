@@ -1,7 +1,7 @@
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { Quaternion, Matrix4, Vector3, Vector2, AxesHelper, Box3, Object3D, SkinnedMesh, Mesh, MeshPhongMaterial, LoopRepeat, Euler } from "three";
 import { state } from "../../../../type/StateType";
-import { getState, setState, getName as getCitySceneName, getScene, getConfigData, isLittleRoad, getOrbitControlsTarget } from "../CityScene";
+import { getState, setState, getName as getCitySceneName, getScene, getConfigData, isLittleCharacterType, getOrbitControlsTarget } from "../CityScene";
 import { littleMan, littleManActionState, objectStateName } from "../type/StateType";
 import { ModelLoader } from "meta3d-jiehuo-abstract";
 import { getAbstractState, setAbstractState } from "../../../../state/State";
@@ -33,7 +33,6 @@ import { getCurrentCamera } from "meta3d-jiehuo-abstract/src/scene/Camera";
 import { getHeight, getWidth } from "meta3d-utils/src/View";
 import { getLittleManShootStartEventName, getMissionFailEventName } from "../../../../utils/EventUtils";
 import { Event } from "meta3d-jiehuo-abstract";
-import { getGirlPositionParrelToArmy, getParticleNeedCollisionCheckLoopCount, } from "../utils/ArmyUtils";
 import { isNotDamageState } from "../utils/FSMStateUtils"
 import { getRandomCollisionPart } from "../utils/CollisionUtils";
 import { ParticleManager } from "meta3d-jiehuo-abstract";
@@ -49,6 +48,7 @@ import { computeBox, getCurrentModelData, getFullHp, getLittleMan, getLittleManS
 import { isTriggerAction, resetIsTriggerAction } from "./Action";
 import { Console } from "meta3d-jiehuo-abstract";
 import { setBonePositionYOffset } from "../utils/BoneUtils";
+import { updateCamera } from "../LittleManCamera";
 
 const _q = new Quaternion();
 const _e = new Euler();
@@ -61,16 +61,35 @@ export let getPosition = (state: state) => {
     return getLittleMan(state).position
 }
 
-let _setPosition = (state: state, position) => {
+export let setPosition = (state: state, position) => {
     getLittleMan(state).position.copy(position)
 
     return state
 }
 
 export let setPositionAndComputeBox = (state: state, position) => {
-    state = _setPosition(state, position)
+    state = setPosition(state, position)
 
     state = computeBox(state)
+
+    return state
+}
+
+export let setWorldPositionAndComputeBox = (state: state, position) => {
+    TransformUtils.setWorldPosition(getLittleMan(state), getAbstractState(state), position)
+
+    state = computeBox(state)
+
+    return state
+}
+
+export let updatePosition = (state: state, targetPosition, currentPosition = getPosition(state), func = setPositionAndComputeBox) => {
+    let velocity = targetPosition.clone().sub(currentPosition)
+
+    state = func(state, targetPosition)
+
+    state = updateCamera(state, velocity)
+
 
     return state
 }
@@ -79,9 +98,11 @@ export let setPositionAndComputeBox = (state: state, position) => {
 export let getWorldPosition = (state: state) => {
     // return getLittleMan(state).position
 
-    getLittleMan(state).updateWorldMatrix(true, true)
+    // getLittleMan(state).updateWorldMatrix(true, true)
 
-    return TransformUtils.getWorldPosition(getLittleMan(state), new Vector3())
+    // return TransformUtils.getWorldPosition(getLittleMan(state), new Vector3())
+
+    return getLittleMan(state).getWorldPosition(new Vector3())
 }
 
 
@@ -107,12 +128,16 @@ export let setLocalMatrix = (state: state, matrix: Matrix4) => {
 // }
 
 export let translate = (state: state, translation: Vector3) => {
-    return _setPosition(
+    return setPosition(
         state,
         getPosition(state).clone().add(
             translation
         )
     )
+}
+
+export let getRotation = (state: state) => {
+    return getLittleMan(state).quaternion
 }
 
 export let setRotation = (state: state, quat: Quaternion) => {
@@ -139,9 +164,9 @@ export let setScale = (state: state, scale: Vector3) => {
 export let initTransform = (state: state) => {
     state = setBonePositionYOffset(state, getLittleMan(state), getCurrentModelData(state).positionYOffset)
 
-    state = _setPosition(state, NullableUtils.getExn(getLittleManState(state).initialPosition))
-    // state = _setPosition(state, NullableUtils.getExn(getLittleManState(state).initialPosition.clone().setY(-10)))
-    // state = _setPosition(state, NullableUtils.getExn(getLittleManState(state).initialPosition.clone().setY(_getPositionYOffset())))
+    state = setPosition(state, getInitialPosition(state))
+    // state = setPosition(state, NullableUtils.getExn(getLittleManState(state).initialPosition.clone().setY(-10)))
+    // state = setPosition(state, NullableUtils.getExn(getLittleManState(state).initialPosition.clone().setY(_getPositionYOffset())))
     state = setRotation(state, NullableUtils.getExn(getLittleManState(state).initialQuaternion))
     // state = setScale(state, _v1.set(1, 1, 1))
     // state = setScale(state, _v1.setScalar(_getScalar()))
@@ -152,4 +177,8 @@ export let initTransform = (state: state) => {
     // state = updateLocalMatrix(state)
 
     return state
+}
+
+export let getInitialPosition = (state: state) => {
+    return NullableUtils.getExn(getLittleManState(state).initialPosition)
 }

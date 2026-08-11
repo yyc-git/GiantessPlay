@@ -150,6 +150,59 @@ class MMDLoader extends Loader {
 
 	}
 
+	/*! edit by meta3d */
+	load2([url, buffer], setPMXCacheFunc, onLoad, onProgress, onError) {
+
+		const builder = this.meshBuilder.setCrossOrigin(this.crossOrigin);
+
+		// resource path
+
+		let resourcePath;
+
+		if (this.resourcePath !== '') {
+
+			resourcePath = this.resourcePath;
+
+		} else if (this.path !== '') {
+
+			resourcePath = this.path;
+
+		} else {
+
+			resourcePath = LoaderUtils.extractUrlBase(url);
+
+		}
+
+		const modelExtension = this._extractExtension(url).toLowerCase();
+
+		// Should I detect by seeing header?
+		if (modelExtension !== 'pmd' && modelExtension !== 'pmx') {
+
+			if (onError) onError(new Error('THREE.MMDLoader: Unknown model file extension .' + modelExtension + '.'));
+
+			return;
+
+		}
+
+		/*! edit by meta3d */
+		// this[modelExtension === 'pmd' ? 'loadPMD' : 'loadPMX'](url, function (data) {
+
+		if (buffer != null) {
+			this.loadPMX2(buffer,
+				function (data) {
+					onLoad(builder.build(data, resourcePath, onProgress, onError));
+				}, onError)
+		}
+		else {
+			this.loadPMX3(url,
+				setPMXCacheFunc,
+				function (data) {
+					onLoad(builder.build(data, resourcePath, onProgress, onError));
+				}, onProgress, onError)
+		}
+
+	}
+
 	/**
 	 * Loads Motion file(s) (.vmd) as a AnimationClip.
 	 * If two or more files are specified, they'll be merged.
@@ -175,8 +228,9 @@ class MMDLoader extends Loader {
 	}
 
 
+
 	/*!edit by meta3d */
-	loadAnimation2(allVMDData, object, onProgress, onError) {
+	loadAnimation2([allVMDData, allVMDBufferData], setVMDCacheFunc, markLoadedOneVMDFunc, object, onProgress, onError) {
 		let self = this
 
 		let _load = (result, i) => {
@@ -185,19 +239,77 @@ class MMDLoader extends Loader {
 			}
 
 			let url = allVMDData[i][1]
+			let buffer = allVMDBufferData[i][1]
 
-			return new Promise((resolve, reject) => {
-				self.loadVMD(url, resolve, onProgress, onError);
-			}).then(vmd => {
+			let promise
+			if (buffer != null) {
+				promise = new Promise((resolve, reject) => {
+					// resolve(buffer)
+					const parser = this._getParser();
+
+					resolve(parser.parseVmd(buffer, true))
+				})
+			}
+			else {
+				promise = new Promise((resolve, reject) => {
+					self.loadVMD2(url, resolve, onProgress, onError);
+				})
+					.then(([url, buffer, vmd]) => {
+						return setVMDCacheFunc(url, buffer).then(_ => vmd)
+					})
+			}
+
+			return promise.then(vmd => {
+				markLoadedOneVMDFunc()
+
 				result.push([allVMDData[i][0], vmd])
 
 				return _load(result, i + 1)
 			})
+				// .catch(e => {
+				// 	markLoadedOneVMDFunc()
+
+				// 	throw e
+				// })
 		}
+
+		// let result = []
+
+		// let _load = () => {
+		// 	return Promise.all(
+		// 		allVMDData.map(([animationName, url], index) => {
+		// 			let buffer = allVMDBufferData[index][1]
+
+		// 			let promise
+		// 			if (buffer != null) {
+		// 				promise = new Promise((resolve, reject) => {
+		// 					const parser = this._getParser();
+
+		// 					resolve(parser.parseVmd(buffer, true))
+		// 				})
+		// 			}
+		// 			else {
+		// 				promise = new Promise((resolve, reject) => {
+		// 					self.loadVMD2(url, resolve, onProgress, onError);
+		// 				})
+		// 					.then(([url, buffer, vmd]) => {
+		// 						return setVMDCacheFunc(url, buffer).then(_ => vmd)
+		// 					})
+		// 			}
+
+		// 			return promise.then(vmd => {
+		// 				markLoadedOneVMDFunc()
+
+		// 				result.push([animationName, vmd])
+		// 			})
+		// 		})
+		// 	)
+		// }
 
 		var builder = this.animationBuilder;
 
-		return _load([], 0).then(result => {
+		// return _load().then(() => {
+		return _load([], 0).then((result) => {
 			return result.map(([animationName, vmd]) => {
 				return [animationName, builder.build(vmd, object)]
 			})
@@ -236,19 +348,23 @@ class MMDLoader extends Loader {
 	}
 
 	/*!edit by meta3d */
-	loadWithAnimation2(modelUrl, allVMDData, onLoad, onProgress, onError) {
+	// loadWithAnimation2(modelUrl, allVMDData, onLoad, onProgress, onError) {
+	loadWithAnimation2([modelUrl, modelArrayBuffer], setPMXCacheFunc, setVMDCacheFunc, markLoadedOneVMDFunc, [allVMDData, allVMDBufferData], onLoad, onProgress, onError) {
 
 		var scope = this;
 
-		this.load(modelUrl, function (mesh) {
-			scope.loadAnimation2(allVMDData, mesh, onProgress, onError).then(result => {
-				onLoad({
-					mesh: mesh,
-					animation: result
-				});
-			})
+		// this.load(modelUrl, function (mesh) {
+		this.load2([modelUrl, modelArrayBuffer],
+			setPMXCacheFunc,
+			function (mesh) {
+				scope.loadAnimation2([allVMDData, allVMDBufferData], setVMDCacheFunc, markLoadedOneVMDFunc, mesh, onProgress, onError).then(result => {
+					onLoad({
+						mesh: mesh,
+						animation: result
+					});
+				}).catch(onError)
 
-		}, onProgress, onError);
+			}, onProgress, onError);
 	}
 
 	// Load MMD assets as Object data parsed by MMDParser
@@ -312,7 +428,6 @@ class MMDLoader extends Loader {
 					onLoad(parser.parsePmx(buffer, true));
 
 				} catch (e) {
-
 					if (onError) onError(e);
 
 				}
@@ -320,6 +435,49 @@ class MMDLoader extends Loader {
 			}, onProgress, onError);
 
 	}
+
+
+	/*! edit by meta3d */
+	loadPMX2(buffer, onLoad, onError) {
+
+		const parser = this._getParser();
+
+		try {
+
+			onLoad(parser.parsePmx(buffer, true));
+
+		} catch (e) {
+			if (onError) onError(e);
+
+		}
+	}
+	loadPMX3(url, setPMXCacheFunc, onLoad, onProgress, onError) {
+
+		const parser = this._getParser();
+
+		this.loader
+			.setMimeType(undefined)
+			.setPath(this.path)
+			.setResponseType('arraybuffer')
+			.setRequestHeader(this.requestHeader)
+			.setWithCredentials(this.withCredentials)
+			.load(url, function (buffer) {
+				setPMXCacheFunc(buffer).then(_ => {
+					try {
+
+						onLoad(parser.parsePmx(buffer, true));
+
+					} catch (e) {
+						if (onError) onError(e);
+
+					}
+				})
+			}, onProgress, onError);
+	}
+
+
+
+
 
 	/**
 	 * Loads .vmd file as an Object. If two or more files are specified
@@ -365,6 +523,70 @@ class MMDLoader extends Loader {
 			}, onProgress, onError);
 
 		}
+
+	}
+
+
+	/*! edit by meta3d */
+	loadVMD2(url, onLoad, onProgress, onError) {
+
+		// const urls = Array.isArray(url) ? url : [url];
+
+		// const vmds = [];
+		// const vmdNum = urls.length;
+
+		const parser = this._getParser();
+
+		this.loader
+			.setMimeType(undefined)
+			.setPath(this.animationPath)
+			.setResponseType('arraybuffer')
+			.setRequestHeader(this.requestHeader)
+			.setWithCredentials(this.withCredentials);
+
+		// for (let i = 0, il = urls.length; i < il; i++) {
+
+		// 	this.loader.load(urls[i], function (buffer) {
+
+		// 		try {
+
+		// 			vmds.push(parser.parseVmd(buffer, true));
+
+		// 			/*! edit by meta3d */
+		// 			// if (vmds.length === vmdNum) onLoad(parser.mergeVmds(vmds));
+		// 			if (vmds.length === vmdNum) onLoad([urls[i], buffer, parser.mergeVmds(vmds)]);
+
+
+
+
+		// 		} catch (e) {
+
+		// 			if (onError) onError(e);
+
+		// 		}
+
+		// 	}, onProgress, onError);
+
+		// }
+
+
+		this.loader.load(url, function (buffer) {
+
+			try {
+				// console.log("load vmd url: ", url);
+
+				onLoad([url, buffer, parser.parseVmd(buffer, true)])
+
+
+			} catch (e) {
+
+				if (onError) onError(e);
+
+			}
+
+		}, onProgress, onError);
+
+
 
 	}
 
@@ -2005,11 +2227,12 @@ class AnimationBuilder {
 
 		const track = new typedKeyframeTrack(node, times, values);
 
-		track.createInterpolant = function InterpolantFactoryMethodCubicBezier(result) {
+		/*! edit by meta3d */
+		// track.createInterpolant = function InterpolantFactoryMethodCubicBezier(result) {
 
-			return new CubicBezierInterpolation(this.times, this.values, this.getValueSize(), result, new Float32Array(interpolations));
+		// 	return new CubicBezierInterpolation(this.times, this.values, this.getValueSize(), result, new Float32Array(interpolations));
 
-		};
+		// };
 
 		return track;
 

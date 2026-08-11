@@ -8,7 +8,15 @@ import { requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract";
 import { getIsDebug } from "../../Scene"
 import { Console } from "meta3d-jiehuo-abstract"
 
-let _controlNode = (state: state, key: behaviourTreeKey, children: Array<behaviourTreeData>, initialBehaviourTreeNodeExecuteResult, stopBehaviourTreeNodeExecuteResult): Promise<behaviourTreeNodeResult> => {
+/*! 
+        selector:
+            if return success, exit and return success 
+            else all: return fail
+        sequence:
+            if return fail, exit and return fail
+            else all: return success
+*/
+let _controlNode = (state: state, usedGirl, key: behaviourTreeKey, children: Array<behaviourTreeData>, initialBehaviourTreeNodeExecuteResult, stopBehaviourTreeNodeExecuteResult): Promise<behaviourTreeNodeResult> => {
     requireCheck(() => {
         // test("children.length should > 0", () => {
         //     return children.length > 0
@@ -72,15 +80,15 @@ let _controlNode = (state: state, key: behaviourTreeKey, children: Array<behavio
         //     return Promise.resolve([state, result])
         // }
 
-        if (isNeedJumpToFinishedNode(state, key)) {
+        if (isNeedJumpToFinishedNode(state, usedGirl, key)) {
             if (!NullableUtils.isNullable(child.actionNode)) {
                 let actionNode = NullableUtils.getExn(child.actionNode)
 
                 let actionResult
-                if (isFinishedId(state, key, getActionNodeId(actionNode))) {
-                    actionResult = getFinishedResult(state, key)
+                if (isFinishedId(state, usedGirl, key, getActionNodeId(actionNode))) {
+                    actionResult = getFinishedResult(state, usedGirl, key)
 
-                    state = resetFinish(state, key)
+                    state = resetFinish(state, usedGirl, key)
 
 
                     // let actionResult = behaviourTreeNodeExecuteResult.Success
@@ -118,25 +126,25 @@ let _controlNode = (state: state, key: behaviourTreeKey, children: Array<behavio
             }, stopBehaviourTreeNodeExecuteResult),
             false
         )
-            || isRunning(state, key)
+            || isRunning(state, usedGirl, key)
         ) {
             return Promise.resolve([state, result])
         }
 
-        if (!child.returnFailCondition(state)) {
+        if (!child.conditionReturnFail(state, usedGirl)) {
             return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
         }
 
-        if (!child.returnSuccessCondition(state)) {
+        if (!child.conditionReturnSuccess(state, usedGirl)) {
             return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
         }
 
         if (!NullableUtils.isNullable(child.actionNode)) {
             let actionNode = NullableUtils.getExn(child.actionNode)
 
-            return getActionNodeFunc(actionNode)(state, getActionNodeId(actionNode), NullableUtils.map(
+            return getActionNodeFunc(actionNode)(state, usedGirl, getActionNodeId(actionNode), NullableUtils.map(
                 config => {
-                    return config(state)
+                    return config(state, usedGirl)
                 },
                 child.config
             ))
@@ -150,14 +158,14 @@ let _controlNode = (state: state, key: behaviourTreeKey, children: Array<behavio
     }, [state, initialBehaviourTreeNodeExecuteResult])
 }
 
-export let selector: controlNode = (state, key, children) => {
-    return _controlNode(state, key, children, behaviourTreeNodeExecuteResult.Fail, NullableUtils.return_(behaviourTreeNodeExecuteResult.Success))
+export let selector = (usedGirl): controlNode => (state, key, children) => {
+    return _controlNode(state, usedGirl, key, children, behaviourTreeNodeExecuteResult.Fail, NullableUtils.return_(behaviourTreeNodeExecuteResult.Success))
 }
 
-export let sequence: controlNode = (state, key, children) => {
-    return _controlNode(state, key, children, behaviourTreeNodeExecuteResult.Success, NullableUtils.return_(behaviourTreeNodeExecuteResult.Fail))
+export let sequence = (usedGirl): controlNode => (state, key, children) => {
+    return _controlNode(state, usedGirl, key, children, behaviourTreeNodeExecuteResult.Success, NullableUtils.return_(behaviourTreeNodeExecuteResult.Fail))
 }
 
-export let parrel: controlNode = (state, key, children) => {
-    return _controlNode(state, key, children, behaviourTreeNodeExecuteResult.Fail, NullableUtils.getEmpty())
+export let parrel = (usedGirl): controlNode => (state, key, children) => {
+    return _controlNode(state, usedGirl, key, children, behaviourTreeNodeExecuteResult.Fail, NullableUtils.getEmpty())
 }

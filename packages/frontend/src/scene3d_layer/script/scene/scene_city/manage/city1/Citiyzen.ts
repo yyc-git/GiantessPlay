@@ -1,9 +1,9 @@
 import { getAbstractState, readState, setAbstractState, writeState } from "../../../../../state/State"
 import { state } from "../../../../../type/StateType"
-import { getDynamicGroup, getScene, getState, setState } from "../../CityScene"
+import { getDynamicGroup, getScene, getState, isGiantessCharacterType, setState } from "../../CityScene"
 import { getIsDebug } from "../../../Scene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
-import { cityzen, objectStateName } from "../../type/StateType"
+import { camp, cityzen, objectStateName } from "../../type/StateType"
 import { Scene } from "meta3d-jiehuo-abstract"
 import { Event } from "meta3d-jiehuo-abstract"
 import { Pick } from "meta3d-jiehuo-abstract"
@@ -23,7 +23,7 @@ import { Flow } from "meta3d-jiehuo-abstract"
 import { buildDownDirection, buildRandomDirectionInXZ } from "../../../../../utils/DirectionUtils"
 import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { InstanceSourceLOD as InstanceSourceLODType } from "meta3d-jiehuo-abstract/src/lod/InstanceSourceLOD"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { fontType, fsm_state, labelAnimation, lodQueueIndex, name, tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { getGirl, isCollisionWithGirl } from "../../girl/Girl"
@@ -38,25 +38,29 @@ import { InstancedSkinLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/Instanced
 import { objectValue } from "../../data/ValueType"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Loader } from "meta3d-jiehuo-abstract"
-import { add, buildQueue } from "../../utils/LODQueueUtils"
+import { add, buildQueue } from "../../utils/AviailableLODQueueUtils"
 import { fixZFighting } from "meta3d-jiehuo-abstract/src/utils/MaterialUtils"
 import { solveBlackBoardProblem } from "meta3d-jiehuo-abstract/src/utils/TextureUtils"
 import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import { buildStatus } from "../../utils/LODContainerUtils"
 import { isNearGirl } from "../../utils/CollisionUtils"
 import { buildMultipleTweens, computeEuler, computeMoveTime, getMoveData, position, singleMoveData } from "../../utils/MoveUtils"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
+
 import { LabelManager } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { convertPositionFromThreejsToBlender } from "../../utils/BlenderUtils"
 import { getGrid } from "./PathFind"
 import { LOD } from "meta3d-jiehuo-abstract"
 import { buildBloodDecalQueue, buildNameInShadowQueue, createBloodData, createDestroyingState, createStressingState, removeShadow, restoreShadow, updateShadow, handlePickdown as handlePickdownUtils, createDestroyedState } from "../../utils/CharacterUtils"
-import { isNotDamageState } from "../../utils/FSMStateUtils"
+import { isControlledState, isNotDamageState } from "../../utils/FSMStateUtils"
 import { defenseFactor, excitement, hp } from "../../data/DataType"
 // import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import { updateTransform as updateTransformUtils, getLocalTransform as getLocalTransformUtils, getBoxForPick as getBoxForPickUtils } from "../../girl/PickPoseUtils"
 import { getGiantessTransformFunc, getPickTransformPrefix } from "../../utils/SkeletonUtils"
+import { setCamp } from "./Army"
+import { getNoneArmorData } from "../../utils/OctreeObjectUtils"
+import { disposeDataForStatic, setDefenseFactor } from "../../StaticDynamicUnit"
+import { MutableMapUtils } from "meta3d-jiehuo-abstract"
 
 const _q = new Quaternion();
 const _m = new Matrix4();
@@ -117,10 +121,6 @@ let _getNamePrefix = () => "cityzen"
 // let _buildCityzenName = (categoryName, index) => `${categoryName}_${index}`
 
 // export let getSkinObjectName = _getNamePrefix
-
-export let getFPS = () => {
-	return Device.isMobile() ? 30 : 60
-}
 
 export let getCityzen1NamePrefix = () => "cityzen1"
 
@@ -185,7 +185,7 @@ export let isCityzen = (name: string) => {
 	return name.includes(_getNamePrefix())
 }
 
-export let getValue = (state:state): objectValue => {
+export let getValue = (state: state): objectValue => {
 	return {
 		excitement: excitement.VeryLow,
 		defenseFactor: defenseFactor.VeryLow,
@@ -251,7 +251,7 @@ export let createState = (): cityzen => {
 		cityzenMap: Map(),
 
 		stateMachineMap: Map(),
-		defenseFactorMap: Map(),
+		// defenseFactorMap: Map(),
 		hpMap: Map(),
 
 		lodQueueIndexMap: Map(),
@@ -264,9 +264,14 @@ export let createState = (): cityzen => {
 	}
 }
 
-export let getModelQueueIndex = (state: state, name) => {
-	return NullableUtils.getExn(_getState(state).lodQueueIndexMap.get(name))
+export let getModelQueueIndexNullable = (state: state, name) => {
+	return _getState(state).lodQueueIndexMap.get(name)
 }
+
+export let getModelQueueIndex = (state: state, name) => {
+	return NullableUtils.getExn(getModelQueueIndexNullable(state, name))
+}
+
 
 let _hasMoveTween = (state, name) => {
 	return _getState(state).moveTweenMap.has(name)
@@ -291,7 +296,7 @@ let _addMoveTween = (state, name, tween) => {
 let _move = (state) => {
 	return ArrayUtils.reducePromise(getAllModelQueues(state), (state, queue) => {
 		return queue.reducePromise(state, (state, _, index) => {
-			let name = queue.names[index]
+			let name = queue.getName(index)
 			let userData = queue.getUserData(name)
 
 			return StateMachine.changeAndExecuteState(state, _setStateMachine, _getStateMachine(state, name), createMoveState(state), name,
@@ -354,8 +359,7 @@ export let initWhenImportScene = (state: state) => {
 
 	let abstractState = getAbstractState(state)
 
-	// abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat(getAllModelQueues(state)).concat(_getAllShadowQueues(state)))
-	abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat(getAllModelQueues(state)))
+	// abstractState = Collision.setPlayerMoveCollisionableContainers(abstractState, Collision.getPlayerMoveCollisionableContainers(abstractState).concat(getAllModelQueues(state)))
 
 	state = setAbstractState(state, abstractState)
 
@@ -367,16 +371,17 @@ export let initWhenImportScene = (state: state) => {
 	return _move(state)
 }
 
-let _getDefenseFactor = (state, name) => {
-	return NullableUtils.getExn(_getState(state).defenseFactorMap.get(name))
-}
+// let _getDefenseFactor = (state, name) => {
+// 	return NullableUtils.getExn(_getState(state).defenseFactorMap.get(name))
+// }
 
-let _getFullHp = (state:state) => {
+let _getFullHp = (state: state) => {
 	return getValue(state).hp
 }
 
 export let getHp = (state, name) => {
-	return NullableUtils.getExn(_getState(state).hpMap.get(name))
+	// return NullableUtils.getExn(_getState(state).hpMap.get(name))
+	return NullableUtils.getWithDefault(_getState(state).hpMap.get(name), 0)
 }
 
 let _updateHp = (state, name, hp) => {
@@ -387,10 +392,17 @@ let _updateHp = (state, name, hp) => {
 }
 
 
-export let damage = (state: state, forceData, fromName, damagePosition, transforms, boxes, names) => {
+export let damage = (state: state, forceData, weaponValue_, fromName, damagePosition,
+	// critRatioFactor,
+	// attackFactor,
+	transforms, boxes, names) => {
 	return DamageUtils.damage(
 		state, [
-		_getDefenseFactor, getHp, _updateHp,
+		// _getDefenseFactor, 
+		// // getZeroFactor,
+		// // getZeroFactor,
+		// getZeroFactor,
+		getHp, _updateHp,
 
 		_getStateMachine,
 		_setStateMachine,
@@ -400,14 +412,22 @@ export let damage = (state: state, forceData, fromName, damagePosition, transfor
 		},
 		() => {
 			return createDestroyingState([
-				_getDeathClipIndex, _getState, _setState, _getStateMachine, _setStateMachine, (state, name) => {
+				_getDeathClipIndex, _getState, _setState, _getStateMachine, _setStateMachine,
+				getModelQueueIndexNullable,
+				disposeData,
+				(state, data) => {
+					state
+				}, (state, name) => {
 					ArticluatedAnimation.removeTweens(getAbstractState(state), _getMoveTween(state, name))
 
 					return state
-				}])
+				}], weaponValue_,
+				// forceData[1][0]
+			)
 		}
-	], forceData, fromName,
+	], forceData, weaponValue_, fromName,
 		damagePosition,
+		getNoneArmorData(),
 		transforms, boxes, names,
 	)
 }
@@ -432,11 +452,15 @@ let _getAllShadowQueues = (state: state) => {
 }
 
 export let initialAttributes = (state, name, index) => {
+	state = setCamp(state, name, camp.None)
+
+	state = setDefenseFactor(state, name, getValue(state).defenseFactor)
+
 	return _setState(state, {
 		..._getState(state),
 		lodQueueIndexMap: _getState(state).lodQueueIndexMap.set(name, index),
 		stateMachineMap: _getState(state).stateMachineMap.set(name, StateMachine.create(name, createInitialState())),
-		defenseFactorMap: _getState(state).defenseFactorMap.set(name, getValue(name).defenseFactor),
+		// defenseFactorMap: _getState(state).defenseFactorMap.set(name, getValue(name).defenseFactor),
 		hpMap: _getState(state).hpMap.set(name, _getFullHp(state)),
 	})
 }
@@ -481,7 +505,7 @@ let _getControlledClipIndex = (name) => {
 	return cityzen2AnimationClipIndex.Idle
 }
 
-let _getShakeClipIndex = (name) => {
+let _getShakeClipIndex = (name, damageType_) => {
 	if (name.includes(getCityzen1NamePrefix())) {
 		return cityzen1AnimationClipIndex.Shake
 	}
@@ -489,7 +513,7 @@ let _getShakeClipIndex = (name) => {
 	return cityzen2AnimationClipIndex.Shake
 }
 
-let _getDeathClipIndex = (name) => {
+let _getDeathClipIndex = (name, damageType_) => {
 	if (name.includes(getCityzen1NamePrefix())) {
 		return cityzen1AnimationClipIndex.Death
 	}
@@ -535,7 +559,7 @@ let _buildRandomStartPosition = (firstPoistion, secondPosition) => {
 	}
 }
 
-let _getInitialEulerForTweenToFaceNegativeX = () => {
+let _getInitialEulerForMoveTween = () => {
 	return new Euler(0, -Math.PI / 2, 0)
 }
 
@@ -656,7 +680,7 @@ export let createMoveState = (state): fsm_state<state> => {
 								true,
 								// getIsDebug(state)
 							)
-						}, _computeEuler(previousPosition, currentMoveData, _getInitialEulerForTweenToFaceNegativeX()))
+						}, _computeEuler(previousPosition, currentMoveData, _getInitialEulerForMoveTween()))
 
 
 
@@ -708,7 +732,7 @@ export let createMoveState = (state): fsm_state<state> => {
 
 export let createControlledState = (): fsm_state<state> => {
 	return {
-		name: objectStateName.Controlled,
+		name: objectStateName.PickedControlled,
 		enterFunc: (state) => Promise.resolve(state),
 		executeFunc: (state, _, stateMachine) => {
 			let name = stateMachine.name
@@ -730,24 +754,31 @@ export let createControlledState = (): fsm_state<state> => {
 let _getAllModelQueueDataForUpdate = (state): Array<[Box3, string]> => {
 	return getAllModelQueues(state).reduce((result, queue) => {
 		// return result.concat(queue.names.map((name, i) => {
-		// 	return [queue.transforms[i], queue.boxes[i], name]
+		// 	return [queue.getTransform(i), queue.getBox(i), name]
 		// }))
 
-		return queue.transforms.reduce((result, transform, i) => {
-			if (!isNearGirl(state, TransformUtils.getPositionFromMatrix4(transform))) {
-				return result
-			}
-
-			let name = queue.names[i]
-			let stateMachine = _getStateMachine(state, name)
-
-			if (!isNotDamageState(stateMachine)
-				|| StateMachine.isState(stateMachine, objectStateName.Controlled)
+		return MutableMapUtils.reduce(queue.transforms, (result, transform, i) => {
+			// if (!isNearGirl(state, TransformUtils.getPositionFromMatrix4(transform))) {
+			if (
+				NullableUtils.isNullable(transform)
+				||
+				// isGiantessCharacterType(state)
+				// &&
+				!isNearGirl(state, TransformUtils.getPositionFromMatrix4(transform))
 			) {
 				return result
 			}
 
-			result.push([queue.boxes[i], name])
+			let name = queue.getName(i)
+			let stateMachine = _getStateMachine(state, name)
+
+			if (!isNotDamageState(stateMachine)
+				|| isControlledState(state, stateMachine)
+			) {
+				return result
+			}
+
+			result.push([queue.getBox(i), name])
 
 			return result
 		}, result)
@@ -755,14 +786,32 @@ let _getAllModelQueueDataForUpdate = (state): Array<[Box3, string]> => {
 }
 
 export let update = (state: state) => {
-	return ArrayUtils.reducePromise(_getAllModelQueueDataForUpdate(state), (state, [box, name]) => {
-		if (isCollisionWithGirl(box, state)) {
-			return StateMachine.changeAndExecuteState(state, _setStateMachine, _getStateMachine(state, name), createInitialState(), name, name)
-		}
-		else {
-			return StateMachine.changeAndExecuteState(state, _setStateMachine, _getStateMachine(state, name), createMoveState(state), name, NullableUtils.getEmpty())
-		}
-	}, state)
+	// TODO restore
+	// return ArrayUtils.reducePromise(_getAllModelQueueDataForUpdate(state), (state, [box, name]) => {
+	// 	if (isCollisionWithGirl(box, state, usedGirl)) {
+	// 		return StateMachine.changeAndExecuteState(state, _setStateMachine, _getStateMachine(state, name), createInitialState(), name, name)
+	// 	}
+	// 	else {
+	// 		return StateMachine.changeAndExecuteState(state, _setStateMachine, _getStateMachine(state, name), createMoveState(state), name, NullableUtils.getEmpty())
+	// 	}
+	// }, state)
+	return Promise.resolve(state)
+}
+
+export let disposeData = (state: state, name: name) => {
+	state = disposeDataForStatic(state, name)
+
+	state = _setState(state, {
+		..._getState(state),
+		stateMachineMap: _getState(state).stateMachineMap.remove(name),
+		// defenseFactorMap: _getState(state).defenseFactorMap.remove(name),
+		hpMap: _getState(state).hpMap.remove(name),
+		lodQueueIndexMap: _getState(state).lodQueueIndexMap.remove(name),
+		moveTweenMap: _getState(state).moveTweenMap.remove(name),
+		shadowQueueMap: _getState(state).shadowQueueMap.remove(name),
+	})
+
+	return state
 }
 
 export let dispose = (state: state) => {
@@ -779,7 +828,6 @@ export let getPickedTransform = getGiantessTransformFunc(
 	(state) => new Quaternion(),
 	getPickTransformPrefix(),
 
-	new Vector3(-0.3, -0.5, -0.2),
 	Math.PI / 2,
 	// new Vector3(1, 0, 0),
 	Math.PI / 2,
@@ -790,7 +838,7 @@ export let getPickedTransform = getGiantessTransformFunc(
 
 
 
-export let handlePickup = (state: state, name: name) => {
+export let handlePickup = (state: state, usedGirl, name: name) => {
 	state = removeShadow(state, name)
 
 	return StateMachine.changeAndExecuteState(state, _setStateMachine, _getStateMachine(state, name), createControlledState(), name, NullableUtils.getEmpty())
@@ -806,6 +854,12 @@ export let handlePickdown = (state: state, name: name, index: lodQueueIndex, tar
 		name, index, targetPoint, queue, _getShadowQueue(state, name), originTransform
 	)
 }
+
+export let handleFall = (state: state, name: name, index: lodQueueIndex, queue: LODQueue, originTransform: Matrix4): Promise<[state, boolean]> => {
+	throw new Error("error");
+}
+
+
 
 export let getLocalTransform = getLocalTransformUtils
 

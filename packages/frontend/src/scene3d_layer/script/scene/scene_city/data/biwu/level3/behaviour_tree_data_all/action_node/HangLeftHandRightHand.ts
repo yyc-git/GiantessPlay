@@ -9,15 +9,15 @@ import { attackType, getCustomData, handType, setAttackType, setCustomData } fro
 import { getKey } from "../BehaviourTreeData"
 import { markFinish } from "../../../../../behaviour_tree/BehaviourTreeManager"
 
-export let handLeftHandRigthHand: actionNodeFunc = (state, id) => {
+export let handLeftHandRigthHand: actionNodeFunc = (state, usedGirl, id) => {
     Console.log("handLeftHandRigthHand")
 
     return triggerActionWithCompleteFunc(state, [
         Girl.triggerAction,
         (state, id) => {
-            state = setAttackType(state, handType.LeftHandRightHand, attackType.Protect, attackType.BeatAttack)
+            state = setAttackType(state, usedGirl, handType.LeftHandRightHand, attackType.Protect, attackType.BeatAttack)
 
-            return markFinish(state, id, behaviourTreeNodeExecuteResult.Success, getKey())
+            return markFinish(state, usedGirl, id, behaviourTreeNodeExecuteResult.Success, getKey())
         }
-    ], actionName.HangLeftHandRightHand as any, id, getKey())
+    ], usedGirl, actionName.HangLeftHandRightHand as any, id, getKey())
 }

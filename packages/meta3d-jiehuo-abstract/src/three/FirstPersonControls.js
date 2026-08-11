@@ -277,6 +277,23 @@ class FirstPersonControls {
             lat = latValue
             lon = lonValue
         };
+        this.getLookData = function () {
+            return [lat, lon]
+        };
+        this.getLookatDirection = function () {
+            const quaternion = this.object.quaternion;
+
+            return new Vector3(0, 0, - 1).applyQuaternion(quaternion);
+        };
+        this.resetPointerData = function () {
+            this.pointerX = 0
+            this.pointerY = 0
+
+            this.lastPageX = 0
+            this.lastPageY = 0
+        };
+
+
 
 
         this.update = function () {

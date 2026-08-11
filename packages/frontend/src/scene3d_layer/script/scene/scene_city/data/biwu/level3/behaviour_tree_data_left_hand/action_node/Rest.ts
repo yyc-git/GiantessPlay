@@ -6,13 +6,13 @@ import { markIsRunning } from "../../../../../utils/BehaviourManagerUtils"
 import { markFinish } from "../../../../../behaviour_tree/BehaviourTreeManager"
 import { getKey } from "../BehaviourTreeData"
 
-export let rest: actionNodeFunc = (state, id) => {
+export let rest: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("rest")
 
-    state = markIsRunning(state, true, getKey())
+    state = markIsRunning(state, usedGirl,true, getKey())
 
     state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
-        return markFinish(state, id, behaviourTreeNodeExecuteResult.Success, getKey())
+        return markFinish(state, usedGirl,  id, behaviourTreeNodeExecuteResult.Success, getKey())
     }, 2))
 
     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])

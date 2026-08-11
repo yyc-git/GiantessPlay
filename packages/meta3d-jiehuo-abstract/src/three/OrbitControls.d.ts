@@ -313,7 +313,8 @@ export class OrbitControls extends EventDispatcher<OrbitControlsEventMap> {
 
     zoomIn(): void
     zoomOut(): void
-    setZoom(zoom: number): void
+    // setZoom(zoom: number): void
+    // setZoomScale(value: number): void
     getZoom(): number
 
 

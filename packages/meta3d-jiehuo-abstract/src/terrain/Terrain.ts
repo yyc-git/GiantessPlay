@@ -6,7 +6,7 @@ import { findObjectByName } from "../scene/Scene";
 import { map } from "../utils/NullableUtils";
 import { nullable } from "../utils/nullable";
 
-const _q = new THREE. Quaternion();
+const _q = new THREE.Quaternion();
 const _m = new THREE.Matrix4();
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -59,9 +59,9 @@ export let create = (config) => {
 }
 
 export let buildBigBoundingBox = () => {
-	let size = 100000
+  let size = 100000
 
-	return new THREE.Box3().setFromCenterAndSize(_v1.set(0, 0, 0), _v2.set(size, size, size))
+  return new THREE.Box3().setFromCenterAndSize(_v1.set(0, 0, 0), _v2.set(size, size, size))
 }
 
 export let getBoundingBox = (terrainMesh) => {

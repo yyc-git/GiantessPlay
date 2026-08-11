@@ -1,5 +1,3 @@
-import { getName as getSceneName } from "../../../CityScene"
-import { getName } from "../../../girl/Girl"
 import { animationName } from "./DataType"
 
 export let getAnimationFrameCountMap = () => {
@@ -17,4 +15,5 @@ export let getPickdownFromIdleAnimationResourcePath = (name) => `./resource_girl
 
 export let getWelcomeAnimationResourcePath = (name) => `./resource_girl/${name}/vmd_scenario/level1_welcome.vmd`
 
-export let getPickdownFromIdleWorkFrameIndex = () => 45
+// export let getPickdownFromIdleWorkFrameIndex = () => 45
+export let getPickdownFromIdleWorkFrameIndex = () => 43

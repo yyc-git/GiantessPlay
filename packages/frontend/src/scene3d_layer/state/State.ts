@@ -8,6 +8,8 @@ import { State } from "meta3d-jiehuo-abstract"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 // import { createState as createAbstractState } from "meta3d-jiehuo-abstract"
 import { state as abstractState } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { state as blockState } from "block/src/BlockManagerType"
+import { createState as createBlockState } from "block/src/BlockManager"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { View } from "meta3d-jiehuo-abstract"
 // import {NullableUtils} from "meta3d-jiehuo-abstract"
@@ -15,6 +17,7 @@ import { View } from "meta3d-jiehuo-abstract"
 
 export let createState = (): state => {
     return {
+        block: createBlockState(),
         abstract: State.createState(),
         config: createConfigState(),
         camera: NewThreeInstance.createPerspectiveCamera(60, View.getWidth() / View.getHeight(), 1, 1000),
@@ -32,6 +35,18 @@ export let writeState = (state: state) => {
 
     return state
 }
+
+export let getBlockState = (state: state) => {
+    return state.block
+}
+
+export let setBlockState = (state: state, blockState: blockState) => {
+    return {
+        ...state,
+        block: blockState
+    }
+}
+
 
 export let getAbstractState = (state: state) => {
     return state.abstract
@@ -66,6 +81,13 @@ export let setCitySceneState = (state: state, citySceneState: cityScene) => {
     }
 }
 
+export let mutableSetCitySceneState = (state: state, citySceneState: cityScene) => {
+    state.cityScene = citySceneState
+
+    return state
+}
+
+
 // export let getWarehouseSceneState = (state: state) => {
 //     return state.warehouseScene
 // }
@@ -75,4 +97,39 @@ export let setCitySceneState = (state: state, citySceneState: cityScene) => {
 //         ...state,
 //         warehouseScene: warehouseSceneState
 //     }
+// }
+
+// export let cloneBlockState = (blockState: blockState, hash = new WeakMap()) => {
+//     if (typeof blockState !== "object" || blockState == null) {
+//         return blockState;
+//     }
+
+//     if (hash.has(blockState)) {
+//         return hash.get(blockState);
+//     }
+
+//     let clone = Array.isArray(blockState) ? [] : {};
+//     hash.set(blockState, clone);
+
+//     for (const key in blockState) {
+//         if (Object.prototype.hasOwnProperty.call(blockState, key)) {
+//             clone[key] = cloneBlockState(blockState[key], hash);
+//         }
+//     }
+
+//     return clone;
+// }
+
+// export let copyBlockState = (blockState1: blockState, blockState2: blockState) => {
+//     if (typeof blockState1 !== "object" || blockState1 == null) {
+//         return blockState1
+//     }
+
+//     for (const key in blockState1) {
+//         if (Object.prototype.hasOwnProperty.call(blockState1, key)) {
+//             blockState2[key] = copyBlockState(blockState1[key], blockState2[key])
+//         }
+//     }
+
+//     return blockState2
 // }

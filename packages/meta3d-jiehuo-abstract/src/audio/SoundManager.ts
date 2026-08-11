@@ -1,12 +1,12 @@
 import { List, Map } from "immutable"
 import { needToPlayData, sound, state } from "../type/StateType"
-import { getSoundState, setSoundState } from "../state/State"
+import { getIsDebug, getSoundState, setSoundState } from "../state/State"
 import { isNullable } from "../utils/NullableUtils"
 import { getResource } from "../Loader"
 import { requireCheck, test } from "../utils/Contract"
 import { between } from "../utils/NumberUtils"
 import { removeDuplicateItemsWithBuildKeyFunc } from "../utils/ArrayUtils"
-import { NullableUtils } from "../Main"
+import { NullableUtils, NumberUtils } from "../Main"
 import { isMobile } from "../Device"
 // import { needToPlayData, sound } from "./type/StateType"
 // import { getSoundState, setSoundState } from "./CityScene"
@@ -23,7 +23,7 @@ export let createState = (): sound => {
 	}
 }
 
-export let buildNeedToPlaySoundData = (resouceId, isDebug, volume, isLoop = false) => {
+export let buildNeedToPlaySoundData = (resourceId, isDebug, volume, isLoop = false) => {
 	requireCheck(() => {
 		test("volume should in [0,1]", () => {
 			return between(volume, 0, 1)
@@ -31,7 +31,7 @@ export let buildNeedToPlaySoundData = (resouceId, isDebug, volume, isLoop = fals
 	}, isDebug)
 
 	return {
-		resouceId,
+		resourceId,
 		volume,
 		isLoop
 	}
@@ -46,7 +46,7 @@ let _isCanPlay = (value: needToPlayData, lastPlayTimeMap) => {
 	return NullableUtils.getWithDefault(
 		NullableUtils.map(lastPlayTime => {
 			return now - lastPlayTime > allowPlayInterval
-		}, lastPlayTimeMap.get(value.resouceId)),
+		}, lastPlayTimeMap.get(value.resourceId)),
 		true
 	)
 }
@@ -59,7 +59,7 @@ export let addNeedToPlaySound = (state: state, data: needToPlayData) => {
 	}
 
 	if (isNullable(needToPlayList.find((value) => {
-		return value.resouceId == data.resouceId
+		return value.resourceId == data.resourceId
 	}))) {
 		needToPlayList = needToPlayList.push(data)
 	}
@@ -72,16 +72,18 @@ export let addNeedToPlaySound = (state: state, data: needToPlayData) => {
 }
 
 export let play = (state: state, data) => {
+	let [sound, id] = getResource<[Howl, number]>(state, data.resourceId)
 
-	let [sound, id] = getResource<[Howl, number]>(state, data.resouceId)
+	sound.volume(NumberUtils.clamp(data.volume, 0, 1))
 
-	if (data.isLoop && sound.playing() || data.volume < 0.01) {
+	// if (data.isLoop && sound.playing() || data.volume < 0.01) {
+	if (data.isLoop && sound.playing()) {
 		return state
 	}
 
-	// Console.warn(data.resouceId, data.volume);
+	// Console.warn(data.resourceId, data.volume);
 
-	sound.volume(data.volume)
+	// sound.volume(data.volume)
 	// sound.volume(data.volume, id)
 
 	// Howler.volume(data.volume)
@@ -92,10 +94,18 @@ export let play = (state: state, data) => {
 		sound.loop(true)
 	}
 
-	state = setSoundState(state, {
-		...getSoundState(state),
-		lastPlayTimeMap: getSoundState(state).lastPlayTimeMap.set(data.resouceId, performance.now())
-	})
+	if (getSoundState(state).lastPlayTimeMap.size >= 30) {
+		state = setSoundState(state, {
+			...getSoundState(state),
+			lastPlayTimeMap: Map()
+		})
+	}
+	else {
+		state = setSoundState(state, {
+			...getSoundState(state),
+			lastPlayTimeMap: getSoundState(state).lastPlayTimeMap.set(data.resourceId, performance.now())
+		})
+	}
 
 	return state
 }
@@ -105,12 +115,12 @@ export let update = (state: state) => {
 	let { needToPlayList } = getSoundState(state)
 
 	// isPlayingList = needToPlayList.reduce((isPlayingList, data) => {
-	// 	if (isPlayingList.includes(data.resouceId)) {
+	// 	if (isPlayingList.includes(data.resourceId)) {
 	// 		return isPlayingList
 	// 	}
 
 
-	// 	let [sound, id] = Loader.getResource<[Howl, number]>(abstractState, data.resouceId)
+	// 	let [sound, id] = Loader.getResource<[Howl, number]>(abstractState, data.resourceId)
 	// 	sound.play()
 	// 	sound.volume(data.volume)
 
@@ -118,20 +128,22 @@ export let update = (state: state) => {
 
 	// 	})
 
-	// 	return isPlayingList.push(data.resouceId)
+	// 	return isPlayingList.push(data.resourceId)
 	// }, isPlayingList)
 
 
 	// Console.warn(
 	// 	removeDuplicateItemsWithBuildKeyFunc(needToPlayList.toArray(), data => {
-	// 		return data.resouceId
+	// 		return data.resourceId
 	// 	}).length
 	// );
 
 
 	state = removeDuplicateItemsWithBuildKeyFunc(needToPlayList.toArray(), data => {
-		return data.resouceId
-	}).slice(0, 5).reduce((state, data) => {
+		return data.resourceId
+	}).sort((a, b) => {
+		return b.volume - a.volume
+	}).slice(0, isMobile() ? 3 : 5).reduce((state, data) => {
 		return play(state, data)
 	}, state)
 
@@ -158,7 +170,7 @@ export let stop = (state, id) => {
 
 export let dispose = (state) => {
 	// state = getSoundState(state).needToPlayList.reduce((state, data) => {
-	// 	return stop(state, data.resouceId)
+	// 	return stop(state, data.resourceId)
 	// }, state)
 
 	return setSoundState(state, createState())

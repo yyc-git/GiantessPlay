@@ -28,6 +28,7 @@ import { keepLeftHandRightHand } from "./action_node/KeepLeftHandRightHand"
 import { rightHandDefaultToAdd } from "./action_node/RightHandDefaultToAdd"
 import { rightHandAddToDefault } from "./action_node/RightHandAddToDefault"
 import { keepRightHandAdd } from "./action_node/KeepRightHandAdd"
+import { getUsedGirl } from "../../../../manage/biwu/Utils"
 // import * as OneFingerAttack from "./action_node/OneFingerAttack"
 // import { hangRightHand } from "./action_node/HangRightHand"
 
@@ -122,29 +123,36 @@ export let buildActionNode = (node: BehaviourTreeData.actionNode): nullable<acti
                 BehaviourTreeManager.wrapActionNode(keepLeftHandRightHand, generateId())
             )
         default:
-            return BehaviourTreeManager.buildActionNode(node as any)
+            // return BehaviourTreeManager.buildActionNode(node as any)
+            return NullableUtils.getEmpty()
     }
 }
 
 export let initWhenImportScene = (state: state) => {
+    let usedGirl = getUsedGirl()
     state = BehaviourTreeData.initWhenImportScene(state)
 
     // state = OneFingerAttack.initWhenImportScene(state)
 
 
 
-    state = BehaviourTreeManager.buildTree(state, BehaviourTreeData.getKey(), buildActionNode)
+    state = BehaviourTreeManager.buildTree(state, usedGirl, BehaviourTreeData.getKey(), buildActionNode)
 
-    return Promise.resolve(state)
+    return BehaviourTreeManager.initWhenImportScene(state)
 }
 
-// export let getSettingFactorAffectRate = BehaviourTreeManager.getSettingFactorAffectRate
+// export let getSettingFactorAffectBiggerRate = BehaviourTreeManager.getSettingFactorAffectBiggerRate
 
 // export let hasTarget = BehaviourTreeManager.hasTarget
 
-// export let getNearestTargetCount = BehaviourTreeManager.getNearestTargetCount
+// export let getVeryNearestTargetCount = BehaviourTreeManager.getVeryNearestTargetCount
 
 export let update = state => BehaviourTreeManager.update(state, BehaviourTreeData.getKey())
+
+export let stop = (state: state) => {
+    let usedGirl = getUsedGirl()
+    return BehaviourTreeManager.stop(state, usedGirl)
+}
 
 export let dispose = (state: state) => {
     // state = OneFingerAttack.dispose(state)

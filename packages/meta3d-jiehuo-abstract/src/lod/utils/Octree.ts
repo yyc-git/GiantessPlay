@@ -5,9 +5,9 @@ import { nullable } from "../../utils/nullable";
 import { push } from "../../utils/ArrayUtils";
 import { buildBoxCollisionResult } from "../../utils/CollisionUtils";
 import { state } from "../../type/StateType";
-import { getStatus, isAlive } from "../LOD";
+import { getIsCollisionable, getIsVisible, isAlive } from "../LOD";
 import { addIndexToBox, getIndexFromBox } from "./OctreeUtils";
-import { MutableMapUtils, MutableNumberMapUtils } from "../../Main";
+import { ArrayUtils, MutableRecordUtils, MutableNumberMapUtils, NullableUtils, MutableMapUtils } from "../../Main";
 
 const _v1 = new THREE.Vector3();
 
@@ -192,41 +192,66 @@ class Octree {
 	}
 
 	// queryByFrustum(state: state, frustum: THREE.Frustum, indices = []) {
-	queryByFrustum(state: state, frustum: THREE.Frustum, indices = MutableNumberMapUtils.create()) {
+	// queryByFrustum(state: state, frustum: THREE.Frustum, indices = MutableNumberMapUtils.create()) {
+	// 	if (!frustum.intersectsBox(this.actualBox)) {
+	// 		// return [transforms, names]
+	// 		return indices
+	// 	} else {
+	// 		// let self = this
+
+	// 		let data = this.boxes.reduce((indices, box_) => {
+	// 			let index = getIndexFromBox(box_)
+
+	// 			if (
+	// 				// self.statuses[i].isVisible
+	// 				getStatus(state, index).isVisible
+	// 				&& frustum.intersectsBox(
+	// 					box_
+	// 				)
+	// 			) {
+	// 				// return [push(transforms, self.transforms[i]), push(names, self.names[i])]
+
+	// 				// return push(indices, index)
+
+	// 				return MutableNumberMapUtils.set(indices, index, true)
+	// 			}
+
+	// 			return indices
+	// 		}, indices)
+
+	// 		if (this.divided) {
+	// 			return this.children.reduce((data, child) => {
+	// 				return child.queryByFrustum(state, frustum, data)
+	// 			}, data);
+	// 		}
+
+	// 		return data
+	// 	}
+	// }
+	queryByFrustum(state: state, frustum: THREE.Frustum, indices = MutableMapUtils.create()) {
+		// 快速退出：当前节点完全在视锥外
 		if (!frustum.intersectsBox(this.actualBox)) {
-			// return [transforms, names]
-			return indices
-		} else {
-			// let self = this
-
-			let data = this.boxes.reduce((indices, box_) => {
-				let index = getIndexFromBox(box_)
-
-				if (
-					// self.statuses[i].isVisible
-					getStatus(state, index).isVisible
-					&& frustum.intersectsBox(
-						box_
-					)
-				) {
-					// return [push(transforms, self.transforms[i]), push(names, self.names[i])]
-
-					// return push(indices, index)
-
-					return MutableNumberMapUtils.set(indices, index, true)
-				}
-
-				return indices
-			}, indices)
-
-			if (this.divided) {
-				return this.children.reduce((data, child) => {
-					return child.queryByFrustum(state, frustum, data)
-				}, data);
-			}
-
-			return data
+			return indices;
 		}
+
+		// 处理当前节点的包围盒
+		for (const box of this.boxes) {
+			const index = getIndexFromBox(box);
+			const isVisible = getIsVisible(state, index);
+
+			if (isVisible && frustum.intersectsBox(box)) {
+				MutableMapUtils.set(indices, index, true);
+			}
+		}
+
+		// 递归处理子节点（如果存在）
+		if (this.divided) {
+			for (const child of this.children) {
+				child.queryByFrustum(state, frustum, indices);
+			}
+		}
+
+		return indices;
 	}
 
 	queryByRay(state: state, ray: THREE.Ray, distance = Infinity, index = null) {
@@ -238,10 +263,12 @@ class Octree {
 			let data = this.boxes.reduce(([distance, index], box_, i) => {
 				let index_ = getIndexFromBox(box_)
 
-				let result = ray.intersectBox(box_, _v1)
+				let result = ray.intersectBox(box_, new THREE.Vector3())
 
 				if (!isStrictNullable(result) &&
-					getStatus(state, index_).isPickable
+					// getStatus(state, index_).isPickable
+					// getIsVisible(state, index)
+					isAlive(state, index)
 				) {
 
 					let newDistance = getExn(result).sub(ray.origin).length()
@@ -261,6 +288,79 @@ class Octree {
 			}
 
 			return data
+		}
+	}
+
+	queryRangeByRay(state: state, ray: THREE.Ray, hitPoints: Array<THREE.Vector3> = [], indices = []) {
+		if (!ray.intersectsBox(this.actualBox)) {
+			return [hitPoints, indices]
+		}
+
+		// 优先检查当前节点中的粒子
+		for (let i = 0; i < this.boxes.length; i++) {
+			const box = this.boxes[i];
+			const particleIndex = getIndexFromBox(box);
+
+
+			if (isAlive(state, particleIndex)) {
+				let hitPoint = ray.intersectBox(box, new THREE.Vector3())
+
+				if (!NullableUtils.isNullable(hitPoint)) {
+					ArrayUtils.push(hitPoints, NullableUtils.getExn(hitPoint))
+					ArrayUtils.push(indices, getIndexFromBox(box))
+				}
+			}
+		}
+
+		// 递归检查子节点（如果存在且尚未找到匹配项）
+		if (this.divided) {
+			for (const child of this.children) {
+				const foundIndex = child.queryRangeByRay(state, ray, hitPoints, indices);
+			}
+		}
+
+		return [hitPoints, indices]
+	}
+
+
+	isIntersectByRay(state: state, ray: THREE.Ray, distance: number) {
+		if (!ray.intersectsBox(this.actualBox)) {
+			return false
+		} else {
+			let isIntersectByRay = this.boxes.reduce((isIntersectByRay, box_, i) => {
+				if (isIntersectByRay) {
+					return true
+				}
+
+				let index_ = getIndexFromBox(box_)
+
+				if (
+					// getStatus(state, index_).isVisible
+					isAlive(state, index_)
+					&& NullableUtils.getWithDefault(
+						NullableUtils.map(result => {
+							return result.sub(ray.origin).length() < distance
+						}, ray.intersectBox(box_, _v1)),
+						false
+					)
+				) {
+					return true
+				}
+
+				return false
+			}, false)
+
+			if (!isIntersectByRay && this.divided) {
+				return this.children.reduce((isIntersectByRay, child) => {
+					if (isIntersectByRay) {
+						return true
+					}
+
+					return child.isIntersectByRay(state, ray, distance)
+				}, false);
+			}
+
+			return isIntersectByRay
 		}
 	}
 
@@ -342,40 +442,96 @@ class Octree {
 		}
 	}
 
-	queryByBoxForParticle(state: state, queryBox: THREE.Box3, index = null) {
+	// queryByBoxForParticle(state: state, queryBox: THREE.Box3, index = null) {
+	// 	if (!queryBox.intersectsBox(this.actualBox)) {
+	// 		return index
+	// 	} else {
+	// 		let data = this.boxes.reduce((index, box_, i) => {
+	// 			if (index !== null) {
+	// 				return index
+	// 			}
+
+	// 			let index_ = getIndexFromBox(box_)
+
+	// 			if (
+	// 				// getStatus(state, index_).isCollisionable
+	// 				isAlive(state, index_)
+	// 				&& queryBox.intersectsBox(box_)
+	// 			) {
+	// 				return index_
+	// 			}
+
+	// 			return index
+	// 		}, index)
+
+	// 		if (data === null && this.divided) {
+	// 			return this.children.reduce((data, child) => {
+	// 				if (data !== null) {
+	// 					return data
+	// 				}
+
+	// 				return child.queryByBoxForParticle(state, queryBox, data)
+	// 			}, data);
+	// 		}
+
+	// 		return data
+	// 	}
+	// }
+	queryByBoxForParticle(state: state, queryBox: THREE.Box3, index: number | null = null): number | null {
+		// 快速退出：当前节点与查询包围盒不相交
 		if (!queryBox.intersectsBox(this.actualBox)) {
-			return index
-		} else {
-			let data = this.boxes.reduce((index, box_, i) => {
-				if (index !== null) {
-					return index
-				}
-
-				let index_ = getIndexFromBox(box_)
-
-				if (
-					// getStatus(state, index_).isCollisionable
-					isAlive(state, index_)
-					&& queryBox.intersectsBox(box_)
-				) {
-					return index_
-				}
-
-				return index
-			}, index)
-
-			if (data === null && this.divided) {
-				return this.children.reduce((data, child) => {
-					if (data !== null) {
-						return data
-					}
-
-					return child.queryByBoxForParticle(state, queryBox, data)
-				}, data);
-			}
-
-			return data
+			return index;
 		}
+
+		// 优先检查当前节点中的粒子
+		for (let i = 0; i < this.boxes.length; i++) {
+			if (index !== null) return index;  // 已找到匹配项
+
+			const box = this.boxes[i];
+			const particleIndex = getIndexFromBox(box);
+
+			if (isAlive(state, particleIndex) && queryBox.intersectsBox(box)) {
+				return particleIndex;  // 找到符合条件的粒子
+			}
+		}
+
+		// 递归检查子节点（如果存在且尚未找到匹配项）
+		if (this.divided && index === null) {
+			for (const child of this.children) {
+				const foundIndex = child.queryByBoxForParticle(state, queryBox, null);
+				if (foundIndex !== null) {
+					return foundIndex;  // 子节点中找到匹配项
+				}
+			}
+		}
+
+		return index;  // 未找到匹配项
+	}
+
+	queryRangeByBoxForParticle(state: state, queryBox: THREE.Box3, result: Array<number> = []): Array<number> {
+		// 快速退出：当前节点与查询包围盒不相交
+		if (!queryBox.intersectsBox(this.actualBox)) {
+			return result
+		}
+
+		// 优先检查当前节点中的粒子
+		for (let i = 0; i < this.boxes.length; i++) {
+			const box = this.boxes[i];
+			const particleIndex = getIndexFromBox(box);
+
+			if (isAlive(state, particleIndex) && queryBox.intersectsBox(box)) {
+				ArrayUtils.push(result, particleIndex)
+			}
+		}
+
+		// 递归检查子节点（如果存在且尚未找到匹配项）
+		if (this.divided) {
+			for (const child of this.children) {
+				const foundIndex = child.queryRangeByBoxForParticle(state, queryBox, result);
+			}
+		}
+
+		return result
 	}
 
 	// display(scene) {
@@ -394,15 +550,15 @@ class Octree {
 
 	// 	}, [])
 
-	// 	// return this.transforms[index]
+	// 	// return this.getTransform(index)
 	// }
 
 	// getBox(index) {
-	// 	return this.boxes[index]
+	// 	return this.getBox(index)
 	// }
 
 	// getName(index) {
-	// 	return this.names[index]
+	// 	return this.getName(index)
 	// }
 
 	// computeBox() {
@@ -535,7 +691,7 @@ class Octree {
 	// 	return this._find((obj) => {
 	// 		let index = obj.names.indexOf(name)
 	// 		if (index != -1) {
-	// 			return return_(obj.transforms[index])
+	// 			return return_(obj.getTransform(index))
 	// 		}
 
 	// 		return getEmpty()
@@ -546,7 +702,7 @@ class Octree {
 	// 	return this._find((obj) => {
 	// 		let index = obj.names.indexOf(name)
 	// 		if (index != -1) {
-	// 			return return_([obj.transforms[index], obj.boxes[index]])
+	// 			return return_([obj.getTransform(index), obj.getBox(index)])
 	// 		}
 
 	// 		return getEmpty()
@@ -558,7 +714,7 @@ class Octree {
 	// 	return this._find((obj) => {
 	// 		let index = obj.names.indexOf(name)
 	// 		if (index != -1) {
-	// 			return return_(obj.boxes[index])
+	// 			return return_(obj.getBox(index))
 	// 		}
 
 	// 		return getEmpty()

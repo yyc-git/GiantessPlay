@@ -8,12 +8,12 @@ import { getAbstractState, setAbstractState } from "../../../../../../../state/S
 import { computeAndSetDirectionData, convertPathPointToVec3Position, convertVec3PositionToPathPoint, isReach, optimizeFirstPathPoint, stopMove } from "../../../../behaviour_tree/action_node/WalkToTarget";
 import { getPivotWorldPosition, setPivotWorldPositionAndUpdateBox, unlockGirlRotation } from "../../../../girl/Utils";
 import { getGridForGirl } from "../../../../manage/city1/PathFind";
-import { getName, setTriggerAction } from "../../../../girl/Girl";
+import { setTriggerAction } from "../../../../girl/Girl";
 import { getIsDebug, getIsNotTestPerf } from "../../../../../Scene";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { NumberUtils } from "meta3d-jiehuo-abstract";
 import { CameraControls } from "meta3d-jiehuo-abstract";
-import { road } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { characterType } from "meta3d-jiehuo-abstract/src/type/StateType";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { actionName } from "../../../../data/biwu/level2/DataType";
 import { triggerAction as triggerGirlAction } from "../../Girl";
@@ -26,6 +26,9 @@ import { TupleUtils } from "meta3d-jiehuo-abstract";
 import { playBiggerAnimation } from "../../../../girl/Animation";
 import { pickdownArmy, walkToTargetPosition } from "../../scenario/Command";
 import { lookat, wait } from "../../level1/scenario/Command";
+import { setAttribute } from "../../../../utils/build/GiantessBuildUtils";
+import { buildFuncData } from "../../../../data/FuncData";
+import { getUsedGirl } from "../../Utils";
 
 const _q1 = new Quaternion();
 const _v1 = new Vector3();
@@ -35,7 +38,7 @@ type biggerData = {
 	scale: number
 }
 
-export let getCommand = (command_: commandData) => {
+export let getCommand = (state, command_: commandData) => {
 	switch (command_) {
 		case commandData.bigger:
 			return bigger
@@ -71,17 +74,27 @@ export let getCommand = (command_: commandData) => {
 }
 
 export let bigger: command<biggerData> = (state: state, onCompleteFunc, data) => {
-	state = setTriggerAction(state, actionName.Bigger)
+	let usedGirl = getUsedGirl()
+	state = setTriggerAction(state, usedGirl, actionName.Bigger)
 
 	state = playBiggerAnimation(state, [
-		onCompleteFunc,
+		state => {
+			return onCompleteFunc(state).then(state => {
+				return setAttribute(state, buildFuncData(state), (girlValue) => {
+					return {
+						...girlValue,
+						initialScale: data.scale
+					}
+				}, usedGirl)
+			})
+		},
 		state => {
 			return [
 				data.scale,
 				2
 			]
 		},
-	])
+	], usedGirl)
 
 	return Promise.resolve(state)
 }

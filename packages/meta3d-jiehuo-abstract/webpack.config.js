@@ -4,11 +4,47 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 // const HtmlWebpackPlugin = require('html-webpack-plugin');
 // const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-let isDevelopment =process.env.NODE_ENV.trim() != 'production'  
+const TerserPlugin = require('terser-webpack-plugin');
+
+// let isDevelopment = process.env.NODE_ENV.trim() != 'production'
+let nodeEnv = process.env.NODE_ENV.trim()
 
 module.exports = {
     entry: "./src/Main.ts",
-    mode: !isDevelopment ? 'production' : 'development',
+    mode: nodeEnv == "debug" ? 'production' : nodeEnv,
+    devtool: nodeEnv == "debug" || nodeEnv == 'development' ? 'eval' : false,
+    optimization: nodeEnv == "production" ? {
+        minimizer: [
+            new TerserPlugin({
+                terserOptions: {
+                    keep_classnames: true,
+                    keep_fnames: true
+                },
+            }),
+        ],
+    } : {
+        chunkIds: 'named',
+        mangleExports: false,
+        moduleIds: 'named',
+
+        concatenateModules: false,
+        // avoidEntryIife: false,
+        // flagIncludedChunks: false,
+        //  sideEffects: 'flag',
+
+        // minimize: true,
+
+        minimizer: [
+            new TerserPlugin({
+                // parallel: true,
+                terserOptions: {
+                    // https://github.com/webpack-contrib/terser-webpack-plugin#terseroptions
+                    keep_classnames: true,
+                    keep_fnames: true
+                },
+            }),
+        ],
+    },
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'static/js/[name].js',
@@ -30,9 +66,15 @@ module.exports = {
             // All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
             {
                 test: /\.tsx?$/,
-                exclude: /node_modules/,
+                // exclude: /node_modules/,
+
+                // // include: /setting-protocol/,
+                // include: [/node_modules\/setting-protocol/],
                 // use: "ts-loader",
                 loader: "ts-loader",
+                options: {
+                    allowTsInNodeModules: true,
+                },
             },
             // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
             {

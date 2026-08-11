@@ -9,13 +9,13 @@ import * as LittleManTransform from "../../../../../little_man/Transform";
 import * as LittleMan from "../../../../../little_man/LittleMan";
 import { TransformUtils } from "meta3d-jiehuo-abstract";
 import { triggerAction } from "../../../../../behaviour_tree/action_node/Utils";
-import { selectLittleMan } from "../../../../../behaviour_tree/action_node/SelectTarget";
+import { selectLittleMan } from "../../../../../behaviour_tree/action_node/utils/GiantessSelectTargetUtils";
 
 
 const _v1 = /*@__PURE__*/ new Vector3();
 
-export let selectTarget: actionNodeFunc = (state, id) => {
+export let selectTarget: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("selectTarget")
 
-    return selectLittleMan(state, false)
+    return selectLittleMan(state, usedGirl, false)
 }

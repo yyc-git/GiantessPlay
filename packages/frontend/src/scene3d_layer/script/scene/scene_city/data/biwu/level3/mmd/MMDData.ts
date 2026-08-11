@@ -3,32 +3,43 @@ import * as MMDData from "../../../mmd/MMDData"
 // import { getName } from "../../../../girl/Girl"
 import { getName } from "../../../../CityScene"
 import { animationName } from "../DataType"
-import { getHakuLadyResourceId, getHakuLadyResourcePath, getHakuQPResourceId, getHakuQPResourcePath } from "../../../Const"
-import { state } from "../../../../../../../type/StateType"
+import { language, state } from "../../../../../../../type/StateType"
 import { getCurrentMMDCharacterName, getFullHp } from "../../../../girl/Girl"
 import { collisionPart } from "../CollisionShapeData"
+import { requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
+import { getIsDebug } from "../../../../../Scene"
+import { usedGirlEnum } from "../../../../type/StateType"
+import { armorStrength, armorRatio, armorType } from "../../../DataType"
+import { dataForPartialScale, stressingFactorWhenDestroyed } from "mmd-character-protocol/src/service/ServiceType"
+import { getLanguageDataByData } from "../../../../../../../internation/Data"
+// import { mmdCharacter } from "mmd-character-extend/src/json/Type"
 
 
 // export enum extendMMDCharacter {
-//     Haku_QP = "Haku_QP",
+//     Haku_QP2 = "Haku_QP2",
 // }
 
-// export type mmdCharacter = MMDData.mmdCharacter | extendMMDCharacter
-// export const mmdCharacter = { ...MMDData.mmdCharacter, ...extendMMDCharacter }
+// export type mmdCharacter = mmdCharacter | extendMMDCharacter
+// export const mmdCharacter = { ...mmdCharacter, ...extendMMDCharacter }
 
 
-// let _handleVMDPath = (mmdCharacter_: MMDData.mmdCharacter, originPath) => {
+export enum mmdCharacter {
+    Haku_QP2 = "Haku_QP2",
+}
+
+
+// let _handleVMDPath = (mmdCharacter_: mmdCharacter, originPath) => {
 //     let name = getName()
 
 //     switch (mmdCharacter_) {
-//         case MMDData.mmdCharacter.Haku_QP:
+//         case mmdCharacter.Haku_QP2:
 //             return originPath.replace(`${name}/`, `${name}/旗袍 Haku/`)
 //         default:
 //             throw new Error("err")
 //     }
 // }
 
-let _getVMDRawData = () => {
+let _getVMDRawData = (state) => {
     return [
         [
             animationName.KeepLie,
@@ -161,11 +172,57 @@ let _getVMDRawData = () => {
             Const.getHeavyStressingLieAnimationResourcePath(getName())
         ],
     ].concat(
-        MMDData.getVMDRawData()
+        MMDData.getVMDRawData(state)
     )
 }
 
-let _handleVMDPath = (mmdCharacter_, originPath) => {
+let _replaceVMDPath = ([getNewPathFunc1, getNewPathFunc2], originPath, prefix) => {
+    let pOld = "vmd/"
+    let pNew = "vmd_bake_physics/"
+
+    let name = getName()
+
+    originPath = originPath.replace(pOld, getNewPathFunc1(pNew))
+
+    if (!originPath.includes(pNew)) {
+        return originPath
+    }
+
+    // return originPath.replace(`resource_girl/${name}/`, getNewPathFunc2(`mmd-character-extend/src/asset/${prefix}/`))
+    return originPath.replace(/.+\/(vmd_bake_physics\/.+\.vmd)$/, getNewPathFunc2(`mmd-character-extend/src/asset/${prefix}/$1`))
+}
+
+let _handleVMDPath2 = (mmdCharacter_: mmdCharacter, [getNewPathFunc1, getNewPathFunc2], originPath) => {
+    if (originPath.includes("vmd_scenario/")) {
+        return originPath
+    }
+
+    let pOld = "vmd/"
+    // let pNew = "vmd_bake_physics/"
+
+    // let prefix = "mmd-character-extend/src/asset/"
+
+    let p150 = `vmd_150/`
+    let p160 = `vmd_160/`
+    let p166 = `vmd_166/`
+
+    // let name = getName()
+
+    // if (originPath.includes("vmd_scenario/")) {
+    //     return originPath
+    // }
+
+    switch (mmdCharacter_) {
+        case mmdCharacter.Haku_QP2:
+            return _replaceVMDPath([getNewPathFunc1, getNewPathFunc2], originPath, "旗袍 Haku")
+        default:
+            // throw new Error("err")
+            return originPath
+    }
+
+}
+
+let _handleVMDPath = (state, mmdCharacter_, originPath) => {
     switch (originPath) {
         case Const.getKeepLieAnimationResourcePath(getName()):
         case Const.getHangRightHandAnimationResourcePath(getName()):
@@ -199,8 +256,7 @@ let _handleVMDPath = (mmdCharacter_, originPath) => {
         case Const.getKeepRightHandAddAnimationResourcePath(getName()):
         case Const.getKeepLeftHandRigthHandAnimationResourcePath(getName()):
         case Const.getHeavyStressingLieAnimationResourcePath(getName()):
-
-            return MMDData.handleVMDPath(mmdCharacter_, [
+            return _handleVMDPath2(mmdCharacter_, [
                 path => {
                     return "vmd_160/"
                 },
@@ -209,72 +265,99 @@ let _handleVMDPath = (mmdCharacter_, originPath) => {
                 }
             ], originPath)
         default:
-            return MMDData.handleVMDPath(mmdCharacter_, [path => path, path => path], originPath)
+            return _handleVMDPath2(mmdCharacter_, [path => path, path => path], originPath)
     }
 }
 
-let _getVMDData = (mmdCharacter_) => {
-    return _getVMDRawData().map(([animationName_, originPath]) => {
+let _getVMDData = (state, mmdCharacter_) => {
+    return _getVMDRawData(state).map(([animationName_, originPath]) => {
         return [
             animationName_,
-            _handleVMDPath(mmdCharacter_, originPath)
+            _handleVMDPath(state, mmdCharacter_, originPath)
         ]
     })
 }
 
-export let getAllMMDData = (): MMDData.allMMDData => {
+// export let getAllMMDData = (state: state) => {
+//     return [
+//         [
+//             mmdCharacter.Haku_QP2,
+//             getHakuQPResourceId(),
+//             [
+//                 getHakuQPResourcePath(getName()),
+//                 _getVMDData(
+//                     state,
+//                     mmdCharacter.Haku_QP2,
+//                 )
+//             ],
+//             {
+//                 heightScale: 1
+//             }
+//         ],
+//         // [
+//         //     mmdCharacter.Haku_Lady,
+//         //     getHakuLadyResourceId(),
+//         //     [
+//         //         getHakuLadyResourcePath(getName()),
+//         //         _getVMDData(
+//         //             mmdCharacter.Haku_Lady,
+//         //         )
+//         //     ],
+//         //     {
+//         //         heightScale: 1
+//         //     }
+//         // ],
+//     ]
+//     // return MMDData.getAllMMDDataWithVMDData(_getVMDData).filter(d => {
+//     //     switch (d[0]) {
+//     //         default:
+//     //             return true
+//     //     }
+//     // })
+// }
+
+
+// export let getHakuQPResourcePath = (name) => `./mmd-character-extend/src/asset/旗袍 Haku/tda haku QP.pmx`
+export let getHakuQPResourcePath = (name) => `./resource_girl/city/旗袍 Haku/tda haku QP.pmx`
+
+export let getAllMMDData = (state) => {
     return [
         [
-            MMDData.mmdCharacter.Haku_QP,
-            getHakuQPResourceId(),
+            mmdCharacter.Haku_QP2,
+            mmdCharacter.Haku_QP2,
             [
                 getHakuQPResourcePath(getName()),
                 _getVMDData(
-                    MMDData.mmdCharacter.Haku_QP,
+                    state,
+                    mmdCharacter.Haku_QP2,
                 )
             ],
             {
                 heightScale: 1
             }
-        ],
-        // [
-        //     MMDData.mmdCharacter.Haku_Lady,
-        //     getHakuLadyResourceId(),
-        //     [
-        //         getHakuLadyResourcePath(getName()),
-        //         _getVMDData(
-        //             MMDData.mmdCharacter.Haku_Lady,
-        //         )
-        //     ],
-        //     {
-        //         heightScale: 1
-        //     }
-        // ],
+        ]
     ]
-    // return MMDData.getAllMMDDataWithVMDData(_getVMDData).filter(d => {
-    //     switch (d[0]) {
-    //         default:
-    //             return true
-    //     }
+    // return MMDData.getAllMMDDataWithVMDData(state, _getVMDData).filter(d => {
+    //     return d[0] == mmdCharacter.Haku_QP2
     // })
 }
 
-export let getDamageParts = (state: state) => {
-    switch (getCurrentMMDCharacterName(state)) {
-        case MMDData.mmdCharacter.Haku_QP:
+export let getDamageParts = (state: state, usedGirl) => {
+    switch (getCurrentMMDCharacterName(state, usedGirl)) {
+        case mmdCharacter.Haku_QP2:
             return ["旗袍"]
-        case MMDData.mmdCharacter.Haku_Lady:
-            return ["西服", "衬衫", "奶罩"]
+        // case mmdCharacter.Haku_Lady:
+        //     return ["西服", "衬衫", "奶罩"]
         default:
             throw new Error("err")
     }
 }
 
-export let getClothCollisionData = (): MMDData.clothCollisionData<collisionPart> => {
+export let getClothCollisionData = () => {
     // return MMDData.getClothCollisionData()
     return [
         {
-            mmdCharacter: MMDData.mmdCharacter.Haku_QP,
+            mmdCharacter: mmdCharacter.Haku_QP2,
             data: [
                 {
                     collisionPart: [
@@ -283,7 +366,7 @@ export let getClothCollisionData = (): MMDData.clothCollisionData<collisionPart>
                         collisionPart.LeftBreast,
                         collisionPart.RightBreast,
                         collisionPart.LeftNipple,
-                        collisionPart.RightNipple, ,
+                        collisionPart.RightNipple,
                         collisionPart.TrigoneAndButt,
                     ],
                     damagePart: "旗袍",
@@ -300,121 +383,129 @@ export let getClothCollisionData = (): MMDData.clothCollisionData<collisionPart>
             ]
         },
 
-        {
-            mmdCharacter: MMDData.mmdCharacter.Haku_Lady,
-            data: [
-                // {
-                //     collisionPart: [
-                //         collisionPart.Head,
-                //     ],
-                //     damagePart: "帽子",
-                //     damageParts: ["帽子", "帽子白色蕾丝花边", "帽子黑色边", "帽子蕾丝内衬", "帽子黑纱蕾丝"],
-                //     children: [
-                //     ]
-                // },
-                // {
-                //     collisionPart: [
-                //         collisionPart.LeftFoot,
-                //         collisionPart.RightFoot,
-                //     ],
-                //     damagePart: buildShoeDamagePart(),
-                //     damageParts: [
-                //         "高跟拖鞋",
-                //         "高跟鞋玫瑰",
-                //     ],
-                //     children: [
-                //     ]
-                // },
-                // {
-                //     collisionPart: [
-                //         collisionPart.LeftUpperArm,
-                //         collisionPart.RightUpperArm,
-                //         collisionPart.LeftLowerArm,
-                //         collisionPart.RightLowerArm,
-                //     ],
-                //     damagePart: "袖子",
-                //     damageParts: ["袖子", "西服扣子"],
-                //     children: [
-                //     ]
-                // },
-                {
-                    collisionPart: [
-                        collisionPart.Torso,
-                    ],
-                    damagePart: "西服",
-                    children: [
-                        {
-                            collisionPart: [
-                                collisionPart.LeftBreast,
-                                collisionPart.RightBreast,
-                            ],
-                            damagePart: "衬衫",
-                            children: [
-                                {
-                                    collisionPart: [
-                                        collisionPart.LeftBreast,
-                                        collisionPart.RightBreast,
-                                    ],
-                                    damagePart: "奶罩",
-                                    damageParts: ["奶罩", "奶罩蕾丝"],
-                                    children: [
-                                    ]
-                                },
-                            ]
-                        }
-                    ]
-                },
-                // {
-                //     collisionPart: [
-                //         collisionPart.LeftThigh,
-                //         collisionPart.RightThigh,
-                //         collisionPart.TrigoneAndButt,
-                //     ],
-                //     damagePart: "裙子包腿",
-                //     damageParts: ["裙子包腿部分", "裙子包腿部蕾丝"],
-                //     children: [
-                //         {
-                //             collisionPart: [
-                //                 collisionPart.TrigoneAndButt,
-                //             ],
-                //             damagePart: "三角区蕾丝",
-                //             damageParts: ["裙子最外层背部蕾丝边", "裙子最外层背部蕾丝黑色"],
-                //             children: [
-                //                 {
-                //                     collisionPart: [
-                //                         collisionPart.TrigoneAndButt,
-                //                     ],
-                //                     damagePart: "裤头",
-                //                     children: [
-                //                     ]
-                //                 },
-                //             ]
-                //         },
-                //     ]
-                // },
-            ]
-        },
+        // {
+        //     mmdCharacter: mmdCharacter.Haku_Lady,
+        //     data: [
+        //         // {
+        //         //     collisionPart: [
+        //         //         collisionPart.Head,
+        //         //     ],
+        //         //     damagePart: "帽子",
+        //         //     damageParts: ["帽子", "帽子白色蕾丝花边", "帽子黑色边", "帽子蕾丝内衬", "帽子黑纱蕾丝"],
+        //         //     children: [
+        //         //     ]
+        //         // },
+        //         // {
+        //         //     collisionPart: [
+        //         //         collisionPart.LeftFoot,
+        //         //         collisionPart.RightFoot,
+        //         //     ],
+        //         //     damagePart: buildShoeDamagePart(),
+        //         //     damageParts: [
+        //         //         "高跟拖鞋",
+        //         //         "高跟鞋玫瑰",
+        //         //     ],
+        //         //     children: [
+        //         //     ]
+        //         // },
+        //         // {
+        //         //     collisionPart: [
+        //         //         collisionPart.LeftUpperArm,
+        //         //         collisionPart.RightUpperArm,
+        //         //         collisionPart.LeftLowerArm,
+        //         //         collisionPart.RightLowerArm,
+        //         //     ],
+        //         //     damagePart: "袖子",
+        //         //     damageParts: ["袖子", "西服扣子"],
+        //         //     children: [
+        //         //     ]
+        //         // },
+        //         {
+        //             collisionPart: [
+        //                 collisionPart.Torso,
+        //             ],
+        //             damagePart: "西服",
+        //             children: [
+        //                 {
+        //                     collisionPart: [
+        //                         collisionPart.LeftBreast,
+        //                         collisionPart.RightBreast,
+        //                     ],
+        //                     damagePart: "衬衫",
+        //                     children: [
+        //                         {
+        //                             collisionPart: [
+        //                                 collisionPart.LeftBreast,
+        //                                 collisionPart.RightBreast,
+        //                             ],
+        //                             damagePart: "奶罩",
+        //                             damageParts: ["奶罩", "奶罩蕾丝"],
+        //                             children: [
+        //                             ]
+        //                         },
+        //                     ]
+        //                 }
+        //             ]
+        //         },
+        //         // {
+        //         //     collisionPart: [
+        //         //         collisionPart.LeftThigh,
+        //         //         collisionPart.RightThigh,
+        //         //         collisionPart.TrigoneAndButt,
+        //         //     ],
+        //         //     damagePart: "裙子包腿",
+        //         //     damageParts: ["裙子包腿部分", "裙子包腿部蕾丝"],
+        //         //     children: [
+        //         //         {
+        //         //             collisionPart: [
+        //         //                 collisionPart.TrigoneAndButt,
+        //         //             ],
+        //         //             damagePart: "三角区蕾丝",
+        //         //             damageParts: ["裙子最外层背部蕾丝边", "裙子最外层背部蕾丝黑色"],
+        //         //             children: [
+        //         //                 {
+        //         //                     collisionPart: [
+        //         //                         collisionPart.TrigoneAndButt,
+        //         //                     ],
+        //         //                     damagePart: "裤头",
+        //         //                     children: [
+        //         //                     ]
+        //         //                 },
+        //         //             ]
+        //         //         },
+        //         //     ]
+        //         // },
+        //     ]
+        // },
     ]
 }
 
-export let getClothHpData = (state: state): MMDData.clothHpData => {
-    let fullHp = getFullHp(state)
+export let getClothHpData = (state: state, usedGirl) => {
+    requireCheck(() => {
+        test("usedGirl should be Boss", () => {
+            return usedGirl == usedGirlEnum.BossGiantess
+        })
+    }, getIsDebug(state))
+
+    let fullHp = getFullHp(state, usedGirl)
 
     // return MMDData.getClothHpData(state)
     return [
         {
-            mmdCharacter: MMDData.mmdCharacter.Haku_QP,
+            mmdCharacter: mmdCharacter.Haku_QP2,
             data: [
                 {
                     damagePart: MMDData.getBody(),
                     hp: fullHp,
-                    defenseFactor: MMDData.defenseFactor.VeryHigh,
+                    armorType: armorType.Giantess, armorRatio: armorRatio.Light2,
+                    armorStrength: armorStrength.Low,
                 },
                 {
                     damagePart: "旗袍",
                     hp: fullHp * 0.2,
-                    defenseFactor: MMDData.defenseFactor.Low,
-                    stressingFactorWhenDestroyed: MMDData.stressingFactorWhenDestroyed.Middle,
+                    armorType: armorType.Giantess, armorRatio: armorRatio.Light4,
+                    armorStrength: armorStrength.Middle,
+                    stressingFactorWhenDestroyed: stressingFactorWhenDestroyed.Middle,
                 },
                 // {
                 //     damagePart: "胖次",
@@ -425,36 +516,47 @@ export let getClothHpData = (state: state): MMDData.clothHpData => {
             ]
         },
 
+    ]
+}
+
+
+export let getBoneNameForLightStressing = () => {
+    return [
         {
-            mmdCharacter: MMDData.mmdCharacter.Haku_Lady,
-            data: [{
-                damagePart: MMDData.getBody(),
-                hp: fullHp,
-                defenseFactor: MMDData.defenseFactor.High,
+            mmdCharacter: mmdCharacter.Haku_QP2,
+            boneName: {
+                [collisionPart.RightBreast]: "右胸上2",
+                [collisionPart.LeftBreast]: "左胸上2",
             },
-            {
-                damagePart: "西服",
-                hp: fullHp * 0.1,
-                defenseFactor: MMDData.defenseFactor.Low,
-                stressingFactorWhenDestroyed: MMDData.stressingFactorWhenDestroyed.Middle,
-            },
-            {
-                damagePart: "衬衫",
-                hp: fullHp * 0.1,
-                defenseFactor: MMDData.defenseFactor.Low,
-                stressingFactorWhenDestroyed: MMDData.stressingFactorWhenDestroyed.Middle,
-            },
-            {
-                damagePart: "奶罩",
-                hp: fullHp * 0.2,
-                defenseFactor: MMDData.defenseFactor.VeryLow,
-                stressingFactorWhenDestroyed: MMDData.stressingFactorWhenDestroyed.High,
-            },
-            ]
+            boneAmplitude: {
+                [collisionPart.RightBreast]: 8,
+                [collisionPart.LeftBreast]: 8,
+            }
         },
     ]
 }
 
-// export let getShoeData = (): MMDData.shoeData => {
-//     return MMDData.getShoeData()
-// }
+export let getDataForPartialScale = (): dataForPartialScale => {
+    return [
+        // {
+        //     mmdCharacter: mmdCharacter.Haku_QP2,
+        //     // TODO update
+        //     scaleZForBreast:1.25
+        // },
+    ]
+}
+
+let _getTextData = () => {
+    return {
+        [language.Chinese]: {
+            [mmdCharacter.Haku_QP2]: "弱音旗袍"
+        },
+        [language.English]: {
+            [mmdCharacter.Haku_QP2]: mmdCharacter.Haku_QP2
+        },
+    }
+}
+
+export let getMMDName = (state: state, usedGirl) => {
+    return getLanguageDataByData(state, _getTextData(), mmdCharacter.Haku_QP2)
+}

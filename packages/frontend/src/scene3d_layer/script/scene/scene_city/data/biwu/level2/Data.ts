@@ -1,7 +1,7 @@
 import { Vector2, Vector3 } from "three"
 import { buildPickdownFromIdleWorkEventNameEventData, getBackLeftLightStompEndEventName, getBackRightLightStompEndEventName, getHangLeftLightStompEndEventName, getHangRightLightStompEndEventName, getPickdownFromIdleWorkEventName } from "../../../../../../utils/EventUtils"
 import { getIsDebug } from "../../../../Scene"
-import { getLastFrameIndex } from "../../../utils/DataUtils"
+import { getLateFrameIndex } from "../../../utils/DataUtils"
 import { animationBlendData, animationCollisionData, articluatedAnimationData, track } from "../../DataType"
 import { getAnimationFrameCountWithoutState, getBackRightLightStompAnimationResourcePath } from "./Const"
 import { actionName, animationName, articluatedAnimationName } from "./DataType"
@@ -17,16 +17,16 @@ const _v1_2 = new Vector2();
 export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, getFrameIndexFunc, isSpecificFrameIndexFunc, isEndFunc, isPreviousAnimationFunc, hasPickDataFunc]): animationBlendData<animationName> => {
     return [
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.PickdownFromIdle)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.PickdownFromIdle)
             },
             currentAnimationNames: [animationName.Idle],
             noBlend: true,
             nextAnimationName: animationName.PickdownFromIdle,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.PickdownFromIdle, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.PickdownFromIdle, getIsDebug(state))
             },
             currentAnimationNames: [animationName.PickdownFromIdle],
             nextAnimationName: animationName.Idle,
@@ -35,8 +35,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HangRightLightStomp)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HangRightLightStomp)
             },
             currentAnimationNames: [animationName.Idle],
             noBlend: true,
@@ -45,8 +45,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
             // isOnlyPlayOnce: true,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HangRightLightStomp, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HangRightLightStomp, getIsDebug(state))
             },
             currentAnimationNames: [animationName.HangRightLightStomp],
             nextAnimationName: animationName.KeepRightLightStomp,
@@ -54,8 +54,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HangLeftLightStomp)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HangLeftLightStomp)
             },
             currentAnimationNames: [animationName.Idle],
             noBlend: true,
@@ -64,8 +64,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
             // isOnlyPlayOnce: true,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HangLeftLightStomp, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HangLeftLightStomp, getIsDebug(state))
             },
             currentAnimationNames: [animationName.HangLeftLightStomp],
             nextAnimationName: animationName.KeepLeftLightStomp,
@@ -73,16 +73,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.BackRightLightStomp)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.BackRightLightStomp)
             },
             currentAnimationNames: [animationName.KeepRightLightStomp],
             noBlend: true,
             nextAnimationName: animationName.BackRightLightStomp,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.BackRightLightStomp, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.BackRightLightStomp, getIsDebug(state))
             },
             currentAnimationNames: [animationName.BackRightLightStomp],
             nextAnimationName: animationName.Idle,
@@ -90,16 +90,16 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.BackLeftLightStomp)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.BackLeftLightStomp)
             },
             currentAnimationNames: [animationName.KeepLeftLightStomp],
             noBlend: true,
             nextAnimationName: animationName.BackLeftLightStomp,
         },
         {
-            condition: state => {
-                return isEndFunc(state, animationName.BackLeftLightStomp, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.BackLeftLightStomp, getIsDebug(state))
             },
             currentAnimationNames: [animationName.BackLeftLightStomp],
             nextAnimationName: animationName.Idle,
@@ -109,8 +109,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HeavyStressingRightLightStomp)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingRightLightStomp)
             },
             currentAnimationNames: [
                 animationName.KeepRightLightStomp,
@@ -121,8 +121,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HeavyStressingRightLightStomp, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HeavyStressingRightLightStomp, getIsDebug(state))
             },
             currentAnimationNames: [animationName.HeavyStressingRightLightStomp],
             nextAnimationName: animationName.Idle,
@@ -131,8 +131,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
         {
-            condition: state => {
-                return isTriggerActionFunc(state, actionName.HeavyStressingLeftLightStomp)
+            condition: (state, usedGirl) => {
+                return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingLeftLightStomp)
             },
             currentAnimationNames: [
                 animationName.KeepLeftLightStomp,
@@ -143,8 +143,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
         },
 
         {
-            condition: state => {
-                return isEndFunc(state, animationName.HeavyStressingLeftLightStomp, getIsDebug(state))
+            condition: (state, usedGirl) => {
+                return isEndFunc(state, usedGirl,animationName.HeavyStressingLeftLightStomp, getIsDebug(state))
             },
             currentAnimationNames: [animationName.HeavyStressingLeftLightStomp],
             nextAnimationName: animationName.Idle,
@@ -153,11 +153,11 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
     ]
 }
 
-export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
+export let getAnimationCollisionData = ([isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
     getShapeFunc,
     getScaleFunc,
     getHeightFunc,
-    isLittleRoadFunc
+    isLittleCharacterTypeFunc
 ]): Array<animationCollisionData<animationName>> => {
     return [
         {
@@ -169,14 +169,14 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
                     frameIndex: getPickdownFromIdleWorkFrameIndex(),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getPickdownFromIdleWorkEventName(),
                             eventData: buildPickdownFromIdleWorkEventNameEventData(
-                                // getShapeFunc(state, collisionPart.RightHand).center
-                                getShapeFunc(state, collisionPart.RightHand).center.clone().setY(0)
+                                // getShapeFunc(state, usedGirl, collisionPart.RightHand).center
+                                getShapeFunc(state, usedGirl, collisionPart.RightHand).center.clone().setY(0)
                             )
                         }
                     }
@@ -190,15 +190,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
             shapeDamage: [],
             timeline: [
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.HangRightLightStomp)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.HangRightLightStomp)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getHangRightLightStompEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -211,15 +211,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
             shapeDamage: [],
             timeline: [
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.HangLeftLightStomp)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.HangLeftLightStomp)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getHangLeftLightStompEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -232,15 +232,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
             shapeDamage: [],
             timeline: [
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.BackRightLightStomp)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.BackRightLightStomp)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getBackRightLightStompEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -253,15 +253,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
             shapeDamage: [],
             timeline: [
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.BackLeftLightStomp)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.BackLeftLightStomp)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getBackLeftLightStompEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -274,15 +274,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
             shapeDamage: [],
             timeline: [
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.HeavyStressingRightLightStomp)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.HeavyStressingRightLightStomp)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getBackRightLightStompEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },
@@ -295,15 +295,15 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
             shapeDamage: [],
             timeline: [
                 {
-                    frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.HeavyStressingLeftLightStomp)),
+                    frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(animationName.HeavyStressingLeftLightStomp)),
 
                     track: track.Event,
-                    value: (state, {
+                    value: (state, usedGirl, {
                         force
                     }): any => {
                         return {
                             eventName: getBackLeftLightStompEndEventName(),
-                            eventData: null
+                            eventData: {usedGirl}
                         }
                     }
                 },

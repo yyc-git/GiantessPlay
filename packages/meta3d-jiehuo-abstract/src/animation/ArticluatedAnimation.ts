@@ -7,17 +7,17 @@ import { reducePromise } from "../utils/ArrayUtils";
 import { getExn, getWithDefault, map } from "../utils/NullableUtils";
 import { Map } from "immutable"
 
-let _writePromiseState = (writeStateFunc, statePromise) => {
-    return statePromise.then(writeStateFunc)
-}
+// let _writePromiseState = (writeStateFunc, statePromise) => {
+//     return statePromise.then(writeStateFunc)
+// }
 
 export let createState = (): articluatedAnimation => {
     return {
         group: new TWEEN.Group(),
         // reallocateTweens: ArrayUtils.create(),
 
-        articluatedAnimationTweens: Map(),
-        articluatedAnimationStatus: Map()
+        // articluatedAnimationTweens: Map(),
+        // articluatedAnimationStatus: Map()
     }
 }
 
@@ -126,7 +126,7 @@ export let createState = (): articluatedAnimation => {
 //     }, state)
 // }
 
-// export let removeAllArticluatedAnimations = (state: state): state => {
+// export let disposeAllArticluatedAnimations = (state: state): state => {
 //     return removeArticluatedAnimation(state, Array.from(getArticluatedAnimationState(state).articluatedAnimationTweens.keys()))
 // }
 
@@ -257,10 +257,16 @@ export let addTween = (state: state, tween) => {
     getArticluatedAnimationState(state).group.add(tween)
 }
 
+export let disposeTween = (tween) => {
+    tween.dispose()
+}
+
 export let removeTween = (state: state, tween) => {
     // tween.remove()
 
     getArticluatedAnimationState(state).group.remove(tween)
+
+    disposeTween(tween)
 
     // let _ = ArrayUtils.push(getArticluatedAnimationState(state).reallocateTweens, tween)
 }
@@ -277,8 +283,20 @@ export let pauseTweens = (tweens) => {
     tweens.forEach(tween => tween.pause())
 }
 
+export let pauseAllTweens = (state: state) => {
+    pauseTweens(getArticluatedAnimationState(state).group.getAll())
+
+    return state
+}
+
 export let resumeTweens = (tweens) => {
     tweens.forEach(tween => tween.resume())
+}
+
+export let resumeAllTweens = (state: state) => {
+    resumeTweens(getArticluatedAnimationState(state).group.getAll())
+
+    return state
 }
 
 export let removeTweens = (state: state, tweens: Array<tween>) => {
@@ -303,9 +321,14 @@ export let updateAllArticluatedAnimations = <specificState>(state: specificState
     })
 }
 
-export let removeAllArticluatedAnimations = (state: state): state => {
+export let disposeAllArticluatedAnimations = (state: state): state => {
     // TWEEN.removeAll()
+    getArticluatedAnimationState(state).group.getAll().forEach(disposeTween)
     getArticluatedAnimationState(state).group.removeAll()
 
     return state
+}
+
+export let stopAllArticluatedAnimations = (state: state) => {
+    stopTweens(getArticluatedAnimationState(state).group.getAll())
 }

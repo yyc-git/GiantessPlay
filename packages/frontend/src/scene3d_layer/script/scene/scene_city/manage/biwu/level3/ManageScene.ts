@@ -17,7 +17,8 @@ import * as Cars from "../../city1/Cars"
 // import * as WindMills from "../../city1/WindMills"
 // import * as DynamicCars from "../../city1/DynamicCars"
 import * as WholeScene from "../../city1/WholeScene"
-import * as Mission from "../../city1/Mission"
+import * as Mission from "../../mission/Mission"
+import * as MissionBiwu from "../../biwu/Mission"
 // import * as Citiyzen from "../../city1/Citiyzen"
 import * as Army from "../../city1/Army"
 import * as Soldier from "../../city1/soldier/Soldier"
@@ -36,9 +37,11 @@ import * as FlameVehicle from "../../city1/milltary_vehicle/FlameVehicle"
 import * as MilltaryBuilding from "../../city1/milltary_building/MilltaryBuilding"
 import * as ShellTurret from "../../city1/milltary_building/ShellTurret"
 import * as MissileTurret from "../../city1/milltary_building/MissileTurret"
+// import * as EliteGiantess from "../../city1/elite_giantess/EliteGiantess"
+// import * as MeleeGiantess from "../../city1/elite_giantess/MeleeGiantess"
 import * as PathFind from "./PathFind"
 import * as ArmyManagerBiwu from "../../biwu/ArmyManager"
-import { getAnimationBlendDataParam, getBiwuSetting, getCharacterBloodResourceId, getCharacterShadowResourceId, getConfigData, getGirlScale, getName, getScene, isLittleRoad, setBehaviourTreeData, setConfigData, setLevelData, setRoad } from "../../../CityScene"
+import { getAnimationBlendDataParam, getCharacterBloodResourceId, getCharacterShadowResourceId, getConfigData, getGirlScale, getName, getScene, isLittleCharacterType, setBehaviourTreeData, setConfigData, setLevelData, getLevelData as getLevelDataCityScene, setCharacterType, getLevelDataExn, setCollisionShapeData } from "../../../CityScene"
 import { Scene } from "meta3d-jiehuo-abstract"
 import { DisposeUtils } from "meta3d-jiehuo-abstract"
 // import { GrassInstance } from "meta3d-jiehuo-abstract"
@@ -50,28 +53,27 @@ import { Event } from "meta3d-jiehuo-abstract"
 import { getKeyDownEventName } from "meta3d-jiehuo-abstract/src/Event"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import * as UI from "../../../UI"
-import { physicsLevel, resourceType, road } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { resourceType, characterType } from "meta3d-jiehuo-abstract/src/type/StateType"
 import * as BehaviourTreeDataAll from "../../../data/biwu/level3/behaviour_tree_data_all/BehaviourTreeData"
 import * as BehaviourTreeDataLeftHand from "../../../data/biwu/level3/behaviour_tree_data_left_hand/BehaviourTreeData"
 import * as BehaviourTreeDataRightHand from "../../../data/biwu/level3/behaviour_tree_data_right_hand/BehaviourTreeData"
 import * as GirlData from "../../../data/biwu/level3/GirlData"
-import * as LittleManData from "../../../data/biwu/level3/LittleManData"
+import * as LittleManData from "../../../data/player/LittleManData"
 import * as BehaviourTreeManagerAll from "../../../data/biwu/level3/behaviour_tree_data_all/BehaviourTreeManager"
 import * as BehaviourTreeManagerLeftHand from "../../../data/biwu/level3/behaviour_tree_data_left_hand/BehaviourTreeManager"
 import * as BehaviourTreeManagerRightHand from "../../../data/biwu/level3/behaviour_tree_data_right_hand/BehaviourTreeManager"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
-import { hasPickData } from "../../../girl/PickPose"
+import { hasPickData } from "../../../girl/PickPoseUtils"
 import { getCurrentAnimationName, isChangeScaling, setCurrentAnimationName, setCustomDuration } from "../../../girl/Animation"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
 import * as ManageSceneLevel1 from "../level1/ManageScene"
-import { getAllMMDData, getClothCollisionData, getClothHpData, getDamageParts } from "../../../data/biwu/level3/mmd/MMDData"
+import { getAllMMDData, getClothCollisionData, getClothHpData, getDamageParts, getMMDName } from "../../../data/biwu/level3/mmd/MMDData"
 import { getActionData, getAnimationBlendData, getAnimationCollisionData, getArticluatedAnimationData, getPhase } from "../../../data/biwu/level3/Data"
 import { getAllAnimationNames } from "../../../data/biwu/level3/AnimationNames"
 import { getAnimationFrameCountMap, getDownArrowResourceId, getDownArrowResourcePath } from "../../../data/biwu/level3/Const"
 import * as CollisionShapeData from "../../../data/biwu/level3/CollisionShapeData"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
-import { getAnimationCollisionDataParam, updateAllCollisionShapes } from "../../../girl/Collision"
-import { parseAllWeaponModelsAndEnableAllParticls } from "../../city1/ManageScene"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
+import { getAnimationCollisionDataParam, getCollisionPartCenter, updateAllCollisionShapes } from "../../../girl/Collision"
+import { disposeUtils, disposeUtils2, getPropLoadData, initWhenImportSceneUtils, parseAllWeaponModelsAndEnableAllParticls } from "../../city1/ManageScene"
 import { setExcitement } from "../../../girl/Excitement"
 import { markWhetherNotExecuteGiantessAI } from "../../../behaviour_tree/BehaviourTreeManager"
 import { isCurrentMainEventName, triggerMainEvent, triggerSubEvent } from "../../../game_event/GameEvent"
@@ -86,11 +88,9 @@ import { actionName, animationName } from "../../../data/biwu/level3/DataType"
 import { Flow } from "meta3d-jiehuo-abstract"
 import { disposeLookat, headLookat } from "../../../girl/Lookat"
 import { disposeShoe } from "../../../data/mmd/Shoe"
-import { getBody } from "../../../data/mmd/MMDData"
+import { getAttributeData, getBody, getShoeData } from "../../../data/mmd/MMDData"
 import { isFinish } from "../../../scenario/Command"
 import { getDestroyedEventName, getGirlDestroyingEventName } from "../../../utils/EventUtils"
-import { handleMissionFail } from "../../city1/little_man/Mission"
-import { handleMissionComplete } from "../../city1/giantess/Mission"
 import { Collision } from "meta3d-jiehuo-abstract"
 import { getIsDebug } from "../../../../Scene"
 import * as ArmyManager from "./ArmyManager"
@@ -108,18 +108,36 @@ import { triggerAllGameEvents } from "../../../utils/DebugUtils"
 import { createInitialState } from "./FSMState"
 import { getStateMachine, setStateMachine } from "../../../girl/FSMState"
 import { getCommand, getNearestAllTargetCount, getSwitchBetweenScenarioDataData } from "./scenario/Command"
-import { isStressingState } from "../../../utils/FSMStateUtils"
+import { isDestoryRelatedStates, isControlledState } from "../../../utils/FSMStateUtils"
 import { isClothsDestroyed } from "../../../girl/Cloth"
 import { getLevelData } from "../../../data/biwu/level3/LevelData"
 import { ArrayUtils } from "meta3d-jiehuo-abstract"
-import { difficulty, propName, propType } from "../../../type/StateType"
+import { propName, propType, usedGirlEnum } from "../../../type/StateType"
 import { List } from "immutable"
+import * as ManageSceneBiwu from "../ManageScene"
+import { addBossGiantess } from "../../../girl/boss/Girl"
+import { addLittleMan } from "../../../little_man/InitWhenImportScene"
+import * as RewardGenerator from "../../../reward/RewardGenerator"
+import * as Character from "../../../character/Character"
+import * as Build from "../../../build/Build"
+import * as Difficulty from "../../../difficulty/Difficulty"
+import { buildDestroyedName, getRewardData } from "../../../data/biwu/level3/reward/RewardData"
+import { getRewardPropOffset, getRewardPropPosition } from "./Reward"
+import { Loader } from "meta3d-jiehuo-abstract"
+import { stopAIAndAllTweensAndDefer } from "../../utils/ManageSceneUtils"
+import { registerAllEliteGiantessDamageData } from "../../../../../../mod/EliteGiantessMod"
+import { buildAPI } from "../../../../../../mod/Mod"
+import { getAllRandomUsedMMDData } from "../../../data/biwu/level3/MMDUtils"
+import { addDestoryUnit } from "../../../Statistic"
+import { handleWhenDestroying } from "../../../girl/Utils"
+import { getModAPI } from "../../../Mod"
+// import { getMMDName } from "../../../../../../mod/MMDMod"
 
 const _q = new Quaternion();
 const _v1 = new Vector3();
 
 // let _exitScenarioHandler = (state: state, { userData }) => {
-//     state = markWhetherNotExecuteGiantessAI(state, false)
+//     state = markWhetherNotExecuteGiantessAI(state,usedGirl, false)
 
 //     return Promise.resolve(state)
 // }
@@ -129,27 +147,17 @@ const _v1 = new Vector3();
 // //         getAbstractState,
 // //         setAbstractState,
 // //         state => {
-// //             return isFinish(state)
-// //                 && ManageSceneLevel1.getAllArmyCount(state) < 5
+// //             return isFinish(state, usedGirl)
+// //                 && ManageSceneLevel1.getAllAliveArmyCount(state) < 5
 // //             // && NumberUtils.isRandomRate(0.1)
 // //         },
 // //         state => {
-// //             state = markWhetherNotExecuteGiantessAI(state, true)
+// //             state = markWhetherNotExecuteGiantessAI(state,usedGirl, true)
 
 // //             return triggerMainEvent(state, GameEventData.eventName.PickdownArmy)
 // //         }
 // //     ], 5))
 // // }
-
-let _destroyedHandler = (state: state, { userData }) => {
-    let { fromName, toName } = NullableUtils.getExn(userData)
-
-    if (LittleMan.isLittleMan(toName)) {
-        return handleMissionFail(state)
-    }
-
-    return Promise.resolve(state)
-}
 
 let _heavyStressingLieBeginMaxHandler = (state: state, { userData }) => {
     // state = Girl.setIsUpdatePhysics(state, false)
@@ -164,7 +172,7 @@ let _heavyStressingLieEndMaxHandler = (state: state, { userData }) => {
 
 // let _heavyStressingLieEndHandler = (state: state, { userData }) => {
 //     // return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createInitialState(), null).then(state => {
-//     //     return triggerAction(state, actionName.KeepLie as any).then(TupleUtils.getTuple2First)
+//     //     return triggerAction(state, usedGirl, actionName.KeepLie as any).then(TupleUtils.getTuple2First)
 //     // })
 //     // .then(state => {
 //     //     // if (BehaviourTreeDataAll.getHandType(state) === BehaviourTreeDataAll.handType.None) {
@@ -181,7 +189,7 @@ let _heavyStressingLieEndMaxHandler = (state: state, { userData }) => {
 //     // })
 
 //     // return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createInitialState(), null)
-//     //     // return triggerAction(state, actionName.KeepLie as any).then(TupleUtils.getTuple2First)
+//     //     // return triggerAction(state, usedGirl, actionName.KeepLie as any).then(TupleUtils.getTuple2First)
 //     //     .then(state => {
 //     //         // state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.LeftHandRightHand)
 //     //         // return Promise.resolve(state)
@@ -193,13 +201,7 @@ let _heavyStressingLieEndMaxHandler = (state: state, { userData }) => {
 //     return Promise.resolve(state)
 // }
 
-let _girlDestroyingHandler = (state: state, { userData }) => {
-    state = markWhetherNotExecuteGiantessAI(state, true)
-
-    return handleMissionComplete(state)
-}
-
-let _switchBetweenScenarioData = (state: state, data) => {
+let _switchBetweenScenarioData = (state: state, usedGirl, data) => {
     for (let [
         judgeFunc,
         scenarioDataName1, scenarioDataName2,
@@ -207,8 +209,8 @@ let _switchBetweenScenarioData = (state: state, data) => {
     ] of data) {
         if (
             isCurrentScenarioName(state, scenarioDataName1)
-            && isFinish(state)
-            && !isStressingState(getStateMachine(state))
+            && isFinish(state, usedGirl)
+            && !isControlledState(state, getStateMachine(state, usedGirl))
             && BehaviourTreeDataAll.isHandAttacking(state)
 
             && (
@@ -232,8 +234,8 @@ let _switchBetweenScenarioData = (state: state, data) => {
     // ]) => {
     //     if (
     //         isCurrentScenarioName(state, scenarioDataName1)
-    //         && isFinish(state)
-    //         && !isStressingState(getStateMachine(state))
+    //         && isFinish(state, usedGirl)
+    //         && !isControlledState(state, getStateMachine(state))
     //         && BehaviourTreeDataAll.isHandAttacking(state)
 
     //         && (
@@ -258,8 +260,8 @@ let _switchBetweenScenarioData = (state: state, data) => {
 // ) => {
 //     if (
 //         isCurrentScenarioName(state, scenarioDataName1)
-//         && isFinish(state)
-//         && !isStressingState(getStateMachine(state))
+//         && isFinish(state, usedGirl)
+//         && !isControlledState(state, getStateMachine(state))
 //     ) {
 //         if (
 //             BehaviourTreeDataAll.getCustomData(state).isCanAddFunc(state)
@@ -272,8 +274,8 @@ let _switchBetweenScenarioData = (state: state, data) => {
 //     }
 //     if (
 //         isCurrentScenarioName(state, scenarioDataName2)
-//         && isFinish(state)
-//         && !isStressingState(getStateMachine(state))
+//         && isFinish(state, usedGirl)
+//         && !isControlledState(state, getStateMachine(state))
 //     ) {
 //         if (
 //             !BehaviourTreeDataAll.getCustomData(state).isCanAddFunc(state)
@@ -289,11 +291,17 @@ let _switchBetweenScenarioData = (state: state, data) => {
 // }
 
 let _handleAllGameEventsAfterFirstOne = (state: state) => {
+    let usedGirl = Utils.getUsedGirl()
+    if (isDestoryRelatedStates(getStateMachine(state, usedGirl))) {
+        return Promise.resolve(state)
+    }
+
+
     const data = [
         {
             currentMainEventName: GameEventData.eventName.GoToTrigone,
             condition: state => isInXZRange(LittleManTransform.getWorldPosition(state),
-                getLevelData(state).torsorRange),
+                getLevelData(state, usedGirl).torsorRange),
             nextEventName: GameEventData.eventName.ReachTrigone
         },
         {
@@ -304,28 +312,28 @@ let _handleAllGameEventsAfterFirstOne = (state: state) => {
         {
             currentMainEventName: GameEventData.eventName.OnlyAddArmy,
             condition: state => {
-                return isClothsDestroyed(state, getDamageParts(state))
+                return isClothsDestroyed(state, usedGirl, getDamageParts(state, usedGirl))
             },
             nextEventName: GameEventData.eventName.RightHandOnePointAttack
         },
         {
             currentMainEventName: GameEventData.eventName.RightHandOnePointAttack,
             condition: state => {
-                return Girl.getHp(state, getBody()) < Girl.getFullHp(state) * getLevelData(state).hpRateToRightHandBeatAttack
+                return Girl.getHp(state, usedGirl, getBody()) < Girl.getFullHp(state, usedGirl) * getLevelData(state, usedGirl).hpRateToRightHandBeatAttack
             },
             nextEventName: GameEventData.eventName.RightHandBeatAttack
         },
         {
             currentMainEventName: GameEventData.eventName.RightHandBeatAttack,
             condition: state => {
-                return Girl.getHp(state, getBody()) < Girl.getFullHp(state) * getLevelData(state).hpRateToTwoHandsOneFingerAttack
+                return Girl.getHp(state, usedGirl, getBody()) < Girl.getFullHp(state, usedGirl) * getLevelData(state, usedGirl).hpRateToTwoHandsOneFingerAttack
             },
             nextEventName: GameEventData.eventName.TwoHandsOneFingerAttack
         },
         {
             currentMainEventName: GameEventData.eventName.TwoHandsOneFingerAttack,
             condition: state => {
-                return Girl.getHp(state, getBody()) < Girl.getFullHp(state) * getLevelData(state).hpRateToTwoHandsBeatAttack
+                return Girl.getHp(state, usedGirl, getBody()) < Girl.getFullHp(state, usedGirl) * getLevelData(state, usedGirl).hpRateToTwoHandsBeatAttack
             },
             nextEventName: GameEventData.eventName.TwoHandsBeatAttack
         },
@@ -337,9 +345,9 @@ let _handleAllGameEventsAfterFirstOne = (state: state) => {
             NullableUtils.map(d => triggerMainEvent(state, d.nextEventName),
                 data.find(d => {
                     return isCurrentMainEventName(state, d.currentMainEventName)
-                        && isFinish(state)
+                        && isFinish(state, usedGirl)
                         && d.condition(state)
-                        && !isStressingState(getStateMachine(state))
+                        && !isControlledState(state, getStateMachine(state, usedGirl))
                 })
             ),
             Promise.resolve(state)
@@ -348,7 +356,7 @@ let _handleAllGameEventsAfterFirstOne = (state: state) => {
     else {
         // promise = Promise.resolve(state)
 
-        // state = setCustomDuration(state, 0.5)
+        // state = setCustomDuration(state, usedGirl, 0.5)
 
         state = {
             ...state,
@@ -366,21 +374,23 @@ let _handleAllGameEventsAfterFirstOne = (state: state) => {
     return promise
 }
 
-let _initShadowAfter = (state: state) => {
-    Girl.getGirlMesh(state).receiveShadow = true
+let _initShadowAfter = (state: state, usedGirl) => {
+    Girl.getGirlMesh(state, usedGirl).receiveShadow = true
 
     return state
 }
 
 let _handleLevel = (state: state) => {
-    state = _initShadowAfter(state)
+    let usedGirl = Utils.getUsedGirl()
+
+    state = _initShadowAfter(state, usedGirl)
     // state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
     //     state = Girl.setIsUpdatePhysics(state, false)
 
     //     return Promise.resolve(state)
     // }, 5))
-    // state = Girl.setGirlState(state, {
-    //     ...Girl.getGirlState(state),
+    // state = Girl.setUsedGirlData(state, usedGirl,{
+    //     ...Girl.getUsedGirlData(state, usedGirl),
     //     stateMachine: StateMachine.create(getName(), createInitialState()),
     // })
 
@@ -400,19 +410,38 @@ let _handleLevel = (state: state) => {
 
     // state = setExcitement(state, 0)
 
-    // state = markWhetherNotExecuteGiantessAI(state, true)
+    // state = markWhetherNotExecuteGiantessAI(state,usedGirl, true)
 
-    // state = setLevelData(state, _buildHardKey(), false)
+    state = setLevelData(state, ManageSceneBiwu.buildGirlDestroyingHandlerKey(usedGirl), (state) => {
+        return stopAIAndAllTweensAndDefer(state, BehaviourTreeManagerAll.stop, usedGirl).then(state => {
+            state = RewardGenerator.generateReward(state, LittleMan.getName(), buildDestroyedName(), Girl.buildNameByUsedGirl(usedGirl),
+                getCollisionPartCenter(state, usedGirl, CollisionShapeData.collisionPart.Head),
+                getRewardPropPosition(state, usedGirl),
+                getRewardPropOffset(state),
+                // getRewardCoinOffset(state)
+            )
 
-    state = ManageSceneLevel1.initProp(state, 3)
+            state = addDestoryUnit(state, LittleMan.getName(), Girl.buildNameByUsedGirl(usedGirl), NullableUtils.return_(
+                Girl.getCurrentMMDCharacterName(state, usedGirl)
+            ))
+            return Event.trigger(state, getAbstractState, getModAPI(state).event.getBossDestroyedEventName(), NullableUtils.return_({
+                targetName: Girl.buildNameByUsedGirl(usedGirl),
+                gemAndCoinPosition: getCollisionPartCenter(state, usedGirl, CollisionShapeData.collisionPart.Head),
+                propPosition: getRewardPropPosition(state, usedGirl),
+            }))
+        }).then(handleWhenDestroying)
+    })
+
+
+    // state = ManageSceneLevel1.initProp(state, 3)
 
     // // state = _intervalPickdownArmy(state)
 
+
+    state = ManageSceneBiwu.bindEvents(state)
     // state = setAbstractState(state, Event.on(getAbstractState(state), getExitScenarioEventName(), _exitScenarioHandler))
-    state = setAbstractState(state, Event.on(getAbstractState(state), getDestroyedEventName(), _destroyedHandler))
     state = setAbstractState(state, Event.on(getAbstractState(state), getHeavyStressingLieBeginMaxEventName(), _heavyStressingLieBeginMaxHandler))
     state = setAbstractState(state, Event.on(getAbstractState(state), getHeavyStressingLieEndMaxEventName(), _heavyStressingLieEndMaxHandler))
-    state = setAbstractState(state, Event.on(getAbstractState(state), getGirlDestroyingEventName(), _girlDestroyingHandler))
 
     // return triggerMainEvent(state, GameEventData.eventName.Begin)
 
@@ -432,15 +461,15 @@ let _handleLevel = (state: state) => {
     ])
 
 
-    // setMaterialVisibleByName(Girl.getGirlMesh(state), "旗袍", false)
-    setMaterialVisibleByName(Girl.getGirlMesh(state), "项链球", false)
+    // setMaterialVisibleByName(Girl.getGirlMesh(state, usedGirl), "旗袍", false)
+    setMaterialVisibleByName(Girl.getGirlMesh(state, usedGirl), "项链球", false)
 
 
 
 
-    state = setCurrentAnimationName(state, animationName.KeepLie)
+    state = setCurrentAnimationName(state, usedGirl, animationName.KeepLie)
 
-    return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), createInitialState(), NullableUtils.getEmpty())
+    return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine(usedGirl), getStateMachine(state, usedGirl), createInitialState(usedGirl), NullableUtils.getEmpty())
         .then(ArmyManager.initWhenImportScene)
         .then(state => {
             return triggerMainEvent(state, GameEventData.eventName.GoToTrigone)
@@ -449,7 +478,7 @@ let _handleLevel = (state: state) => {
         //     if (
         //         state.config.isTriggerSpecificGameEvent
         //     ) {
-        //         state = setCustomDuration(state, 0.5)
+        //         state = setCustomDuration(state, usedGirl, 0.5)
 
         //         // return triggerAllGameEvents(state, [GameEventData.eventName.ReachTrigone, GameEventData.eventName.RightHandAddArmy])
         //         // return triggerAllGameEvents(state, [GameEventData.eventName.ReachTrigone, GameEventData.eventName.RightHandOnePointAttack])
@@ -470,7 +499,7 @@ let _handleLevel = (state: state) => {
             state = setAbstractState(state, Flow.addInterval(getAbstractState(state), [getAbstractState, setAbstractState, state => {
                 state = NullableUtils.getWithDefault(
                     NullableUtils.map(data => {
-                        return _switchBetweenScenarioData(state,
+                        return _switchBetweenScenarioData(state, usedGirl,
                             getSwitchBetweenScenarioDataData(state)
                         )
                     }, getSwitchBetweenScenarioDataData(state)),
@@ -481,6 +510,13 @@ let _handleLevel = (state: state) => {
             }], 10, "switchBetweenScenarioData"))
 
             return state
+        }).then(state => {
+            return addBossGiantess(state, Girl.getAllUsedMMDData(state), new Vector3(90, 0, 70), new Quaternion(0, 0.707, 0, 0.707)).then(
+                state => {
+                    // return addLittleMan(state, new Vector3(64, 0, 76), new Quaternion(0, -0.707, 0, 0.707))
+                    return addLittleMan(state, new Vector3(-80, 0, 70), new Quaternion(0, -0.707, 0, 0.707))
+                }
+            )
         })
 }
 
@@ -504,7 +540,7 @@ let _initConfig = (state: state) => {
         config: {
             ...state.config,
             isStaticCastShadow: false,
-            isGirlRestoreHp: false
+            // isGirlRestoreHp: false
         }
     }
 
@@ -519,139 +555,153 @@ let _initConfig = (state: state) => {
 }
 
 export let initWhenImportScene = (state: state) => {
+    let usedGirl = Utils.getUsedGirl()
+
     state = _initConfig(state)
 
     state = BodyManager.initWhenImportScene(state)
 
-    state = Utils.initWhenImportScene(state)
+    return Utils.initWhenImportScene(state, [
+        getAllAnimationNames,
+        getAnimationFrameCountMap,
+        getAnimationBlendData,
+        getAnimationCollisionData
+    ],
+        getActionData(), getPhase()
+    ).then(state => {
+        // state = setConfigData(state, {
+        //     ...getConfigData(state),
+        //     collisionShapeData: CollisionShapeData.getData(state) as any,
+        // })
+        state = setCollisionShapeData(state, CollisionShapeData.getData)
 
-    state = setConfigData(state, {
-        ...getConfigData(state),
-        collisionShapeData: CollisionShapeData.getData(state),
+        // state = Utils.setGirlCanDamageTarget(state)
+
+        state = setBehaviourTreeData(state,
+            BehaviourTreeDataAll.getKey(),
+            BehaviourTreeDataAll.getData([
+            ]))
+        state = setBehaviourTreeData(state,
+            BehaviourTreeDataLeftHand.getKey(),
+            BehaviourTreeDataLeftHand.getData([
+            ]))
+        state = setBehaviourTreeData(state,
+            BehaviourTreeDataRightHand.getKey(),
+            BehaviourTreeDataRightHand.getData([
+            ]))
+
+        return initWhenImportSceneUtils(state)
     })
-
-    // state = Utils.setGirlCanDamageTarget(state)
-
-    state = setBehaviourTreeData(state,
-        BehaviourTreeDataAll.getKey(),
-        BehaviourTreeDataAll.getData([
-        ]))
-    state = setBehaviourTreeData(state,
-        BehaviourTreeDataLeftHand.getKey(),
-        BehaviourTreeDataLeftHand.getData([
-        ]))
-    state = setBehaviourTreeData(state,
-        BehaviourTreeDataRightHand.getKey(),
-        BehaviourTreeDataRightHand.getData([
-        ]))
-
-    return Scene.initWhenImportScene(getAbstractState(state)).then(abstractState => {
-        return setAbstractState(state, abstractState)
-    })
-        .then(UI.initWhenImportScene)
         .then(Mission.initWhenImportScene)
-        .then(state => WholeScene.initWhenImportScene(state, getSceneResourceId()))
+        .then(state => ManageSceneBiwu.initWhenImportScene(state, getSceneResourceId()))
+        // .then(state => WholeScene.initWhenImportScene(state, getSceneResourceId()))
 
-        .then(state => {
-            // state = Girl.setInitialTransform(state, new Vector3(-180, 0, 48), new Quaternion(0, 0.707, 0, 0.707))
-            // state = Girl.setInitialTransform(state, new Vector3(-30, 0, 48), new Quaternion(0, 0.707, 0, 0.707))
-            state = Girl.setInitialTransform(state, new Vector3(90, 0, 70), new Quaternion(0, 0.707, 0, 0.707))
-            // state = Girl.setInitialTransform(state, new Vector3(-18000, 0, 48), new Quaternion(0, 0.707, 0, 0.707))
+        // .then(state => {
+        //     // state = Girl.setInitialTransform(state, new Vector3(-180, 0, 48), new Quaternion(0, 0.707, 0, 0.707))
+        //     // state = Girl.setInitialTransform(state, new Vector3(-30, 0, 48), new Quaternion(0, 0.707, 0, 0.707))
+        //     state = Girl.setInitialTransform(state, new Vector3(90, 0, 70), new Quaternion(0, 0.707, 0, 0.707))
+        //     // state = Girl.setInitialTransform(state, new Vector3(-18000, 0, 48), new Quaternion(0, 0.707, 0, 0.707))
 
-            // state = LittleMan.setInitialTransform(state, new Vector3(-155, 0, 55), new Quaternion(0, -0.707, 0, 0.707))
-            // state = LittleMan.setInitialTransform(state, new Vector3(-160, 15, 55), new Quaternion(0, -0.707, 0, 0.707))
+        //     // state = LittleMan.setInitialTransform(state, new Vector3(-155, 0, 55), new Quaternion(0, -0.707, 0, 0.707))
+        //     // state = LittleMan.setInitialTransform(state, new Vector3(-160, 15, 55), new Quaternion(0, -0.707, 0, 0.707))
 
-            // state = LittleMan.setInitialTransform(state, new Vector3(-160, 0, 55), new Quaternion(0, -0.707, 0, 0.707))
-
-
-            state = LittleMan.setInitialTransform(state, new Vector3(64, 0, 76), new Quaternion(0, -0.707, 0, 0.707))
+        //     // state = LittleMan.setInitialTransform(state, new Vector3(-160, 0, 55), new Quaternion(0, -0.707, 0, 0.707))
 
 
-
-            // if (getIsDebug(state)) {
-            //     state = setConfigState(state, {
-            //         ...getConfigState(state),
-            //         isFastMove: true
-            //     })
-            // }
-
-
-            // // // TODO remove
-            // let scene = Scene.getCurrentScene(getAbstractState(state))
-            // let obb = Collision.createOBB(scene, getAbstractState(state)).set(
-            //     new Vector3(-180, 0, 55),
-            //     new Vector3(10, 10, 10),
-            //     new Matrix3()
-            // )
-
-
-            // let obb2 = Collision.createOBB(scene, getAbstractState(state)).set(
-            //     new Vector3(-170, 20, 55),
-            //     // new Vector3(10, 10, 10),
-            //     new Vector3(10, 10, 10),
-            //     // new Matrix3()
-            //     new Matrix3()
-            //         .setFromMatrix4(
-            //             new Matrix4().makeRotationFromEuler(new Euler(0, 0, Math.PI / 4))
-            //         )
-            // )
-            // // let obb2 = Collision.createOBB(scene, getAbstractState(state)).set(
-            // //     new Vector3(-190, 0.5, 55),
-            // //     new Vector3(10, 10, 10),
-            // //     // new Matrix3()
-            // //     new Matrix3()
-            // // )
-
-
-            // let obb3 = Collision.createOBB(scene, getAbstractState(state)).set(
-            //     new Vector3(-130, 0, 65),
-            //     new Vector3(10, 10, 10),
-            //     new Matrix3().setFromMatrix4(
-            //         // new Matrix4().makeRotationFromEuler(new Euler(Math.PI / 4, Math.PI / 4, 0))
-            //         new Matrix4().makeRotationFromEuler(new Euler(0, 0, Math.PI / 4))
-            //     )
-            // )
-
-            // let obb4 = Collision.createOBB(scene, getAbstractState(state)).set(
-            //     new Vector3(-140, 0, 45),
-            //     new Vector3(10, 10, 10),
-            //     new Matrix3()
-            //     // .setFromMatrix4(
-            //     //     new Matrix4().makeRotationFromEuler(new Euler(Math.PI / 4, Math.PI / 4, 0))
-            //     // )
-            // )
+        //     state = LittleMan.setInitialTransform(state, new Vector3(64, 0, 76), new Quaternion(0, -0.707, 0, 0.707))
 
 
 
-            // globalThis["obbs"] = [obb, obb2, obb3, obb4]
+        //     // if (getIsDebug(state)) {
+        //     //     state = setConfigState(state, {
+        //     //         ...getConfigState(state),
+        //     //         isFastMove: true
+        //     //     })
+        //     // }
+
+
+        //     // // // TODO remove
+        //     // let scene = Scene.getCurrentScene(getAbstractState(state))
+        //     // let obb = Collision.createOBB(scene, getAbstractState(state)).set(
+        //     //     new Vector3(-180, 0, 55),
+        //     //     new Vector3(10, 10, 10),
+        //     //     new Matrix3()
+        //     // )
+
+
+        //     // let obb2 = Collision.createOBB(scene, getAbstractState(state)).set(
+        //     //     new Vector3(-170, 20, 55),
+        //     //     // new Vector3(10, 10, 10),
+        //     //     new Vector3(10, 10, 10),
+        //     //     // new Matrix3()
+        //     //     new Matrix3()
+        //     //         .setFromMatrix4(
+        //     //             new Matrix4().makeRotationFromEuler(new Euler(0, 0, Math.PI / 4))
+        //     //         )
+        //     // )
+        //     // // let obb2 = Collision.createOBB(scene, getAbstractState(state)).set(
+        //     // //     new Vector3(-190, 0.5, 55),
+        //     // //     new Vector3(10, 10, 10),
+        //     // //     // new Matrix3()
+        //     // //     new Matrix3()
+        //     // // )
+
+
+        //     // let obb3 = Collision.createOBB(scene, getAbstractState(state)).set(
+        //     //     new Vector3(-130, 0, 65),
+        //     //     new Vector3(10, 10, 10),
+        //     //     new Matrix3().setFromMatrix4(
+        //     //         // new Matrix4().makeRotationFromEuler(new Euler(Math.PI / 4, Math.PI / 4, 0))
+        //     //         new Matrix4().makeRotationFromEuler(new Euler(0, 0, Math.PI / 4))
+        //     //     )
+        //     // )
+
+        //     // let obb4 = Collision.createOBB(scene, getAbstractState(state)).set(
+        //     //     new Vector3(-140, 0, 45),
+        //     //     new Vector3(10, 10, 10),
+        //     //     new Matrix3()
+        //     //     // .setFromMatrix4(
+        //     //     //     new Matrix4().makeRotationFromEuler(new Euler(Math.PI / 4, Math.PI / 4, 0))
+        //     //     // )
+        //     // )
 
 
 
+        //     // globalThis["obbs"] = [obb, obb2, obb3, obb4]
 
 
 
 
 
-            return state
-        })
+
+
+
+        //     return state
+        // })
 
         .then(ClimbManager.initWhenImportScene)
         .then(GirlBiwuLevel3.initWhenImportScene)
         .then(LittleManBiwuLevel3.initWhenImportScene)
 
 
-        .then(Buildings.initWhenImportScene).then(Cars.initWhenImportScene).then(Mountains.initWhenImportScene).then(TreesAndProps.initWhenImportScene).then(MapWall.initWhenImportScene)
-        // .then(WindMills.initWhenImportScene)
-        // .then(DynamicCars.initWhenImportScene)
-        .then(PathFind.initWhenImportScene)
-        // .then(Citiyzen.initWhenImportScene)
-        .then(Infantry.initWhenImportScene).then(Rocketeer.initWhenImportScene).then(Laserer.initWhenImportScene).then(Commander.initWhenImportScene).then(Melee.initWhenImportScene).then(Tank.initWhenImportScene).then(MissileVehicle.initWhenImportScene).then(FlameVehicle.initWhenImportScene).then(ShellTurret.initWhenImportScene).then(MissileTurret.initWhenImportScene).then(Terrain.initWhenImportScene).then(ArmyManagerBiwu.initWhenImportScene)
+        // .then(Buildings.initWhenImportScene).then(Cars.initWhenImportScene).then(Mountains.initWhenImportScene).then(TreesAndProps.initWhenImportScene).then(MapWall.initWhenImportScene)
+        // // .then(WindMills.initWhenImportScene)
+        // // .then(DynamicCars.initWhenImportScene)
+        // .then(PathFind.initWhenImportScene)
+        // // .then(Citiyzen.initWhenImportScene)
+        // .then(Infantry.initWhenImportScene).then(Rocketeer.initWhenImportScene).then(Laserer.initWhenImportScene).then(Commander.initWhenImportScene).then(Melee.initWhenImportScene).then(Tank.initWhenImportScene).then(MissileVehicle.initWhenImportScene).then(FlameVehicle.initWhenImportScene).then(ShellTurret.initWhenImportScene).then(MissileTurret.initWhenImportScene).then(Terrain.initWhenImportScene)
+
+        .then(ArmyManagerBiwu.initWhenImportScene)
 
         .then(BehaviourTreeManagerAll.initWhenImportScene)
         .then(BehaviourTreeManagerLeftHand.initWhenImportScene)
         .then(BehaviourTreeManagerRightHand.initWhenImportScene)
 
-        .then(parseAllWeaponModelsAndEnableAllParticls).then(state => {
+        // .then(parseAllWeaponModelsAndEnableAllParticls)
+        .then(state => {
+            return UI.registerBossStatusUpdateFunc(state, GirlBiwuLevel3.updateStatus)
+        })
+        .then(state => {
             state = registerDamageData(state, { isSelfFunc: TreesAndProps.isTreesAndProps, damageFunc: TreesAndProps.damage, getValueFunc: TreesAndProps.getValue },)
             state = registerDamageData(state, { isSelfFunc: Buildings.isBuildings, damageFunc: Buildings.damage, getValueFunc: Buildings.getValue },)
             state = registerDamageData(state, { isSelfFunc: Cars.isCars, damageFunc: Cars.damage, getValueFunc: Cars.getValue },)
@@ -671,6 +721,9 @@ export let initWhenImportScene = (state: state) => {
             state = registerDamageData(state, { isSelfFunc: ShellTurret.isShellTurret, damageFunc: ShellTurret.damage(MilltaryBuildingBiwu.damage), getValueFunc: ShellTurret.getValue },)
             state = registerDamageData(state, { isSelfFunc: MissileTurret.isMissileTurret, damageFunc: MissileTurret.damage(MilltaryBuildingBiwu.damage), getValueFunc: MissileTurret.getValue },)
 
+            // state = registerDamageData(state, { isSelfFunc: MeleeGiantess.isMeleeGiantess, damageFunc: MeleeGiantess.damage(EliteGiantess.damage), getValueFunc: MeleeGiantess.getValue },)
+            state = registerAllEliteGiantessDamageData(state)
+
             // state = registerDamageData(state, { isSelfFunc: DynamicCars.isDynamicCar, damageFunc: DynamicCars.damage, getValueFunc: DynamicCars.getValue },)
             // state = registerDynamicData(state, { isSelfFunc: WindMills.isWindMill, damageFunc: WindMills.damage, getValueFunc: WindMills.getValue },)
 
@@ -686,21 +739,35 @@ export let initWhenImportScene = (state: state) => {
             return state
         })
         .then(_handleLevel)
+        .then(state => {
+            /*! defer to get collision shapes of KeepLie
+            * 
+            */
+            return setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
+                state = updateAllCollisionShapes(state, usedGirl, Girl.getGirl(state, usedGirl))
+
+                return PathFind.initWhenImportScene(state)
+            }, 2))
+        })
 }
 
-export let init = ManageSceneLevel1.init
+// export let init = ManageSceneLevel1.init
 
 let _dispose = (state: state) => {
-    state = disposeLookat(state)
+    let usedGirl = Utils.getUsedGirl()
+
+    state = disposeLookat(state, usedGirl)
 
     // state = disposeShoe(state)
 
+    state = setAbstractState(state, Loader.removeResource(getAbstractState(state), getSceneResourceId()))
+
+    state = ManageSceneBiwu.unbindEvents(state)
+
     // state = setAbstractState(state, Event.off(getAbstractState(state), getExitScenarioEventName(), _exitScenarioHandler))
-    state = setAbstractState(state, Event.off(getAbstractState(state), getDestroyedEventName(), _destroyedHandler))
     state = setAbstractState(state, Event.off(getAbstractState(state), getHeavyStressingLieBeginMaxEventName(), _heavyStressingLieBeginMaxHandler))
     state = setAbstractState(state, Event.off(getAbstractState(state), getHeavyStressingLieEndMaxEventName(), _heavyStressingLieEndMaxHandler))
     // state = setAbstractState(state, Event.off(getAbstractState(state), getHeavyStressingLieEndEventName(), _heavyStressingLieEndHandler))
-    state = setAbstractState(state, Event.off(getAbstractState(state), getGirlDestroyingEventName(), _girlDestroyingHandler))
 
     return state
 }
@@ -717,7 +784,7 @@ let _dispose = (state: state) => {
 // let _triggerGameEvents = (state: state) => {
 //     if (
 //         isCurrentMainEventName(state, GameEventData.eventName.GoToTrigone)
-//         && isFinish(state)
+//         && isFinish(state, usedGirl)
 //         && isInXZRange(LittleManTransform.getWorldPosition(state),
 //             getTorsorRange())
 //     ) {
@@ -726,7 +793,7 @@ let _dispose = (state: state) => {
 
 //     if (
 //         isCurrentMainEventName(state, GameEventData.eventName.ReachTrigone)
-//         && isFinish(state)
+//         && isFinish(state, usedGirl)
 //     ) {
 //         return triggerMainEvent(state, GameEventData.eventName.RightHandAddArmy)
 //     }
@@ -737,13 +804,18 @@ let _dispose = (state: state) => {
 // }
 
 let _update = (state: state) => {
+    let usedGirl = Utils.getUsedGirl()
     state = headLookat(state,
+        (state, euler) => {
+            return euler
+        },
+        usedGirl,
         LittleManTransform.getWorldPosition(state),
         getAllAnimationNames()
     )
 
-    // if (!isHard(state) && isFinish(state)
-    //     && getCurrentAnimationName(state) == animationName.Idle
+    // if (!isHard(state, usedGirl) && isFinish(state, usedGirl)
+    //     && getCurrentAnimationName(state, usedGirl) == animationName.Idle
     //     && Girl.getHp(state, getBody()) < Girl.getFullHp(state) * 0.5) {
     //     state = setLevelData(state, _buildHardKey(), true)
 
@@ -751,23 +823,21 @@ let _update = (state: state) => {
     // }
 
 
-    return BodyManager.update(state)
-    // .then(_triggerGameEvents)
+    // return BodyManager.update(state)
+    //// .then(_triggerGameEvents)
+    return Promise.resolve(state)
 }
 
 export let update = (state: state): Promise<state> => {
     let promise
     if (!isEnter(state)) {
-        promise = Girl.update(state).then(LittleManBiwuLevel3.update).then(Camera.update)
+        promise = GirlBiwuLevel3.update(state).then(LittleManBiwuLevel3.update).then(Camera.update)
     }
     else {
         promise = Promise.resolve(state)
     }
 
-    return promise.then(Mission.update)
-        // .then(DynamicCars.update)
-        // .then(Citiyzen.update)
-        .then(Infantry.update).then(Rocketeer.update).then(Laserer.update).then(Commander.update).then(Melee.update).then(Tank.update).then(MissileVehicle.update).then(FlameVehicle.update).then(ShellTurret.update).then(MissileTurret.update).then(ArmyManagerBiwu.update)
+    return promise.then(ManageSceneBiwu.update)
         .then(BehaviourTreeManagerAll.update)
         .then(BehaviourTreeManagerLeftHand.update)
         .then(BehaviourTreeManagerRightHand.update)
@@ -775,28 +845,12 @@ export let update = (state: state): Promise<state> => {
 }
 
 export let dispose = (state: state) => {
-    let scene = getScene(state)
-
-    return Girl.dispose(state).then(LittleMan.dispose).then(Buildings.dispose).then(Cars.dispose)
-        // .then(WindMills.dispose)
-        // .then(DynamicCars.dispose)
-        // .then(Citiyzen.dispose)
-        .then(Soldier.dispose).then(MilltaryVehicle.dispose).then(MilltaryBuilding.dispose).then(TreesAndProps.dispose).then(Mission.dispose).then(Terrain.dispose).then(PathFind.dispose)
-        .then(Army.dispose)
+    return disposeUtils2(state)
         .then(BehaviourTreeManagerAll.dispose)
         .then(BehaviourTreeManagerLeftHand.dispose)
         .then(BehaviourTreeManagerRightHand.dispose)
-        .then(state => {
-            DisposeUtils.removeAndDispose(Scene.getScene(getAbstractState(state)), scene)
-
-            return state
-        }).then(state => {
-            return disposeStaticDynamic(state)
-        })
         .then(_dispose)
-        .then(writeState)
 }
-
 
 export let getSceneResourceId = () => "biwu_level3"
 
@@ -840,11 +894,11 @@ export let getSayHitLeftNipple2SoundResourceId = () => "biwu_level3_sayHitLeftNi
 
 export let getSayHitLeftNipple3SoundResourceId = () => "biwu_level3_sayHitLeftNipple3"
 
-export let getLoadData = () => {
+export let getLoadData = (state) => {
     return [
         {
             id: getSceneResourceId(),
-            path: `./resource/${getName()}/scene_biwu_level3.glb`,
+            path: `./resource/${getName()}/map/biwu/scene_biwu_level3.glb`,
             type: resourceType.ArrayBuffer
         },
     ].concat(
@@ -960,46 +1014,72 @@ export let getLoadData = () => {
                 type: resourceType.Audio
             },
         ] as any
+    ).concat(
+        getPropLoadData(state)
     )
 }
 
-export let handleBeforeLoadResource = (state: state) => {
-    state = ManageSceneLevel1.setByDiffiuculty(state)
+export let handleBeforeLoadResource = (state: state,) => {
+    let usedGirl = Utils.getUsedGirl()
 
     state = setConfigData(state, {
         ...getConfigData(state),
-        girlAllAnimationNames: getAllAnimationNames(),
-        girlAllAnimationFrameCountMap: MutableMapUtils.concat(getConfigData(state).girlAllAnimationFrameCountMap, getAnimationFrameCountMap() as any),
-        // getConfigData(state).girlValue
+        // girlAllAnimationNames: getAllAnimationNames(),
+        // girlAllAnimationFrameCountMap: MutableRecordUtils.concat(getConfigData(state).girlAllAnimationFrameCountMap, getAnimationFrameCountMap() as any),
+        // // getConfigData(state).girlValue
 
         articluatedAnimationData: getConfigData(state).articluatedAnimationData.concat(getArticluatedAnimationData()),
 
-        animationBlendData: getConfigData(state).animationBlendData.concat(getAnimationBlendData(
-            getAnimationBlendDataParam()
-        ) as any),
-        animationCollisionData: getConfigData(state).animationCollisionData.concat(getAnimationCollisionData(getAnimationCollisionDataParam() as any) as any),
-        actionData: getActionData(),
-        phaseData: getPhase(),
+        // animationBlendData: getConfigData(state).animationBlendData.concat(getAnimationBlendData(
+        //     getAnimationBlendDataParam()
+        // ) as any),
+        // animationCollisionData: getConfigData(state).animationCollisionData.concat(getAnimationCollisionData(getAnimationCollisionDataParam() as any) as any),
+        // actionData: getActionData(),
+        // phaseData: getPhase(),
 
 
-        girlValue: NullableUtils.return_(
-            GirlData.getValue(state)
-        ),
+        // girlValue: NullableUtils.return_(
+        //     GirlData.getValue(state)
+        // ),
+        // littleManValue: Mission.isEnteringNextLevel(state) ? getConfigData(state).littleManValue : NullableUtils.return_(
+        //     LittleManData.getValue(state)
+        // ),
         littleManValue: NullableUtils.return_(
             LittleManData.getValue(state)
         ),
-        allMMDData: getAllMMDData(),
-        // shoeData: getConfigData(state).shoeData.concat(getShoeData()),
+        allMMDData: getAllMMDData(state),
+        shoeData: getConfigData(state).shoeData.concat(getShoeData(state)),
         clothCollisionData: getClothCollisionData(),
 
-        gameEventData: GameEventData.getData(),
-        scenaryData: ScenarioData.getData(Girl.getCurrentMMDCharacterName(state)),
-    })
+        gameEventData: NullableUtils.return_(GameEventData.getData()),
+        // scenaryData: ScenarioData.getData(Girl.getCurrentMMDCharacterName(state, usedGirl)),
+
+        rewardData: RewardGenerator.mergeRewardData(NullableUtils.getExn(getConfigData(state).rewardData), getRewardData(state)),
+    } as any)
+
+    state = ManageSceneBiwu.handleBeforeLoadResource(state, GirlData.getValue, getClothHpData, getAllRandomUsedMMDData)
 
     state = setConfigData(state, {
         ...getConfigData(state),
-        clothHpData: NullableUtils.return_(getClothHpData(state)),
+        scenaryData: ScenarioData.getData(
+            // Girl.getUsedMMDDataByUsedGirl(state, usedGirlEnum.BossGiantess)[0]
+            getMMDName(state, usedGirl)
+        ),
     })
 
+
     return state
+}
+
+let _buildIsCanMoveKey = () => "_buildIsCanMoveKey"
+
+export let isCanMove = (state: state) => {
+    return NullableUtils.getWithDefault(
+        getLevelDataCityScene(state, _buildIsCanMoveKey()),
+        true
+    )
+}
+
+export let markIsCanMove = (state: state, value) => {
+    return setLevelData(state, _buildIsCanMoveKey(), value)
 }

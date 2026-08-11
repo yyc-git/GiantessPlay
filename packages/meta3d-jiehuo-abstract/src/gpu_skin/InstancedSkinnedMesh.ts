@@ -3,8 +3,12 @@ import { getDelta } from "../Device";
 import { Map } from "immutable";
 import { forEach, getExn, getWithDefault } from "../utils/NullableUtils";
 import { reducePromise } from "../utils/ArrayUtils";
-import { objectName } from "../type/StateType";
+import { objectName, state } from "../type/StateType";
 import { getClipSteps, getPlayClipData, getTime } from "./GPUSkinAnimation";
+import { Flow, NullableUtils, Optimize } from "../Main";
+import { getFloat32ArrayAndReset, mutableAddFloat32Array } from "../Optimize";
+import { readState } from "../state/State";
+import { disposeSkeleton } from "../scene/utils/DisposeUtils";
 
 type name = string
 
@@ -21,8 +25,8 @@ export class InstancedSkinnedMesh<TGeometry extends BufferGeometry = BufferGeome
     public readonly isSkinnedMesh = true;
     public readonly bindMode = "detached";
 
-    public readonly bindMatrix = new Matrix4();
-    public readonly bindMatrixInverse = new Matrix4();
+    public bindMatrix = new Matrix4();
+    public bindMatrixInverse = new Matrix4();
 
     public skeleton: Skeleton;
 
@@ -37,10 +41,16 @@ export class InstancedSkinnedMesh<TGeometry extends BufferGeometry = BufferGeome
     // public isOnceClipOnCompleteFuncExecutedMap: Map<name, boolean> = Map()
 
 
-    constructor(geometry: TGeometry, material: TMaterial, count: number) {
+    // constructor(state, geometry: TGeometry, material: TMaterial, count: number) {
+    constructor(data: Float32Array, geometry: TGeometry, material: TMaterial, count: number) {
         super(geometry, material, count);
 
-        this.instanceFrameData = new InstancedBufferAttribute(new Float32Array(this.count * 2), 2);
+        // let d = getFloat32ArrayAndReset(state, this.count * 2)
+        // state = d[0]
+        // let data = d[1]
+
+        // this.instanceFrameData = new InstancedBufferAttribute(new Float32Array(this.count * 2), 2);
+        this.instanceFrameData = new InstancedBufferAttribute(data, 2);
 
         geometry.attributes["instanceFrameData"] = this.instanceFrameData;
     }
@@ -179,6 +189,28 @@ export class InstancedSkinnedMesh<TGeometry extends BufferGeometry = BufferGeome
     //     return false
     // }
 
+    // dispose(state: state): void {
+    // disposeWithState(state: state): state {
+    dispose(): void {
+        super.dispose()
+
+        if (!NullableUtils.isNullable(this.instanceFrameData)) {
+            mutableAddFloat32Array(readState(), this.instanceFrameData.array)
+        }
+
+
+        this.skeleton = null
+
+
+        this.instanceMatrix = null
+        this.instanceColor = null
+
+        this.bindMatrix = null
+        this.bindMatrixInverse = null
+        this.allNames = null
+        this.instanceFrameData = null
+    }
+
     private _getLastFrame(steps) {
         return steps - 1
     }
@@ -186,9 +218,11 @@ export class InstancedSkinnedMesh<TGeometry extends BufferGeometry = BufferGeome
 
     update<specificState>(specificState: specificState,
         getAbstractStateFunc,
-        fps,
+        // fps,
     ) {
         let state = getAbstractStateFunc(specificState)
+        // let fps = Flow.getFPS(state)
+        let fps = Flow.getMaxFPS(state)
 
         for (let i = 0; i < this.count; i++) {
             let name = this.allNames[i]
@@ -212,7 +246,8 @@ export class InstancedSkinnedMesh<TGeometry extends BufferGeometry = BufferGeome
             )
         }
 
-        return Promise.resolve(specificState)
+        // return Promise.resolve(specificState)
+        return specificState
     }
 
     // copyFromOldOne(instancedSkinnedMesh) {

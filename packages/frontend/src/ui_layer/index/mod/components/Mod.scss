@@ -1,0 +1,47 @@
+@use "../../../../Main.scss" as *;
+
+.mod-main {
+	@include background-unset;
+
+	overflow-y: auto;
+
+	.title,
+	.info {
+		@include font-size-large;
+	}
+
+	.row .ant-row {
+		margin-bottom: 0.5rem;
+	}
+
+}
+
+
+/* 滚动条整体 */
+.mod-main::-webkit-scrollbar {
+	height: 5rem;
+	width: 5rem;
+}
+
+/* 两个滚动条交接处 -- x轴和y轴 */
+.mod-main::-webkit-scrollbar-corner {
+	background-color: transparent;
+}
+
+/* 滚动条滑块 */
+.mod-main::-webkit-scrollbar-thumb {
+	// border-radius: 10px;
+	border-radius: 2.5rem;
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	background: #535353;
+}
+
+/* 滚动条轨道 */
+.mod-main::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+	border-radius: 2.5rem;
+	background: #ededed;
+}
+
+/* 滚动条两端按钮 */
+.mod-main::-webkit-scrollbar-button {}

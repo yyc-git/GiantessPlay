@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+		"target": "es6",
+		"module": "commonjs",
+        "jsx": "react",
+        "moduleResolution": "node",
+        // "noEmit": true,
+        "skipLibCheck": true,
+        "types": [
+			"node",
+            "jest"
+        ]
+    },
+       "exclude": [
+        "node_modules",
+        "dist",
+        "build"
+      ],
+"include": [
+        "./src"
+    ]
+}

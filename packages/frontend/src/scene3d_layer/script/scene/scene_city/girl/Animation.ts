@@ -1,5 +1,5 @@
 import { SkinBlendAnimation } from "meta3d-jiehuo-abstract"
-import { getCenter, getGirl, getGirlMesh, getGirlState, getName, getValue, isActionState, isTriggerAction, resetIsTriggerAction, setGirlScale, setGirlState } from "./Girl"
+import { getCenter, getGirl, getGirlMesh, getValue, isActionState, isTriggerAction, resetIsTriggerAction, setGirlScale, hasGirlValue, setUsedGirlData, getUsedGirlData, isPlayerGirl, isPlayerGirlByUsedGirl } from "./Girl"
 import { getAbstractState, readState, setAbstractState, writeState } from "../../../../state/State"
 import { state } from "../../../../type/StateType"
 import { getAnimationBlendDuration } from "../data/Data"
@@ -9,44 +9,55 @@ import { SkinAnimation } from "meta3d-jiehuo-abstract"
 import { MMD } from "meta3d-jiehuo-abstract"
 import { getAnimationFrameCount } from "../data/Const"
 import { animationName, articluatedAnimationName } from "../data/DataType"
-import { changePivotByAdd, computeGirlBox, getGirlPosition, getGirlRotation, getScale, setPivotToOrigin } from "./Utils"
+import { changePivotByAdd, computeGirlBoxAndSetToState, computeHeight, getGirlBox, getGirlPosition, getGirlRotation, getHeightByScale, getPivotWorldPosition, getScale, setPivotToOrigin } from "./Utils"
 import { Device } from "meta3d-jiehuo-abstract"
 import * as StateMachine from "meta3d-jiehuo-abstract/src/fsm/StateMachine"
-import { createInitialState, createKeepCrawlState, createKeepPickState, createScenarioState, getStateMachine, setStateMachine } from "./FSMState"
-import { objectStateName, pose } from "../type/StateType"
+import { createIdleState, createInitialState, createKeepCrawlState, createKeepPickState, createScenarioState, getStateMachine, setStateMachine } from "./FSMState"
+import { objectStateName, playerStateStatusName, pose } from "../type/StateType"
 import { getIsDebug } from "../../Scene"
 import { changePose, getCurrentPose, isPose } from "./Pose"
 import { findArticluatedAnimationData, playArticluatedAnimation } from "../data/DataUtils"
 import { ArticluatedAnimation } from "meta3d-jiehuo-abstract"
-import { getBiggerSoundResourceId, getConfigData, getGiantessSetting, getGirlScale, getIsBiggerNoLimit, getLittleManSetting, getSmallerSoundResourceId, isGiantessRoad } from "../CityScene"
+import { getBiggerSoundResourceId, getConfigData, getGirlScale, getSmallerSoundResourceId, isGiantessCharacterType } from "../CityScene"
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getGirlVolume, getVolume } from "../utils/SoundUtils"
 import { refreshBiggerTime } from "./InitWhenImportScene"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
-import { updateDistanceRate } from "../Camera"
+import { updateDistanceRateOnlyOnceInOneFrame } from "../Camera"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { fsm_state } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
+import { ArrayUtils } from "meta3d-jiehuo-abstract"
+import { isDestoryRelatedStates } from "../utils/FSMStateUtils"
+import { computeAnimationDurationFactor } from "../utils/GiantessUtils"
+import { TupleUtils } from "meta3d-jiehuo-abstract"
+import { createFSMStateByChangeAnimationName, getAllAnimationNames as getAllAnimationNamesMod, getHeavyStressingBlockService, getHeavyStressingBreastBlockService, getHeavyStressingTrigoneAndButtBlockService, getKeepSitBlockService, getSitDeathBlockService, getUBHeavyStressingBlockService, isKeepPoseAnimation as isKeepPoseAnimationMod, handleChangeAnimationName } from "../../../../mod/SkillGiantessMod"
+import { Event } from "meta3d-jiehuo-abstract"
+import { getBreastPartialScaleRatio, getTorsorPartialScaleRatio } from "../utils/PartialScaleGiantessUtils"
+import { getBoxVolumn } from "../utils/Box3Utils"
+import { computeEnhenceValueByCarryLevel, getEnhenceByCarryLevel } from "../build/Career"
 
-export let isPlayingAnimationByWeight = (state, animationName, weight) => {
-	return SkinBlendAnimation.getWeight(getAbstractState(state), getGirlMesh(state), animationName) >= weight
+export let isPlayingAnimationByWeight = (state, usedGirl, animationName, weight) => {
+	return SkinBlendAnimation.getWeight(getAbstractState(state), usedGirl, getGirlMesh(state, usedGirl), animationName) >= weight
 }
 
-export let isCompletelyPlayingAnimation = (state, animationName) => {
-	return isPlayingAnimationByWeight(state, animationName, 1)
+export let isCompletelyPlayingAnimation = (state, usedGirl, animationName) => {
+	return isPlayingAnimationByWeight(state, usedGirl, animationName, 1)
 }
 
-export let isPlayingAnimation = (state, animationName) => {
-	return SkinBlendAnimation.getWeight(getAbstractState(state), getGirlMesh(state), animationName) > 0
+export let isPlayingAnimation = (state, usedGirl, animationName) => {
+	return SkinBlendAnimation.getWeight(getAbstractState(state), usedGirl, getGirlMesh(state, usedGirl), animationName) > 0
 }
 
-export let getAllAnimationNames = () => [
-	animationName.Idle, animationName.Stomp, animationName.Walk, animationName.Run,
+export let getAllAnimationNames = (state: state): Array<animationName> => [
+	animationName.Idle,
+	//  animationName.Stomp,
+	animationName.Walk, animationName.Run,
 
 	animationName.StandToCrawl, animationName.CrawlToStand,
 
 	animationName.KeepCrawl, animationName.CrawlMove,
-	animationName.BreastPress,
+	// animationName.BreastPress,
 
 
 	animationName.Pickup,
@@ -68,30 +79,200 @@ export let getAllAnimationNames = () => [
 	animationName.CrawlHeavyStressingTrigoneAndButt,
 	animationName.CrawlDeath,
 
-	animationName.Hello,
-]
+	// animationName.Hello,
+].concat(
+	getAllAnimationNamesMod(state) as any
+)
 
 // export let getChangePoseAnimationNames = (): Array<animationName> => {
 // 	return [animationName.StandToCrawl, animationName.CrawlToStand]
 // }
 
-export let getDamageAnimationNames = (): Array<animationName> => [
-	animationName.HeavyStressing,
-	animationName.HeavyStressingBreast,
-	animationName.HeavyStressingTrigoneAndButt,
+export let getDeathAnimationNames = (state: state): Array<animationName> => [
 	animationName.Death,
 
 
-	animationName.CrawlHeavyStressing,
-	animationName.CrawlHeavyStressingBreast,
-	animationName.CrawlHeavyStressingTrigoneAndButt,
 	animationName.CrawlDeath,
+
+	getSitDeathBlockService(state).getForceAnimationName(),
+
 ]
 
-export let updateAnimationDuration = (state: state, scale) => {
-	let girlMesh = getGirlMesh(state)
+export let getDamageAnimationNames = (state: state): Array<animationName> => {
+	return [
+		animationName.HeavyStressing,
+		animationName.HeavyStressingBreast,
+		animationName.HeavyStressingTrigoneAndButt,
+		// animationName.Death,
 
-	let customDuration = getCustomDuration(state)
+
+		animationName.CrawlHeavyStressing,
+		animationName.CrawlHeavyStressingBreast,
+		animationName.CrawlHeavyStressingTrigoneAndButt,
+		// animationName.CrawlDeath,
+
+		getHeavyStressingBlockService(state).getForceAnimationName(),
+		getHeavyStressingBreastBlockService(state).getForceAnimationName(),
+		getHeavyStressingTrigoneAndButtBlockService(state).getForceAnimationName(),
+		// getSitDeathBlockService(state).getForceAnimationName(),
+
+		getUBHeavyStressingBlockService(state).getForceAnimationName(),
+
+	].concat(getDeathAnimationNames(state))
+}
+
+// export let computeDuration = (state, animationName) => {
+// 	// const minDuration = 1
+
+// 	let scale = getScale(state, usedGirl)
+// 	let girlMesh = getGirlMesh(state, usedGirl)
+
+// 	let customDuration = getCustomDuration(state)
+
+// 	// let durationFactor = getDurationFactor(state, usedGirl)
+
+// 	let clip = MMD.findAnimationClip(getAbstractState(state), girlMesh, animationName)
+
+// 	let duration = clip.duration
+// 	// let originDuration = duration
+
+
+// 	if (!NullableUtils.isNullable(customDuration)) {
+// 		return NullableUtils.getExn(customDuration)
+// 	}
+
+// 	duration *= (1 + computeAnimationDurationFactor(getHeightByScale(scale)))
+
+// 	return duration
+// }
+
+// export let computeActualDuration = (state, animationName, duration) => {
+// 	const minDuration = 1
+
+// 	// let scale = getScale(state, usedGirl)
+// 	let girlMesh = getGirlMesh(state, usedGirl)
+
+// 	let customDuration = getCustomDuration(state)
+
+// 	let durationFactor = getDurationFactor(state, usedGirl)
+
+// 	let clip = MMD.findAnimationClip(getAbstractState(state), girlMesh, animationName)
+
+// 	// let duration = clip.duration
+// 	let originDuration = clip.duration
+
+
+// 	if (!NullableUtils.isNullable(customDuration)) {
+// 		// return NullableUtils.getExn(customDuration) * durationFactor
+// 		return duration * durationFactor
+// 	}
+
+// 	// duration *= (1 + computeAnimationDurationFactor(getHeightByScale(scale)))
+
+// 	return NumberUtils.clamp(duration * durationFactor, minDuration, originDuration * 4.5)
+// }
+
+// export let computeDuration = (state, animationName) => {
+// 	const minDuration = 1
+
+// 	let scale = getScale(state, usedGirl)
+// 	let girlMesh = getGirlMesh(state, usedGirl)
+
+// 	let customDuration = getCustomDuration(state)
+
+// 	let durationFactor = getDurationFactor(state, usedGirl)
+
+// 	let clip = MMD.findAnimationClip(getAbstractState(state), girlMesh, animationName)
+
+// 	let duration = clip.duration
+// 	let originDuration = duration
+
+
+// 	if (!NullableUtils.isNullable(customDuration)) {
+// 		return [originDuration, NullableUtils.getExn(customDuration) * durationFactor]
+// 	}
+
+// 	duration *= (1 + computeAnimationDurationFactor(getHeightByScale(scale)))
+
+// 	return [originDuration, NumberUtils.clamp(duration * durationFactor, minDuration, originDuration * 4.5)]
+// }
+export let computeDuration = (state, usedGirl, animationName): [number, number, number] => {
+	let scale = getScale(state, usedGirl)
+	let girlMesh = getGirlMesh(state, usedGirl)
+
+	let customDuration = getCustomDuration(state, usedGirl)
+
+	let durationFactor = getDurationFactor(state, usedGirl)
+	let breastPartialScaleRatio = getBreastPartialScaleRatio(state, usedGirl)
+	let torsorPartialScaleRatio = getTorsorPartialScaleRatio(state, usedGirl)
+
+	durationFactor *= (1 + breastPartialScaleRatio * 0.5)
+	durationFactor *= (1 + torsorPartialScaleRatio * 0.6)
+
+
+
+	// if (isGiantessCharacterType(state)) {
+	if (isPlayerGirlByUsedGirl(usedGirl)) {
+		durationFactor /= 1 + computeEnhenceValueByCarryLevel(state, usedGirl, 5, 1)
+	}
+
+
+
+
+
+
+
+	let clip = MMD.findAnimationClip(getAbstractState(state), usedGirl, girlMesh, animationName)
+
+	let duration = clip.duration
+	let originDuration = duration
+
+
+	let minDuration = NumberUtils.greaterThan(originDuration * 0.8, 1)
+
+
+	if (!NullableUtils.isNullable(customDuration)) {
+		return [NullableUtils.getExn(customDuration) * durationFactor, durationFactor, originDuration]
+	}
+
+	duration *= (1 + computeAnimationDurationFactor(getHeightByScale(scale)))
+
+	let durationBefore = duration
+
+	duration *= durationFactor
+
+	let resultDurationFactor, resultDuration
+
+
+	// if (duration < minDuration) {
+	// 	resultDurationFactor = 1
+	// 	resultDuration = minDuration
+	// }
+	// else if (duration > originDuration * 4.5) {
+	// 	resultDurationFactor = 1
+	// 	resultDuration = originDuration * 4.5
+	// }
+	// else {
+	// 	resultDurationFactor = durationFactor
+	// 	resultDuration = duration
+	// }
+	resultDuration = NumberUtils.clamp(duration, minDuration, originDuration * 4.5)
+
+	if ((duration > originDuration * 4.5 && durationBefore > originDuration * 4.5)
+		|| (duration < minDuration && durationBefore < minDuration)
+	) {
+		// resultDurationFactor = durationFactor
+		resultDurationFactor = 1
+	}
+	else {
+		resultDurationFactor = resultDuration / durationBefore
+	}
+
+	return [resultDuration, resultDurationFactor, originDuration]
+}
+
+export let updateAnimationDuration = (state: state, usedGirl, scale) => {
+	let girlMesh = getGirlMesh(state, usedGirl)
 
 	getConfigData(state).girlAllAnimationNames.forEach(animationName => {
 		// if(animationName == animationName.Idle){
@@ -99,40 +280,11 @@ export let updateAnimationDuration = (state: state, scale) => {
 		//     return
 		// }
 
-		let clip = MMD.findAnimationClip(getAbstractState(state), girlMesh, animationName)
-		let action = MMD.findAnimationAction(getAbstractState(state), girlMesh, animationName)
+		let action = MMD.findAnimationAction(getAbstractState(state), usedGirl, girlMesh, animationName)
 
-		let duration = clip.duration
-		let originDuration = duration
+		// SkinAnimation.setDuration(action, computeActualDuration(state, animationName, computeDuration(state, animationName)))
+		SkinAnimation.setDuration(action, TupleUtils.getTuple3First(computeDuration(state, usedGirl, animationName)))
 
-		if (scale <= 25) {
-			// duration *= 1 + scale / 10
-
-			// duration *= 1 + scale / 20
-
-			duration *= 1 + scale / 30
-		}
-		else {
-			// let oldScale = (1 + 25 / 20)
-			let oldScale = (1 + 25 / 30)
-			// let newScale = 1 + scale / 30
-			let newScale = 1 + scale / 40
-
-			duration *= newScale > oldScale ? newScale : oldScale
-		}
-
-		// action.setDuration(clip.duration * (1 + scale / 25))
-
-		// action.setDuration(Math.min(duration, originDuration * 3))
-
-		if (!NullableUtils.isNullable(customDuration)) {
-			SkinAnimation.setDuration(action, NullableUtils.getExn(customDuration))
-		}
-		else {
-			SkinAnimation.setDuration(action, Math.min(duration, originDuration * 4.5))
-		}
-
-		// Console.log(`${animationName}:`, duration)
 	})
 
 	// Console.log(clip.duration)
@@ -140,9 +292,15 @@ export let updateAnimationDuration = (state: state, scale) => {
 	return state
 }
 
-export let playAnimationLoop = (state: state, animationName, noBlend) => {
-	return setGirlState(state, {
-		...getGirlState(state),
+export let computeAnimatonDurationFactor = (state: state, usedGirl) => {
+	let [duration, _, originDuration] = computeDuration(state, usedGirl, getCurrentAnimationName(state, usedGirl))
+
+	return duration / originDuration
+}
+
+export let playAnimationLoop = (state: state, usedGirl, animationName, noBlend) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
 		nextBlendingAnimationName: animationName,
 		isCurrentAnimationOnlyPlayOnce: false,
 		noBlend
@@ -168,30 +326,30 @@ export let playAnimationLoop = (state: state, animationName, noBlend) => {
 // 	return playAnimationLoop(state, nextBlendingAnimationName)
 // }
 
-export let playAnimationOnlyOnce = (state: state, animationName, noBlend) => {
-	return setGirlState(state, {
-		...getGirlState(state),
+export let playAnimationOnlyOnce = (state: state, usedGirl, animationName, noBlend) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
 		nextBlendingAnimationName: animationName,
 		isCurrentAnimationOnlyPlayOnce: true,
 		noBlend
 	})
 }
 
-export let isEnd = (state, animationName_, isDebug: boolean, offset = 0) => {
+export let isEnd = (state, usedGirl, animationName_, isDebug: boolean, offset = 0) => {
 	// requireCheck(() => {
 	// 	test("duration is too short for low offset", () => {
 	// 		if (offset > 0) {
 	// 			return true
 	// 		}
 
-	// 		return MMD.findAnimationClip(getAbstractState(state), getGirlMesh(state), animationName_).duration >= 1
+	// 		return MMD.findAnimationClip(getAbstractState(state), getGirlMesh(state, usedGirl), animationName_).duration >= 1
 	// 	})
 	// }, getIsDebug(state))
 
 
 	return SkinAnimation.isSpecificFrameIndex(
 		SkinAnimation.getFrameIndex(
-			MMD.findAnimationAction(getAbstractState(state), getGirlMesh(state), animationName_),
+			MMD.findAnimationAction(getAbstractState(state), usedGirl, getGirlMesh(state, usedGirl), animationName_),
 			getAnimationFrameCount(state, animationName_)
 		),
 		getAnimationFrameCount(state, animationName_),
@@ -205,14 +363,14 @@ let _isStressingOrDeathAnimation = (animationname) => {
 	return animationname.includes("Stressing") || animationname.includes("Death")
 }
 
-let _updateAnimationBlendAndFSMState = (state, isForScenario) => {
-	let girlMesh = getGirlMesh(state)
+let _updateAnimationBlendAndFSMState = (state, usedGirl, isForScenario) => {
+	let girlMesh = getGirlMesh(state, usedGirl)
 
 	if (!isForScenario) {
 		state = getConfigData(state).animationBlendData.reduce((state, data) => {
 			if (
-				data.condition(state)
-				&& data.currentAnimationNames.includes(getGirlState(state).currentAnimationName)
+				data.condition(state, usedGirl)
+				&& data.currentAnimationNames.includes(getUsedGirlData(state, usedGirl).currentAnimationName)
 				// (
 				// 	NullableUtils.getWithDefault(
 				// 		NullableUtils.map(
@@ -220,7 +378,7 @@ let _updateAnimationBlendAndFSMState = (state, isForScenario) => {
 				// 				return isCurrentAnimationName(state)
 				// 			}, data.isCurrentAnimationName
 				// 		),
-				// 		getGirlState(state).currentAnimationName == NullableUtils.getExn( data.currentAnimationName)
+				// 		getUsedGirlData(state, usedGirl).currentAnimationName == NullableUtils.getExn( data.currentAnimationName)
 				// 	)
 				// )
 				&& data.currentAnimationNames.reduce((result, animationName_) => {
@@ -228,17 +386,17 @@ let _updateAnimationBlendAndFSMState = (state, isForScenario) => {
 						return result
 					}
 
-					return isPlayingAnimationByWeight(state, animationName_, NullableUtils.getWithDefault(data.weight, 1))
+					return isPlayingAnimationByWeight(state, usedGirl, animationName_, NullableUtils.getWithDefault(data.weight, 1))
 				}, false)
 			) {
-				// return setGirlState(state, {
-				// 	...getGirlState(state),
+				// return setUsedGirlData(state, usedGirl,{
+				// 	...getUsedGirlData(state, usedGirl),
 				// 	nextBlendingAnimationName: data.nextAnimationName
 				// })
 
 				let noBlend = NullableUtils.getWithDefault(data.noBlend, false)
-				state = setGirlState(state, {
-					...getGirlState(state),
+				state = setUsedGirlData(state, usedGirl, {
+					...getUsedGirlData(state, usedGirl),
 					noBlend
 				})
 
@@ -250,17 +408,31 @@ let _updateAnimationBlendAndFSMState = (state, isForScenario) => {
 				// ) {
 				let isOnlyPlayOnce = NullableUtils.getWithDefault(data.isOnlyPlayOnce, false)
 				if (isOnlyPlayOnce === true) {
-					return playAnimationOnlyOnce(state, data.nextAnimationName, noBlend)
+					return playAnimationOnlyOnce(state, usedGirl, data.nextAnimationName, noBlend)
 				}
 
-				return playAnimationLoop(state, data.nextAnimationName, noBlend)
+				return playAnimationLoop(state, usedGirl, data.nextAnimationName, noBlend)
 			}
 
 			return state
 		}, state)
 	}
 
-	let { currentAnimationName, noBlend, isCurrentAnimationOnlyPlayOnce } = getGirlState(state)
+	let { currentAnimationName, noBlend, isCurrentAnimationOnlyPlayOnce } = getUsedGirlData(state, usedGirl)
+
+	// let d = getUsedGirlData(state, usedGirl).createFSMStateByCurrentAnimationNameFunc(state, currentAnimationName)
+	// state = d[0]
+	// let fsmState = d[1]
+
+	// let promise
+	// if (NullableUtils.isNullable(fsmState)
+	// 	|| isDestoryRelatedStates(getStateMachine(state))
+	// ) {
+	// 	promise = Promise.resolve(state)
+	// }
+	// else {
+	// 	promise = StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), NullableUtils.getExn(fsmState), null)
+	// }
 
 	return NullableUtils.getWithDefault(
 		NullableUtils.map(nextBlendingAnimationName => {
@@ -268,11 +440,11 @@ let _updateAnimationBlendAndFSMState = (state, isForScenario) => {
 			// 	currentAnimationName, nextBlendingAnimationName
 			// )
 			if (currentAnimationName !== nextBlendingAnimationName) {
-				if (isTriggerAction(state, currentAnimationName)) {
-					state = resetIsTriggerAction(state)
+				if (isTriggerAction(state, usedGirl, currentAnimationName)) {
+					state = resetIsTriggerAction(state, usedGirl)
 				}
 
-				let helper = MMD.getMMDAnimationHelper(getAbstractState(state))
+				let helper = MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl)
 
 				if (noBlend) {
 
@@ -298,204 +470,214 @@ let _updateAnimationBlendAndFSMState = (state, isForScenario) => {
 				}
 
 				// if (!isForScenario) {
-				state = setGirlState(state, {
-					...getGirlState(state),
+				state = setUsedGirlData(state, usedGirl, {
+					...getUsedGirlData(state, usedGirl),
 					// isResetActionCollision: false,
 					currentAnimationName: nextBlendingAnimationName,
 					previousAnimationName: NullableUtils.return_(currentAnimationName)
 				})
 
-				let d = getGirlState(state).createFSMStateByAnimationNameFunc(state, nextBlendingAnimationName)
+				let d = getUsedGirlData(state, usedGirl).createFSMStateByChangeAnimationNameFunc(state, usedGirl, nextBlendingAnimationName)
 				state = d[0]
 				let fsmState = d[1]
 
-				if (NullableUtils.isNullable(fsmState)) {
+				state = handleChangeAnimationName(state, usedGirl, nextBlendingAnimationName, currentAnimationName)
+
+				if (NullableUtils.isNullable(fsmState)
+					|| isDestoryRelatedStates(getStateMachine(state, usedGirl))
+				) {
 					return Promise.resolve(state)
 				}
 
-				return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine, getStateMachine(state), NullableUtils.getExn(fsmState), null)
+				return StateMachine.changeAndExecuteStateWithoutName(state, setStateMachine(usedGirl), getStateMachine(state, usedGirl), NullableUtils.getExn(fsmState), null)
 			}
 
 			return Promise.resolve(state)
-		}, getGirlState(state).nextBlendingAnimationName),
+		}, getUsedGirlData(state, usedGirl).nextBlendingAnimationName),
 		Promise.resolve(state)
 	)
 }
 
-let _handlePlayOnce = (state: state) => {
-	let { isCurrentAnimationOnlyPlayOnce, currentAnimationName } = getGirlState(state)
+let _handlePlayOnce = (state: state, usedGirl) => {
+	let { isCurrentAnimationOnlyPlayOnce, currentAnimationName } = getUsedGirlData(state, usedGirl)
 
 	if (isCurrentAnimationOnlyPlayOnce &&
 		isEnd(
-			state,
+			state, usedGirl,
 			currentAnimationName,
 			getIsDebug(state)
 		)
 	) {
-		MMD.getMMDAnimationHelper(getAbstractState(state)).pause()
+		MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).pause()
 	}
 	else {
-		MMD.getMMDAnimationHelper(getAbstractState(state)).resume()
+		MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).resume()
 	}
 
 	return state
 }
 
-export let updateAnimation = (state: state): Promise<state> => {
-	return _updateAnimationBlendAndFSMState(state, false).then(state => {
-		state = setGirlState(state, {
-			...getGirlState(state),
+export let updateAnimation = (state: state, usedGirl): Promise<state> => {
+	return _updateAnimationBlendAndFSMState(state, usedGirl, false).then(state => {
+		state = setUsedGirlData(state, usedGirl, {
+			...getUsedGirlData(state, usedGirl),
 			nextBlendingAnimationName: NullableUtils.getEmpty()
 		})
 
-		state = updateAnimationDuration(state, getScale(state))
+		state = updateAnimationDuration(state, usedGirl, getScale(state, usedGirl))
 
 		// state = resetIsTriggerActionMap(state)
 
-		state = _handlePlayOnce(state)
+		state = _handlePlayOnce(state, usedGirl)
 
 		return state
 	})
 }
 
-export let restore = (state) => {
-	MMD.getMMDAnimationHelper(getAbstractState(state)).resume()
+export let restore = (state, usedGirl) => {
+	MMD.getMMDAnimationHelper(getAbstractState(state), usedGirl).resume()
 
 	return state
 }
 
-export let updateAnimationForScenario = (state: state): Promise<state> => {
-	return _updateAnimationBlendAndFSMState(state, true).then(state => {
-		state = setGirlState(state, {
-			...getGirlState(state),
+export let updateAnimationForScenario = (state: state, usedGirl): Promise<state> => {
+	return _updateAnimationBlendAndFSMState(state, usedGirl, true).then(state => {
+		state = setUsedGirlData(state, usedGirl, {
+			...getUsedGirlData(state, usedGirl),
 			nextBlendingAnimationName: NullableUtils.getEmpty()
 		})
 
-		state = updateAnimationDuration(state, getScale(state))
+		state = updateAnimationDuration(state, usedGirl, getScale(state, usedGirl))
 
-		state = _handlePlayOnce(state)
+		state = _handlePlayOnce(state, usedGirl)
 
 		return state
 	})
 }
 
-export let getPreviousAnimationName = (state: state) => {
-	return getGirlState(state).previousAnimationName
+export let getPreviousAnimationName = (state: state, usedGirl) => {
+	return getUsedGirlData(state, usedGirl).previousAnimationName
 }
 
-export let getCurrentAnimationName = <animationName>(state: state) => {
-	return getGirlState(state).currentAnimationName as animationName
+export let getCurrentAnimationName = <animationName>(state: state, usedGirl) => {
+	return getUsedGirlData(state, usedGirl).currentAnimationName as animationName
 }
 
-export let setCurrentAnimationName = (state: state, name) => {
-	return setGirlState(state, {
-		...getGirlState(state),
+export let setCurrentAnimationName = (state: state, usedGirl, name) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
 		currentAnimationName: name,
 	})
 }
 
-export let getNextAnimationName = (state: state) => {
-	return getGirlState(state).nextBlendingAnimationName
+export let getNextAnimationName = (state: state, usedGirl) => {
+	return getUsedGirlData(state, usedGirl).nextBlendingAnimationName
 }
 
-export let isKeepPoseAnimation = (name: animationName) => {
-	switch (name) {
+export let isKeepPoseAnimation = (state, actionName, animationName_: animationName) => {
+	if (!isKeepPoseAnimationMod(state, actionName)) {
+		return false
+	}
+
+	switch (animationName_) {
 		case animationName.Idle:
 		case animationName.KeepPick:
 		case animationName.KeepCrawl:
+		case getKeepSitBlockService(state).getForceAnimationName():
 			return true
 		default:
 			return false
 	}
 }
 
-let _markIsChangeScaling = (state: state, isChangeScaling: boolean) => {
-	return setGirlState(state, {
-		...getGirlState(state),
+let _markIsChangeScaling = (state: state, usedGirl, isChangeScaling: boolean) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
 		isChangeScaling
 	})
 }
 
-export let isChangeScaling = (state: state) => {
-	return getGirlState(state).isChangeScaling
+export let isChangeScaling = (state: state, usedGirl) => {
+	return getUsedGirlData(state, usedGirl).isChangeScaling
 }
 
-export let isBiggerScale = (state: state) => {
-	return getScale(state) == getValue(state).minScale * 4
+export let isBiggerScale = (state: state, usedGirl) => {
+	return getScale(state, usedGirl) == getValue(state, usedGirl).scaleIncrease * 4
 }
 
-export let isBiggerBiggerAndMoreScale = (state: state) => {
-	return getScale(state) >= getValue(state).minScale * 7
+export let isBiggerBiggerAndMoreScale = (state: state, usedGirl) => {
+	return getScale(state, usedGirl) >= getValue(state, usedGirl).scaleIncrease * 7
 }
 
-export let playBiggerAnimation = (state, [handleCompleteFunc, getParamFunc]) => {
-	// if (getCurrentPose(state) == pose.Crawl) {
+export let playBiggerAnimation = (state, [handleCompleteFunc, getParamFunc], usedGirl) => {
+	// if (getCurrentPose(state, usedGirl) == pose.Crawl) {
 	// 	state = changeToStandPosePivot(state)
 	// }
 
 	// // TODO judge is crawl pose
 	// let _computeGirlMeshDiff = (state: state) => {
-	// 	return getGirlPosition(state).clone().sub(getCenter(state)).setY(0)
+	// 	return getGirlPosition(state, usedGirl).clone().sub(getCenter(state)).setY(0)
 	// 		.applyQuaternion(
-	// 			getGirlRotation(state).clone().invert()
+	// 			getGirlRotation(state, usedGirl).clone().invert()
 	// 		)
 
 	// }
 
-	// Console.log(getGirlPosition(state))
+	// Console.log(getGirlPosition(state, usedGirl))
 	// state = setPivotToOrigin(state,
-	// 	NullableUtils.getExn(getGirlState(state).girlGroupPositionDiffForChangePivot)
-	// 		// .multiplyScalar(getGirlScale(state) / getValue(state).minScale)
-	// 		.applyQuaternion(getGirlRotation(state))
+	// 	NullableUtils.getExn(getUsedGirlData(state, usedGirl).girlGroupPositionDiffForChangePivot)
+	// 		// .multiplyScalar(getGirlScale(state, usedGirl) / getValue(state).scaleIncrease)
+	// 		.applyQuaternion(getGirlRotation(state, usedGirl))
 	// )
 
-	// state = setGirlState(state, {
-	// 	...getGirlState(state),
+	// state = setUsedGirlData(state, usedGirl,{
+	// 	...getUsedGirlData(state, usedGirl),
 	// 	girlGroupPositionDiffForChangePivot: NullableUtils.getEmpty()
 	// })
 
 
 
-	// Console.log(getGirlPosition(state))
+	// Console.log(getGirlPosition(state, usedGirl))
 
 
 
 
-	state = updateDistanceRate(state)
+	state = updateDistanceRateOnlyOnceInOneFrame(state)
 
-	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getBiggerSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getBiggerSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, getPivotWorldPosition(state, usedGirl)))))
 
-	state = _markIsChangeScaling(state, true)
+	state = _markIsChangeScaling(state, usedGirl, true)
 
-	playArticluatedAnimation(state,
+	let tweens = playArticluatedAnimation(state,
 		[
 			object => {
 				let state = readState()
 
-				state = setGirlScale(state,
-					getIsBiggerNoLimit(state) ? object.scale : Math.min(object.scale, getValue(state).maxScale))
+				if (hasGirlValue(state, usedGirl)) {
+					state = setGirlScale(state, usedGirl, object.scale)
+				}
 
 				writeState(state)
 			},
 			state => {
-				return getScale(state)
+				return getScale(state, usedGirl)
 			},
 			// state => {
-			// 	let currentScale = getScale(state)
+			// 	let currentScale = getScale(state, usedGirl)
 
 			// 	let increaseScale
 			// 	if (currentScale < 100) {
-			// 		increaseScale = getValue(state).minScale * 3
+			// 		increaseScale = getValue(state).scaleIncrease * 3
 			// 	}
 			// 	else if (currentScale < 400) {
-			// 		increaseScale = getValue(state).minScale * 6
+			// 		increaseScale = getValue(state).scaleIncrease * 6
 			// 	}
 			// 	else {
-			// 		increaseScale = getValue(state).minScale * 10
+			// 		increaseScale = getValue(state).scaleIncrease * 10
 			// 	}
 
 			// 	return [
-			// 		// getScale(state) + getValue(state).minScale * 2,
+			// 		// getScale(state, usedGirl) + getValue(state).scaleIncrease * 2,
 			// 		currentScale + increaseScale,
 			// 		1
 			// 	]
@@ -508,35 +690,36 @@ export let playBiggerAnimation = (state, [handleCompleteFunc, getParamFunc]) => 
 					ArticluatedAnimation.removeTweens(getAbstractState(state), allTweens)
 
 
-					state = _markIsChangeScaling(state, false)
+					state = _markIsChangeScaling(state, usedGirl, false)
+
+					state = stopAndClearTweens(state, usedGirl)
 
 
-
-					// state = computeGirlBox(state)
+					// state = computeGirlBoxAndSetToState(state, usedGirl)
 
 					// let d = _computeGirlMeshDiff(state)
 					// let girlMeshDiff = d.clone()
-					// // .multiplyScalar(getValue(state).minScale / getGirlScale(state))
+					// // .multiplyScalar(getValue(state).scaleIncrease / getGirlScale(state, usedGirl))
 
 					// let girlGroupDiff = d.clone()
-					// 	.applyQuaternion(getGirlRotation(state))
+					// 	.applyQuaternion(getGirlRotation(state, usedGirl))
 
 
-					// state = setGirlState(state, {
-					// 	...getGirlState(state),
+					// state = setUsedGirlData(state, usedGirl,{
+					// 	...getUsedGirlData(state, usedGirl),
 					// 	girlGroupPositionDiffForChangePivot: NullableUtils.return_(
 					// 		// girlGroupDiff
 					// 		d.clone()
 					// 	)
 					// })
 
-					// Console.log(getGirlPosition(state))
+					// Console.log(getGirlPosition(state, usedGirl))
 					// state = changePivotByAdd(state, girlMeshDiff, girlGroupDiff)
 
-					// Console.log(getGirlPosition(state))
+					// Console.log(getGirlPosition(state, usedGirl))
 
 
-					// if (getCurrentPose(state) == pose.Crawl) {
+					// if (getCurrentPose(state, usedGirl) == pose.Crawl) {
 					// 	state = changeToStandPosePivot(state)
 					// 	state = changeToCrawlPosePivot(state)
 					// }
@@ -545,43 +728,53 @@ export let playBiggerAnimation = (state, [handleCompleteFunc, getParamFunc]) => 
 
 					return handleCompleteFunc(state).then(writeState)
 				})
-			}
+			},
+			NullableUtils.getEmpty()
 		],
 		findArticluatedAnimationData(state, articluatedAnimationName.Scale)
 	)
 
+	state = addTweens(state, usedGirl, tweens)
 
 	return state
 }
 
-export let playSmallerToHalfSizeAnimation = (state, handleCompleteFunc) => {
-	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getSmallerSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+export let playSmallerAnimation = (state, handleCompleteFunc, usedGirl, targetScale) => {
+	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getSmallerSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, getPivotWorldPosition(state, usedGirl)))))
 
-	state = _markIsChangeScaling(state, true)
+	state = _markIsChangeScaling(state, usedGirl, true)
 
-	state = updateDistanceRate(state)
+	state = updateDistanceRateOnlyOnceInOneFrame(state)
 
-	playArticluatedAnimation(state,
+	let tweens = playArticluatedAnimation(state,
 		[
 			object => {
 				let state = readState()
 
-				state = setGirlScale(state,
-					Math.max(object.scale, getValue(state).minScale))
+				if (hasGirlValue(state, usedGirl)) {
+					state = setGirlScale(state, usedGirl,
+						// Math.max(object.scale, getValue(state).scaleIncrease))
+						// Math.max(object.scale, getValue(state).initialScale))
+						Math.max(object.scale, getValue(state, usedGirl).minScale))
+				}
 
 				writeState(state)
 			},
 			state => {
-				return getScale(state)
+				return getScale(state, usedGirl)
 			},
 			state => {
 				return [
 					// getValue(state).initialScale,
-					NumberUtils.greaterThan(
-						Math.floor(getGirlScale(state) / 2),
-						getValue(state).initialScale
-					),
-					Math.max(getGirlScale(state) / 30, 1)
+					// NumberUtils.greaterThan(
+					// 	Math.floor(getGirlScale(state, usedGirl) / 2),
+					// 	getValue(state).initialScale
+					// ),
+
+					// getValue(state).initialScale,
+					targetScale,
+					// Math.max(getGirlScale(state, usedGirl) / 30, 1)
+					NumberUtils.clamp(getGirlScale(state, usedGirl) / 30, 1, 2)
 				]
 			},
 			(allTweens) => {
@@ -590,45 +783,166 @@ export let playSmallerToHalfSizeAnimation = (state, handleCompleteFunc) => {
 
 					ArticluatedAnimation.removeTweens(getAbstractState(state), allTweens)
 
-					state = _markIsChangeScaling(state, false)
+					state = _markIsChangeScaling(state, usedGirl, false)
+
+
+					state = stopAndClearTweens(state, usedGirl)
 
 					return handleCompleteFunc(state).then(writeState)
 				})
-
-			}
+			},
+			NullableUtils.getEmpty()
 		],
 		findArticluatedAnimationData(state, articluatedAnimationName.Scale)
 	)
+
+	state = addTweens(state, usedGirl, tweens)
 
 
 	return state
 }
 
-export let getCustomDuration = (state: state) => {
-	return getGirlState(state).customDuration
+export let addTweens = (state: state, usedGirl, tweens) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
+		tweens: getUsedGirlData(state, usedGirl).tweens.concat(tweens)
+	})
 }
 
-export let setCustomDuration = (state: state, value) => {
-	return setGirlState(state, {
-		...getGirlState(state),
+export let stopAndClearTweens = (state: state, usedGirl) => {
+	ArticluatedAnimation.stopTweens(getUsedGirlData(state, usedGirl).tweens)
+
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
+		tweens: ArrayUtils.create()
+	})
+}
+
+export let getCustomDuration = (state: state, usedGirl) => {
+	return getUsedGirlData(state, usedGirl).customDuration
+}
+
+export let setCustomDuration = (state: state, usedGirl, value) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
 		customDuration: NullableUtils.return_(value)
 	})
 }
 
-export let removeCustomDuration = (state: state) => {
-	return setGirlState(state, {
-		...getGirlState(state),
+export let removeCustomDuration = (state: state, usedGirl) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
 		customDuration: NullableUtils.getEmpty()
 	})
 }
 
-export let createFSMStateByAnimationNameDefault = (state: state, nextBlendingAnimationName: animationName): [state, nullable<fsm_state<state>>] => {
+export let getDurationFactor = (state: state, usedGirl) => {
+	return getUsedGirlData(state, usedGirl).durationFactor
+}
+
+export let setDurationFactor = (state: state, value, usedGirl_) => {
+	return setUsedGirlData(state, usedGirl_, {
+		...getUsedGirlData(state, usedGirl_),
+		durationFactor: value
+	})
+}
+
+// export let createFSMStateByCurrentAnimationNameDefault = (state: state, currentAnimationName: animationName): [state, nullable<fsm_state<state>>] => {
+// 	let fsmState
+// 	switch (currentAnimationName) {
+// 		case animationName.Idle:
+// 			state = changePose(state, usedGirl, pose.Stand)
+
+// 			fsmState = createIdleState()
+// 			break
+// 		// case animationName.Walk:
+// 		// 	fsmState = createWalkState()
+// 		// 	break
+// 		// case animationName.Run:
+// 		// 	fsmState = createRunState()
+// 		// 	break
+// 		// case animationName.Stomp:
+// 		// 	fsmState = createStompState()
+// 		// 	break
+
+// 		case animationName.StandToCrawl:
+// 			// fsmState = createStandToCrawl()
+// 			state = changePose(state, usedGirl, pose.Crawl)
+// 			break
+// 		// case animationName.CrawlToStand:
+// 		// 	fsmState = createCrawlToStandState()
+// 		// 	break
+// 		case animationName.KeepCrawl:
+// 			fsmState = createKeepCrawlState()
+// 			break
+// 		// case animationName.BreastPress:
+// 		// 	fsmState = createBreastPressState()
+// 		// 	break
+// 		// case animationName.CrawlMove:
+// 		// 	fsmState = createCrawlMoveState()
+// 		// 	break
+
+
+// 		case animationName.Pickup:
+// 			// fsmState = createPickupState()
+// 			state = changePose(state, usedGirl, pose.Pick)
+// 			break
+// 		case animationName.KeepPick:
+// 			fsmState = createKeepPickState()
+// 			break
+// 		// case animationName.Pinch:
+// 		// 	fsmState = createPinchState()
+// 		// 	break
+// 		// case animationName.Eat:
+// 		// 	fsmState = createEatState()
+// 		// 	break
+// 		// case animationName.Pickdown:
+// 		// 	fsmState = createPickdownState()
+// 		// 	break
+
+
+
+
+// 		// case animationName.Hello:
+// 		// 	// if (!isForScenario) {
+// 		// 	// 	throw new Error("err")
+// 		// 	// }
+
+// 		// 	fsmState = createScenarioState(nextBlendingAnimationName)
+// 		// 	break
+
+// 		default:
+// 			// state = setUsedGirlData(state, usedGirl,{
+// 			// 	...getUsedGirlData(state, usedGirl),
+// 			// 	currentAnimationName: nextBlendingAnimationName
+// 			// })
+
+// 			[state, fsmState] = createFSMStateByChangeAnimationName(state, currentAnimationName)
+
+// 			if (
+// 				NullableUtils.isNullable(fsmState)
+// 				&&
+// 				!_isStressingOrDeathAnimation(currentAnimationName)) {
+// 				fsmState = createInitialState()
+// 			}
+// 			else {
+// 				fsmState = null
+// 			}
+
+// 			break
+// 	}
+
+// 	return [state, fsmState]
+// }
+
+export let createFSMStateByChangeAnimationNameDefault = (state: state, usedGirl, nextBlendingAnimationName: animationName): [state, nullable<fsm_state<state>>] => {
+	// return [state, NullableUtils.getEmpty()]
 	let fsmState
 	switch (nextBlendingAnimationName) {
 		case animationName.Idle:
-			state = changePose(state, pose.Stand)
+			state = changePose(state, usedGirl, pose.Stand)
 
-			fsmState = createInitialState()
+			fsmState = createIdleState(usedGirl)
 			break
 		// case animationName.Walk:
 		// 	fsmState = createWalkState()
@@ -640,14 +954,15 @@ export let createFSMStateByAnimationNameDefault = (state: state, nextBlendingAni
 		// 	fsmState = createStompState()
 		// 	break
 
-		// case animationName.StandToCrawl:
-		// 	fsmState = createStandToCrawl()
-		// 	break
+		case animationName.StandToCrawl:
+			// fsmState = createStandToCrawl()
+			state = changePose(state, usedGirl, pose.Crawl)
+			break
 		// case animationName.CrawlToStand:
 		// 	fsmState = createCrawlToStandState()
 		// 	break
 		case animationName.KeepCrawl:
-			fsmState = createKeepCrawlState()
+			fsmState = createKeepCrawlState(usedGirl)
 			break
 		// case animationName.BreastPress:
 		// 	fsmState = createBreastPressState()
@@ -657,11 +972,12 @@ export let createFSMStateByAnimationNameDefault = (state: state, nextBlendingAni
 		// 	break
 
 
-		// case animationName.Pickup:
-		// 	fsmState = createPickupState()
-		// 	break
+		case animationName.Pickup:
+			// fsmState = createPickupState()
+			state = changePose(state, usedGirl, pose.Pick)
+			break
 		case animationName.KeepPick:
-			fsmState = createKeepPickState()
+			fsmState = createKeepPickState(usedGirl)
 			break
 		// case animationName.Pinch:
 		// 	fsmState = createPinchState()
@@ -676,21 +992,26 @@ export let createFSMStateByAnimationNameDefault = (state: state, nextBlendingAni
 
 
 
-		case animationName.Hello:
-			// if (!isForScenario) {
-			// 	throw new Error("err")
-			// }
+		// case animationName.Hello:
+		// 	// if (!isForScenario) {
+		// 	// 	throw new Error("err")
+		// 	// }
 
-			fsmState = createScenarioState(nextBlendingAnimationName)
-			break
+		// 	fsmState = createScenarioState(nextBlendingAnimationName)
+		// 	break
 
 		default:
-			// state = setGirlState(state, {
-			// 	...getGirlState(state),
+			// state = setUsedGirlData(state, usedGirl,{
+			// 	...getUsedGirlData(state, usedGirl),
 			// 	currentAnimationName: nextBlendingAnimationName
 			// })
 
-			if (!_isStressingOrDeathAnimation(nextBlendingAnimationName)) {
+			[state, fsmState] = createFSMStateByChangeAnimationName(state, usedGirl, nextBlendingAnimationName)
+
+			if (
+				NullableUtils.isNullable(fsmState)
+				&&
+				!_isStressingOrDeathAnimation(nextBlendingAnimationName)) {
 				fsmState = createInitialState()
 			}
 			else {
@@ -701,4 +1022,24 @@ export let createFSMStateByAnimationNameDefault = (state: state, nextBlendingAni
 	}
 
 	return [state, fsmState]
+
+}
+
+export let resetAnimation = (state: state, usedGirl, defaultAnimationName) => {
+	return setUsedGirlData(state, usedGirl, {
+		...getUsedGirlData(state, usedGirl),
+		currentAnimationName: NullableUtils.return_(defaultAnimationName),
+		previousAnimationName: NullableUtils.getEmpty(),
+		nextBlendingAnimationName: NullableUtils.getEmpty(),
+
+		isCurrentAnimationOnlyPlayOnce: false,
+	})
+}
+
+export let dispose = (state: state, usedGirl) => {
+	ArticluatedAnimation.removeTweens(getAbstractState(state), getUsedGirlData(state, usedGirl).tweens)
+
+	state = stopAndClearTweens(state, usedGirl)
+
+	return state
 }

@@ -8,12 +8,11 @@ import { getAbstractState, setAbstractState } from "../../../../../../../state/S
 import { computeAndSetDirectionData, convertPathPointToVec3Position, convertVec3PositionToPathPoint, isReach, optimizeFirstPathPoint, stopMove } from "../../../../behaviour_tree/action_node/WalkToTarget";
 import { getPivotWorldPosition, setPivotWorldPositionAndUpdateBox, unlockGirlRotation } from "../../../../girl/Utils";
 import { getGridForGirl } from "../../../../manage/city1/PathFind";
-import { getGirl, getName, setTriggerAction } from "../../../../girl/Girl";
 import { getIsDebug, getIsNotTestPerf } from "../../../../../Scene";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { NumberUtils } from "meta3d-jiehuo-abstract";
 import { CameraControls } from "meta3d-jiehuo-abstract";
-import { resourceId, road } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { resourceId, characterType } from "meta3d-jiehuo-abstract/src/type/StateType";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { actionName, animationName } from "../../../../data/biwu/level3/DataType";
 import { triggerAction as triggerGirlAction } from "../../Girl";
@@ -29,8 +28,8 @@ import { Billboard } from "meta3d-jiehuo-abstract";
 import { getPinchCharacterSoundResourceId, getScene, setLevelData } from "../../../../CityScene";
 import { getCustomData, getCustomDataExn, removeCustomData, setCustomData } from "../../../../game_event/GameEvent";
 import * as BehaviourTreeDataAll from "../../../../data/biwu/level3/behaviour_tree_data_all/BehaviourTreeData";
-import { getNearestTargetCount } from "../../../../behaviour_tree/BehaviourTreeManager";
-import * as ArmyManagerBiwu from "../../../biwu/ArmyManager"
+import { getVeryNearestTargetCount } from "../../../../behaviour_tree/BehaviourTreeManager";
+import * as ArmyGenerator from "../../../city1/generator/ArmyGenerator";
 import * as ShellTurret from "../../../city1/milltary_building/ShellTurret"
 import * as MissileTurret from "../../../city1/milltary_building/MissileTurret"
 import { Event } from "meta3d-jiehuo-abstract";
@@ -44,7 +43,13 @@ import { collisionPart } from "../../../../data/biwu/level3/CollisionShapeData";
 import { SoundManager } from "meta3d-jiehuo-abstract";
 import { getGirlVolume } from "../../../../utils/SoundUtils";
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
-import { getLevelData } from "../../../../data/biwu/level3/LevelData";
+import { fixPositionOffset, getLevelData } from "../../../../data/biwu/level3/LevelData";
+import { setIsNotDamage } from "../../../../Status";
+import { markIsCanMove } from "../ManageScene";
+import { generateEliteGiantesses, generateMagicGiantesses, generateMeleeGiantesses } from "../../../../../../../mod/EliteGiantessMod";
+import { getAllAliveArmyData } from "../../../../utils/ArmyUtils";
+import { getUsedGirl } from "../../Utils";
+import { buildNameByUsedGirl } from "../../../../girl/Girl";
 
 const _q1 = new Quaternion();
 const _v1 = new Vector3();
@@ -67,7 +72,7 @@ type removeImageData = {
 }
 
 
-export let getCommand = (command_: commandData) => {
+export let getCommand = (state, command_: commandData) => {
 	switch (command_) {
 		case commandData.handleGoToTrigone:
 			return handleGoToTrigone
@@ -120,34 +125,25 @@ export let getCommand = (command_: commandData) => {
 }
 
 export let handleGoToTrigone: command<addImageData> = (state: state, onCompleteFunc, data) => {
-	state = {
-		...state,
-		config: {
-			...state.config,
-			isNotDamage: true
-		}
-	}
+	let usedGirl = getUsedGirl()
+	state = setIsNotDamage(state, buildNameByUsedGirl(usedGirl), true)
 
 	return Promise.resolve(state)
 }
 
 export let handleReachTrigone: command<addImageData> = (state: state, onCompleteFunc, data) => {
-	state = {
-		...state,
-		config: {
-			...state.config,
-			isNotDamage: false
-		}
-	}
+	let usedGirl = getUsedGirl()
+	state = setIsNotDamage(state, buildNameByUsedGirl(usedGirl), false)
 
 	return Promise.resolve(state)
 }
 
 export let addImage: command<addImageData> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	let image = Billboard.createImage(getAbstractState(state),
 		data.resourceId,
 		NullableUtils.return_(
-			_v1.fromArray(data.positiion)
+			fixPositionOffset(state, usedGirl, _v1.fromArray(data.positiion))
 		),
 		NullableUtils.getEmpty(),
 		{
@@ -175,11 +171,18 @@ export let removeImage: command<removeImageData> = (state: state, onCompleteFunc
 }
 
 export let initMap: command<removeImageData> = (state: state, onCompleteFunc, data) => {
-	state = LittleMan.setMovableRanges(state, getLevelData(state).movableRange)
+	let usedGirl = getUsedGirl()
+	state = LittleMan.setMovableRanges(state, getLevelData(state, usedGirl).movableRange)
 
-	state = updateAllCollisionShapes(state, getGirl(state))
+	// state = updateAllCollisionShapes(state, getGirl(state, usedGirl))
 
-	state = LittleManTransform.setPositionAndComputeBox(state, getLevelData(state).getLittleManInitPosition(state))
+	state = LittleManTransform.setPositionAndComputeBox(state, getLevelData(state, usedGirl).getLittleManInitPosition(state))
+
+	/*! not move when reach
+	* 
+fix: boss第三关这个位置还是不正确
+	*/
+	state = markIsCanMove(state, false)
 
 	return Promise.resolve(state)
 }
@@ -187,7 +190,8 @@ export let initMap: command<removeImageData> = (state: state, onCompleteFunc, da
 export let exitScenario: command<null> = CommandUtils.exitScenario(animationName.KeepLie)
 
 export let markBegin: command<nullable<string>> = (state: state, onCompleteFunc, data) => {
-	state = setIsFinish(state, false)
+	let usedGirl = getUsedGirl()
+	state = setIsFinish(state, usedGirl, false)
 
 	state = NullableUtils.getWithDefault(
 		NullableUtils.map(data => {
@@ -206,13 +210,16 @@ export let markBegin: command<nullable<string>> = (state: state, onCompleteFunc,
 }
 
 export let markFinish: command<nullable<string>> = (state: state, onCompleteFunc, data) => {
-	state = setIsFinish(state, true)
+	let usedGirl = getUsedGirl()
+	state = setIsFinish(state, usedGirl, true)
 
 	return Promise.resolve(state)
 }
 
 export let getNearestAllTargetCount = (state) => {
-	return getNearestTargetCount(state, targetType.MilltaryBuilding) + getNearestTargetCount(state, targetType.MilltaryVehicle) + getNearestTargetCount(state, targetType.Soldier)
+	let data = getAllAliveArmyData(state)
+
+	return getVeryNearestTargetCount(state, data, targetType.MilltaryBuilding) + getVeryNearestTargetCount(state, data, targetType.MilltaryVehicle) + getVeryNearestTargetCount(state, data, targetType.Soldier)
 }
 
 
@@ -286,13 +293,13 @@ let _mayBackWhenNotAdd = (state: state) => {
 	return state
 }
 
-let _getRandomPositionInTorsorRange = (state) => {
+let _getRandomPositionInTorsorRange = (state, usedGirl) => {
 	let {
 		minX,
 		maxX,
 		minZ,
 		maxZ,
-	} = getLevelData(state).addArmyRange
+	} = getLevelData(state, usedGirl).addArmyRange
 
 	return new Vector3(
 		NumberUtils.getRandomInteger(minX, maxX),
@@ -302,6 +309,9 @@ let _getRandomPositionInTorsorRange = (state) => {
 }
 
 export let onlyAddArmy: command<null> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
+	state = markIsCanMove(state, true)
+
 	state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.RightHandAdd)
 
 	state = BehaviourTreeDataAll.setCustomData(state, {
@@ -314,10 +324,10 @@ export let onlyAddArmy: command<null> = (state: state, onCompleteFunc, data) => 
 		},
 		armyAddData: [
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryBuildings, [ShellTurret.generateTurrets]]],
+				generateFuncs: [[ArmyGenerator.generateMilltaryBuildings, [ShellTurret.generateTurrets]]],
 				condition: state => {
 					// return ShellTurret.getAllModelQueues(state)[0].getValidData(getAbstractState(state)).length == 0
-					return getNearestTargetCount(state, targetType.MilltaryBuilding) == 0
+					return getVeryNearestTargetCount(state, getAllAliveArmyData(state), targetType.MilltaryBuilding) == 0
 				},
 				// position: (state) => new Vector3(-220, 0, 81),
 				position: (state) => new Vector3(-220, 0, 62),
@@ -327,9 +337,9 @@ export let onlyAddArmy: command<null> = (state: state, onCompleteFunc, data) => 
 				isOnBreast: true,
 			},
 			// {
-			// 	generateFuncs: [ArmyManagerBiwu.generateMilltaryBuildings, [MissileTurret.generateTurrets]],
+			// 	generateFuncs: [ArmyGenerator.generateMilltaryBuildings, [MissileTurret.generateTurrets]],
 			// 	condition: state => {
-			// 		return getNearestTargetCount(state, targetType.MilltaryBuilding) == 0
+			// 		return getVeryNearestTargetCount(state, getAllAliveArmyData(state), targetType.MilltaryBuilding) == 0
 			// 	},
 			// 	position: (state) => new Vector3(-220, 0, 62),
 			// 	rate: state => 0.3,
@@ -337,42 +347,64 @@ export let onlyAddArmy: command<null> = (state: state, onCompleteFunc, data) => 
 			// 	offset: -1,
 			// 	isOnBreast: true,
 			// },
+
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryVehicles, [generateTanks]]],
+				generateFuncs: [[generateEliteGiantesses, [generateMagicGiantesses(state)]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
-				rate: state => 0.15,
-				count: 1,
-				offset: 0,
-				isOnBreast: false,
-			},
-			{
-				generateFuncs: [[ArmyManagerBiwu.generateSoldiers, [generateMelees, generateInfantrys]]],
-				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
-				rate: state => 0.4,
-				count: 2,
-				offset: 2,
-				isOnBreast: false,
-			},
-			{
-				generateFuncs: [[ArmyManagerBiwu.generateSoldiers, [generateLaserers]]],
-				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.1,
 				count: 1,
 				offset: 0,
 				isOnBreast: false,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateSoldiers, [generateMelees]]],
+				generateFuncs: [[generateEliteGiantesses, [generateMeleeGiantesses(state)]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
+				rate: state => 0.1,
+				count: 1,
+				offset: 0,
+				isOnBreast: false,
+			},
+
+
+			{
+				generateFuncs: [[ArmyGenerator.generateMilltaryVehicles, [generateTanks]]],
+				condition: state => true,
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
+				rate: state => 0.15,
+				count: 1,
+				offset: 0,
+				isOnBreast: false,
+			},
+			{
+				generateFuncs: [[ArmyGenerator.generateSoldiers, [generateMelees, generateInfantrys]]],
+				condition: state => true,
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
+				rate: state => 0.4,
+				count: 2,
+				offset: 2,
+				isOnBreast: false,
+			},
+			{
+				generateFuncs: [[ArmyGenerator.generateSoldiers, [generateLaserers]]],
+				condition: state => true,
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
+				rate: state => 0.1,
+				count: 1,
+				offset: 0,
+				isOnBreast: false,
+			},
+			{
+				generateFuncs: [[ArmyGenerator.generateSoldiers, [generateMelees]]],
+				condition: state => true,
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 1,
 				count: 1,
 				offset: 0,
 				isOnBreast: false,
 			},
+
 		]
 	})
 
@@ -386,6 +418,7 @@ export let onlyAddArmy: command<null> = (state: state, onCompleteFunc, data) => 
 }
 
 export let rightHandAddArmy: command<null> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.RightHandAdd)
 
 	state = BehaviourTreeDataAll.setCustomData(state, {
@@ -395,9 +428,28 @@ export let rightHandAddArmy: command<null> = (state: state, onCompleteFunc, data
 		},
 		armyAddData: [
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryBuildings, [ShellTurret.generateTurrets]]],
+				generateFuncs: [[generateEliteGiantesses, [generateMeleeGiantesses(state)]]],
+				condition: state => true,
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
+				rate: state => 0.1,
+				count: 2,
+				offset: 0,
+				isOnBreast: false,
+			},
+			{
+				generateFuncs: [[generateEliteGiantesses, [generateMeleeGiantesses(state), generateMagicGiantesses(state)]]],
+				condition: state => true,
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
+				rate: state => 0.05,
+				count: 1,
+				offset: 0,
+				isOnBreast: false,
+			},
+
+			{
+				generateFuncs: [[ArmyGenerator.generateMilltaryBuildings, [ShellTurret.generateTurrets]]],
 				condition: state => {
-					return getNearestTargetCount(state, targetType.MilltaryBuilding) == 0
+					return getVeryNearestTargetCount(state, getAllAliveArmyData(state), targetType.MilltaryBuilding) == 0
 				},
 				position: (state) => new Vector3(-220, 0, 81),
 				rate: state => 0.1,
@@ -406,9 +458,9 @@ export let rightHandAddArmy: command<null> = (state: state, onCompleteFunc, data
 				isOnBreast: true,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryBuildings, [MissileTurret.generateTurrets]]],
+				generateFuncs: [[ArmyGenerator.generateMilltaryBuildings, [MissileTurret.generateTurrets]]],
 				condition: state => {
-					return getNearestTargetCount(state, targetType.MilltaryBuilding) == 0
+					return getVeryNearestTargetCount(state, getAllAliveArmyData(state), targetType.MilltaryBuilding) == 0
 				},
 				position: (state) => new Vector3(-220, 0, 62),
 				rate: state => 0.05,
@@ -417,45 +469,45 @@ export let rightHandAddArmy: command<null> = (state: state, onCompleteFunc, data
 				isOnBreast: true,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryVehicles, [generateTanks]]],
+				generateFuncs: [[ArmyGenerator.generateMilltaryVehicles, [generateTanks]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.1,
 				count: 1,
 				offset: 0,
 				isOnBreast: false,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryVehicles, [generateFlameVehicles]]],
+				generateFuncs: [[ArmyGenerator.generateMilltaryVehicles, [generateFlameVehicles]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.05,
 				count: 1,
 				offset: 0,
 				isOnBreast: false,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateMilltaryVehicles, [generateMissileVehicles]]],
+				generateFuncs: [[ArmyGenerator.generateMilltaryVehicles, [generateMissileVehicles]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.05,
 				count: 1,
 				offset: 0,
 				isOnBreast: false,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateSoldiers, [generateMelees, generateInfantrys]]],
+				generateFuncs: [[ArmyGenerator.generateSoldiers, [generateMelees, generateInfantrys]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.5,
 				count: 1,
 				offset: 2,
 				isOnBreast: false,
 			},
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateSoldiers, [generateLaserers, generateRocketeers]]],
+				generateFuncs: [[ArmyGenerator.generateSoldiers, [generateLaserers, generateRocketeers]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.1,
 				count: 1,
 				offset: 2,
@@ -465,14 +517,14 @@ export let rightHandAddArmy: command<null> = (state: state, onCompleteFunc, data
 			{
 				generateFuncs: [
 					[
-						ArmyManagerBiwu.generateMilltaryVehicles, [generateTanks, generateMissileVehicles],
+						ArmyGenerator.generateMilltaryVehicles, [generateTanks, generateMissileVehicles],
 					],
 					[
-						ArmyManagerBiwu.generateSoldiers, [generateMelees, generateLaserers, generateInfantrys]
+						ArmyGenerator.generateSoldiers, [generateMelees, generateLaserers, generateInfantrys]
 					]
 				],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 0.05,
 				count: 1,
 				offset: 5,
@@ -480,14 +532,15 @@ export let rightHandAddArmy: command<null> = (state: state, onCompleteFunc, data
 			},
 
 			{
-				generateFuncs: [[ArmyManagerBiwu.generateSoldiers, [generateMelees]]],
+				generateFuncs: [[ArmyGenerator.generateSoldiers, [generateMelees]]],
 				condition: state => true,
-				position: (state) => _getRandomPositionInTorsorRange(state),
+				position: (state) => _getRandomPositionInTorsorRange(state, usedGirl),
 				rate: state => 1,
 				count: 2,
 				offset: 0,
 				isOnBreast: false,
 			},
+
 		]
 	})
 
@@ -529,6 +582,7 @@ export let getSwitchBetweenScenarioDataData = (state: state) => {
 }
 
 export let rightHandOnePointAttack: command<null> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.RightHandOneFingerAttack)
 
 	state = BehaviourTreeDataAll.setCustomData(state, {
@@ -545,7 +599,7 @@ export let rightHandOnePointAttack: command<null> = (state: state, onCompleteFun
 	let {
 		switchFromRightHandOnePointAttackRateToRightHandAddArmyRate,
 		switchFromRightHandAddArmyRateToRightHandOnePointAttackRate,
-	} = getLevelData(state)
+	} = getLevelData(state, usedGirl)
 
 	state = setCustomData(state, _getSwitchBetweenScenarioDataKey(),
 		[
@@ -574,6 +628,7 @@ export let rightHandOnePointAttack: command<null> = (state: state, onCompleteFun
 }
 
 export let rightHandBeatAttack: command<null> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.RightHandBeatAttack)
 
 	state = BehaviourTreeDataAll.setCustomData(state, {
@@ -590,7 +645,7 @@ export let rightHandBeatAttack: command<null> = (state: state, onCompleteFunc, d
 	let {
 		switchFromRightHandBeatAttackRateToRightHandAddArmyRate,
 		switchFromRightHandAddArmyRateToRightHandBeatAttackRate,
-	} = getLevelData(state)
+	} = getLevelData(state, usedGirl)
 
 	state = setCustomData(state, _getSwitchBetweenScenarioDataKey(),
 		[
@@ -633,6 +688,7 @@ export let leftHandRightHand: command<null> = (state: state, onCompleteFunc, dat
 }
 
 export let twoHandsOnePointAttack: command<null> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.TwoHandsOneFingerAttack)
 
 
@@ -652,7 +708,7 @@ export let twoHandsOnePointAttack: command<null> = (state: state, onCompleteFunc
 		switchFromRightHandAddArmyRateToTwoHandsOnePointAttackRate,
 		switchFromTwoHandsOnePointAttackRateToLeftHandRightHandRate,
 		switchFromLeftHandRightHandRateToTwoHandsOnePointAttackRate,
-	} = getLevelData(state)
+	} = getLevelData(state, usedGirl)
 
 	state = setCustomData(state, _getSwitchBetweenScenarioDataKey(),
 		[
@@ -693,6 +749,7 @@ export let twoHandsOnePointAttack: command<null> = (state: state, onCompleteFunc
 }
 
 export let twoHandsBeatAttack: command<null> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	state = BehaviourTreeDataAll.setHandType(state, BehaviourTreeDataAll.handType.TwoHandsBeatAttack)
 
 	state = BehaviourTreeDataAll.setCustomData(state, {
@@ -711,7 +768,7 @@ export let twoHandsBeatAttack: command<null> = (state: state, onCompleteFunc, da
 		switchFromRightHandAddArmyRateToTwoHandsBeatAttackRate,
 		switchFromTwoHandsBeatAttackRateToLeftHandRightHandRate,
 		switchFromLeftHandRightHandRateToTwoHandsBeatAttackRate,
-	} = getLevelData(state)
+	} = getLevelData(state, usedGirl)
 
 	state = setCustomData(state, _getSwitchBetweenScenarioDataKey(),
 		[
@@ -757,31 +814,35 @@ export let wait: command<number> = (state: state, onCompleteFunc, data) => {
 }
 
 export let addEffectForHitNipple: command<collisionPart> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	let offsetZ
 	switch (data) {
 		case collisionPart.LeftNipple:
-			offsetZ = -6
+			offsetZ = -3
 			break
 		case collisionPart.RightNipple:
-			offsetZ = -3
+			// offsetZ = -3
+			offsetZ = 0
 			break
 		default:
 			throw new Error("err")
 	}
 
+	let pos = getCollisionPartOBB(state, usedGirl, data).center
+
 	state = setAbstractState(state, ParticleManager.emitMilkSplash(getAbstractState(state), {
 		speed: 1,
 		life: 1000,
 		size: 30,
-		/*! need change image's anchor from left-bottom to center
-		* 
-		*/
-		position: getCollisionPartOBB(state, data).center.clone()
-			.add(_v1.set(0, 6, offsetZ))
+		// /*! need change image's anchor from left-bottom to center
+		// * 
+		// */
+		position: pos.clone()
+			.add(_v1.set(0, 0, offsetZ))
 			.toArray()
 	}))
 
-	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getPinchCharacterSoundResourceId(), getIsDebug(state), getGirlVolume(state, LittleManTransform.getWorldPosition(state)))))
+	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getPinchCharacterSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, pos))))
 
 	return Promise.resolve(state)
 }

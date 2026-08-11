@@ -1,33 +1,33 @@
 import type { WebGLRenderer, Object3D, Camera, Vector2, Raycaster, InstancedMesh, Scene, Group, Vector3, Mesh, PerspectiveCamera, OrthographicCamera, Texture, Box3, Box3Helper, SkinnedMesh, Quaternion, Sphere, Ray, Matrix4, Bone, Euler, AnimationClip, Sprite } from "three"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
-import type { List, Map } from "immutable"
+import type { List, Map as ImmutableMap } from "immutable"
 import type { Capsule } from "three/examples/jsm/math/Capsule"
 // import type { StaticLODContainer } from "meta3d-jiehuo-abstract/src/three/StaticLODContainer"
 import type { OctreeHelper } from "three/examples/jsm/helpers/OctreeHelper.js";
 import { cameraType, state } from "../../../../type/StateType"
 // import { Terrain } from "meta3d-jiehuo-abstract/src/terrain/Terrain"
 import { ScreenShake } from "meta3d-jiehuo-abstract"
-import { bulletEmitterParam, details, fsm_state, id, stateMachine, tween } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { bulletEmitterParam, details, fsm_state, id, resourceId, characterType, stateMachine, tween, usedGirlEnum as usedGirlEnumAbstract, camp as campAbstract, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { StaticLODContainer } from "meta3d-jiehuo-abstract/src/lod/lod2/StaticLODContainer";
 import { MMDAnimationHelper } from "meta3d-jiehuo-abstract/src/three/MMDAnimationHelper";
 import { OBB } from "meta3d-jiehuo-abstract/src/three/OBB";
 import { LODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/LODQueue";
 import { Moment } from "moment";
-import { actionData, actionName, animationBlendData, animationCollisionData, animationName, articluatedAnimationData, frameIndex, phaseData } from "../data/DataType";
+import { actionData, actionName, animationBlendData, animationCollisionData, animationName, armorType, articluatedAnimationData, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, frameIndex, phaseData, speed } from "../data/DataType";
 import * as BehaviourTreeDataType from "../data/behaviour_tree_data/BehaviourTreeDataType";
 import * as LittleManDataType from "../little_man_data/DataType";
 import { InstanceSourceLOD } from "meta3d-jiehuo-abstract/src/lod/InstanceSourceLOD";
-import { girlValue, objectValue, weaponType } from "../data/ValueType";
+import { animationData, emitterLife, girlValue, objectValue, weaponName, weaponType, weaponValue } from "../data/ValueType";
 import { InstancedSkinLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedSkinLOD2";
-import { eventName, data as gameEventData } from "../data/GameEventData";
+import { eventName_, data as gameEventData } from "../data/GameEventData";
+import { eventName, data as gameEventDirectorData } from "../data/director/GameEventDirectorData";
 import { data as scenarioData } from "../data/ScenarioData";
 import { InstancedLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedLOD2";
 import { HierachyLODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/HierachyLODQueue";
-import { data } from "../data/ScenarioData";
-import { operateRenderData } from "../girl/Pose";
-import * as CollisionShapeData from "../data/CollisionShapeData"
-import { status } from "meta3d-jiehuo-abstract/src/lod/lod2/LODContainerType";
-import { allMMDData, clothCollisionData, clothHpData, firstPersonControlsData, mmdCharacter, shoeData } from "../data/mmd/MMDData";
+// import { data } from "../data/ScenarioData";
+// import * as CollisionShapeData from "../data/CollisionShapeData"
+import { data, clothCollisionData, clothHpData, firstPersonControlsData, mmdCharacter, mmdCharacterData, shoeData, attributeData } from "mmd-character-protocol/src/service/ServiceType"
+import { allMMDData } from "../data/mmd/MMDData";
 import { modelData, modelName } from "../little_man_data/ModelData";
 import * as SoldierData from "../army_data/SoldierData";
 import * as MilltaryVehicleData from "../army_data/MilltaryVehicleData";
@@ -35,16 +35,47 @@ import * as MilltaryBuildingData from "../army_data/MilltaryBuildingData";
 import { scene } from "../../../../../ui_layer/global/store/GlobalStoreType";
 import { skillData } from "../little_man_data/SkillData";
 import { littleManValue } from "../little_man_data/ValueType";
+import { rewardData } from "../data/reward/RewardDataType";
+import { buildData, giantessUpgradeName, littleManUpgradeName, upgradeFuncData } from "../data/build/BuildData";
+import { operateRenderData } from "../data/PoseData";
+import { difficultyData } from "../data/difficulty/DifficultyData";
+import { singleTalentData, talentData } from "../data/build/TalentData";
+import { littleManOperateData } from "../little_man_data/OperateData";
+import { buffName } from "../data/buff/BuffData";
+import { api } from "type-api/src/Type";
+import { renderAccuracyLevel } from "setting-default/src/Type";
+import { blockName, blockService } from "block/src/BlockManagerType";
+import { data as dataInternation, imageData, variableData } from "../../../../internation/Data";
+import { funcData } from "../data/FuncData";
+import { careerFeatureName, careerFeatureValue } from "../data/build/CareerFeatureData";
+import { actionPrior } from "prop-artifact-giantesscontroller/src/script/State";
 
+// export enum footSide {
+//     Left,
+//     Right
+// }
 
 export enum damageType {
-    Normal,
+    // Normal,
+    // Direct,
+    // Range,
+
     Direct,
     Range,
+
+    Normal,
+    Heavy,
+    Weakness,
+    Crit,
+    // Miss,
+
+    Global,
 }
 
 
 export enum collisionPart {
+    BoundingBox = "BoundingBox",
+
     LeftFoot = "LeftFoot",
     RightFoot = "RightFoot",
     LeftShank = "LeftShank",
@@ -69,12 +100,13 @@ export enum collisionPart {
 
 type name = string
 
-// export type isComputeObjectCollisionMap = Map<name, boolean>
+// export type isComputeObjectCollisionMap = ImmutableMap<name, boolean>
 
 export type phase = number
 
 export enum otherPhase {
-    None
+    EmptyPhase = -100,
+    NoPhase = -99,
 }
 
 // export enum walkPhase {
@@ -97,10 +129,17 @@ export enum runPhase {
     RightFootDown,
 }
 
+export enum rangePhase {
+    Range = -100
+}
+
+
 export enum stompPhase {
     Up,
     Down,
-    Range
+    Keep,
+    Back,
+    // Range
 }
 
 
@@ -113,10 +152,10 @@ export enum crawlToStandPhase {
     HandUp,
 }
 
-export enum breastPressPhase {
-    Down,
-    Up,
-}
+// export enum breastPressPhase {
+//     Down,
+//     Up,
+// }
 
 
 export enum crawlMovePhase {
@@ -134,7 +173,8 @@ export enum crawlMovePhase {
 // }
 
 export enum pinchPhase {
-    Pinch
+    FirstPinch,
+    SecondPinch
 }
 
 export enum eatPhase {
@@ -150,6 +190,7 @@ export enum pose {
     Stand = "Stand",
     Crawl = "Crawl",
     Pick = "Pick",
+    Sit = "Sit",
 }
 
 type hp = number
@@ -158,9 +199,11 @@ export enum soundType {
     Laugh
 }
 
-export type force = [number, Vector3]
+export type forceSize = number
 
-// export enum action {
+export type force = [forceSize, Vector3]
+
+// export enum attackAction {
 //     Idle,
 //     Walk,
 //     Stomp
@@ -173,14 +216,19 @@ export type force = [number, Vector3]
 type boneName = string
 
 export type giantessAddToSkeletonData = {
-    getTransformFunc: (state: state, transform: Matrix4, handBox: Box3) => Matrix4,
-    updateTransformFunc: (state: state, queue: nullable<LODQueue>, index: lodQueueIndex, parentTransform: Matrix4, localTransform: Matrix4) => state,
+    // getTransformFunc: (state: state, transform: Matrix4, handBox: Box3) => Matrix4,
+    // getTransformFunc: (state: state, transform: Matrix4, handBox: Box3, name: name) => Matrix4,
+    getTransformFunc: (state: state, usedGirl: usedGirl, handBox: Box3, name: name) => Matrix4,
+    // updateTransformFunc: (state: state, queue: nullable<LODQueue>, index: lodQueueIndex, parentTransform: Matrix4, localTransform: Matrix4) => state,
+    updateTransformFunc: (state: state, usedGirl: usedGirl, queue: nullable<LODQueue>, index: lodQueueIndex, parentTransform: Matrix4, localTransform: Matrix4, originTransform: Matrix4) => state,
     // getModelQueueIndexFunc: (state: state, name: name) => lodQueueIndex,
     // handlePickupFunc: (state: state, name: name) => state,
-    getLocalTransformFunc: (state: state, queue: nullable<LODQueue>, index: lodQueueIndex, name: name) => Matrix4,
-    getBoxFunc: (state: state, queue: nullable<LODQueue>, index: lodQueueIndex, name: name) => Box3,
+    getLocalTransformFunc: (state: state, queue: nullable<LODQueue>, index: lodQueueIndex, name: name) => nullable<Matrix4>,
+    getBoxFunc: (state: state, queue: nullable<LODQueue>, index: lodQueueIndex, name: name) => nullable<Box3>,
 
 
+
+    usedGirl: usedGirl,
 
     queue: nullable<LODQueue>,
     index: lodQueueIndex,
@@ -189,6 +237,7 @@ export type giantessAddToSkeletonData = {
     // transform:Matrix4,
 
     originTransform: Matrix4,
+    originBox: Box3,
 
     // girlScaleWhenPickup:number,
 
@@ -202,20 +251,24 @@ export enum actionState {
 
 export enum littleManActionState {
     Initial,
-    Attack,
-    Lie
+    // Attack,
+    Shoot,
+    Swiping,
+    Lie,
+    Run
 }
 
-export enum scaleState {
-    Normal,
-    Big
-}
+// export enum scaleState {
+//     Normal,
+//     Big
+// }
 
 export enum particleNeedCollisionCheckLoopFrames {
+    // Zero = 0,
     One = 1,
     Two = 2,
     Three = 3,
-    Four = 4
+    // Four = 4
 }
 
 export enum uiUpdateLoopFrames {
@@ -226,18 +279,37 @@ export enum uiUpdateLoopFrames {
 
 export type clothName = string
 
-export type damagePart = "本体" | clothName
+export type damagePart = "身体" | clothName
 
-export type girlStatus = {
-    damagePart: damagePart
+// export type girlStatus = {
+//     name: string,
+//     damagePart: damagePart
+// }
+
+// export type usedGirlAbstract
+
+export type usedGirlEnum = usedGirlEnumAbstract
+export const usedGirlEnum = { ...usedGirlEnumAbstract }
+
+export type usedGirl = string
+
+export type studyAction<actionName> = {
+    name: actionName,
+    time: number,
 }
 
-export type girl = {
+export type usedGirlData = {
+    giantessStressingRate: number,
+
+    upgradeFuncs: Array<upgradeFuncData>,
+
     stateMachine: stateMachine<state>,
 
+
+
     currentMMDCharacter: mmdCharacter,
-    // lastMMDCharacter: nullable<mmdCharacter>,
-    // mmdCharacterOriginTransform: Map<mmdCharacter, [Vector3, Quaternion, Vector3]>,
+    // usedMMDData: Array<[mmdCharacter, resourceId, any, mmdCharacterData]>,
+    usedMMDData: nullable<[mmdCharacter, resourceId, any, mmdCharacterData]>,
 
     currentPose: pose,
 
@@ -247,14 +319,17 @@ export type girl = {
     previousAnimationName: nullable<animationName>,
     nextBlendingAnimationName: nullable<animationName>,
 
+    tweens: Array<tween>,
+
     noBlend: boolean,
 
     // playOnlyOnceAnimationNames: List<animationName>,
     isCurrentAnimationOnlyPlayOnce: boolean,
 
     customDuration: nullable<number>,
+    durationFactor: number,
 
-    // needExecAction: nullable<action>,
+    // needExecAction: nullable<attackAction>,
 
     // capsule: Capsule,
     // capsuleMesh: nullable<Mesh>,
@@ -265,83 +340,79 @@ export type girl = {
     // lastVelocity: Vector3,
     // girl: nullable<Object3D>,
     girlMesh: nullable<SkinnedMesh>,
-    girlGroup: Object3D,
+    girlGroup: nullable<Object3D>,
+    // girlMeshMap: ImmutableMap<usedGirl, SkinnedMesh>,
+    // girlMMDAnimationMap: ImmutableMap<usedGirl, Array<[string, AnimationClip]>>,
+    // girlMMDAnimation: Array<[string, AnimationClip]>,
+    // girlGroupMap: ImmutableMap<usedGirl, Object3D>,
+
 
     originScale: number,
     initialPosition: nullable<Vector3>,
     initialQuaternion: nullable<Quaternion>,
 
-
-    // rotationYForThirdPersonControl: Euler, lastRotationYForThirdPersonControl: Euler,
-    // rotationYForThirdPersonControl: number,
-    // lastRotationYForThirdPersonControl: nullable<number>,
-    // quaternionForThirdPersonControl: Quaternion,
-
-    // idle: nullable<Object3D>,
-    // walk: nullable<Object3D>,
-    // position: Vector3,
-
-    collisionShapeMap: Map<collisionPart, OBB>,
-    // collisionShapeMap: Map<collisionPart, OBB | Box3 >,
-    // isComputeCollisionMap: Map<collisionPart, boolean>,
-    // isComputeCollisionMap: Map<collisionPart, isComputeObjectCollisionMap>,
+    collisionShapeMap: ImmutableMap<collisionPart, OBB>,
     getCenterFunc: nullable<(collisionPart: collisionPart) => nullable<Vector3>>,
 
 
 
-    // isComputeCollisionMap: Map<collisionPart, boolean>,
-    isComputeCollisionMap: Map<number, Map<frameIndex, boolean>>,
-    // isResetActionCollision: boolean,
-    lastFrameIndexMap: Map<animationName, frameIndex>,
-    // isSoundPlayedMap: Map<soundType, boolean>,
+    isComputeCollisionMap: ImmutableMap<number, ImmutableMap<frameIndex, boolean>>,
+    lastFrameIndexMap: ImmutableMap<animationName, frameIndex>,
 
-    isComputeDamageMap: Map<animationName, Map<name, Map<phase, boolean>>>,
+    isComputeDamageMap: ImmutableMap<animationName, ImmutableMap<name, ImmutableMap<phase, boolean>>>,
 
-
-    // helper: MMDAnimationHelper,
-
-    // isOnFloor: boolean
 
     screenShake: any,
 
-    // hp: hp,
     excitement: number,
-    // defenseFactor: number,
-    // attackFactor: number,
-
-    // defenseFactor: number,
-    // hp: hp,
-    hpMap: Map<damagePart, hp>,
+    hpMap: ImmutableMap<damagePart, hp>,
 
 
-    // isStatusChange: boolean,
-    needUpdateStatus: nullable<girlStatus>,
+    // needUpdateStatus: nullable<girlStatus>,
+    needUpdateStatusName: nullable<string>,
+    needUpdateStatusDamagePart: nullable<damagePart>,
+    // isNeedUpdateStatus: boolean,
 
 
-    lastUpdatedExcitement: number,
+    // lastUpdatedExcitement: number,
+    lastAddExcitementTime: nullable<secondUnit>,
 
-    lastDamageTime: number,
+    lastDamageTime: millisecondUnit,
 
-    lastMoveCollisionedTime: number,
+    lastMoveCollisionedTime: millisecondUnit,
 
 
-    // isTriggerActionMap: Map<animationName, boolean>,
     triggeredAction: nullable<actionName>,
     actionState: actionState,
 
+    // lastChangePoseTime: nullable<millisecondUnit>,
 
-    scaleState: scaleState,
-    lastScaleChangeTime: number,
+
+
+
+    // scaleState: scaleState,
+    lastScaleChangeTime: millisecondUnit,
 
     isChangeScaling: boolean,
 
 
-    boneCacheMap: Map<boneName, Bone>,
+    boneCacheMap: ImmutableMap<boneName, Bone>,
 
 
 
-    // pickDataList: List<giantessAddToSkeletonData>,
-    giantessAddToSkeletonData: nullable<giantessAddToSkeletonData>,
+    // giantessAddToSkeletonData: nullable<giantessAddToSkeletonData>,
+    giantessAddToHandSkeletonData: List<giantessAddToSkeletonData>,
+    positionOffsetForPick: ImmutableMap<name, Vector3>,
+
+    giantessAddToUBSkeletonData: List<giantessAddToSkeletonData>,
+    positionOffsetForUBControlled: ImmutableMap<name, Vector3>,
+
+    giantessAddToBreastSkeletonData: List<giantessAddToSkeletonData>,
+    positionOffsetForPutToBreast: ImmutableMap<name, Vector3>,
+
+    giantessAddToShoeSkeletonData: List<giantessAddToSkeletonData>,
+    positionOffsetForPutToShoe: ImmutableMap<name, Vector3>,
+
 
 
     isMoveCollisioned: boolean,
@@ -354,17 +425,108 @@ export type girl = {
 
     girlGroupPositionDiffForChangePivot: nullable<Vector3>,
 
-    computeBoxFunc: (state: state) => state,
-    createFSMStateByAnimationNameFunc: (state: state, nextBlendingAnimationName: any) => [state, nullable<fsm_state<state>>],
+
+
+
+    lastStressingTime: millisecondUnit,
+
+
+
+    breastPartialScaleMaxFactor: number,
+    torsorPartialScaleMaxFactor: number,
+
+
+
+    isLightStressingMap: Map<collisionPart, boolean>,
+
+
+    biggerCount: biggerCount,
+    addScaleByBiggerCount: Map<biggerCount, number>,
+
+
+    movableRanges: Array<xzRange>,
+
+
+    // computeBoxFunc: (state: state) => state,
+    computeBoxFunc: (state: state, usedGirl: usedGirl) => Box3,
+    // createFSMStateByCurrentAnimationNameFunc: (state: state, nextBlendingAnimationName: animationName) => [state, nullable<fsm_state<state>>],
+    createFSMStateByChangeAnimationNameFunc: (state: state, usedGirl: usedGirl, nextBlendingAnimationName: animationName) => [state, nullable<fsm_state<state>>],
     // createInitialStateFunc: () => fsm_state<state>,
-    computeForceDirectionFunc: (state: state, animationName: any, velocity: Vector3, phase: any) => Vector3,
+    computeForceDirectionFunc: (state: state, usedGirl: usedGirl, animationName: any, velocity: Vector3, phase: any) => Vector3,
     computeDamageTypeFunc: (state: state, animationName: any, phase: any) => damageType,
+}
+
+// export enum biggerWay {
+//     None,
+//     Active,
+//     Passive,
+//     Damage,
+// }
+
+type levelNumber = number
+
+export type playerGirlData = {
+    currentStudyActions: List<studyAction<actionName>>,
+    savedStudyActions: List<studyAction<actionName>>,
+
+
+    // biggerWay: 
+
+    // biggerCount: number,
+    maxBiggerCount: number,
+    biggerEnhanceLevel: levelNumber,
+
+    // maxScale: number,
+
+    // scale: number,
+    // sumExcitement: number,
+    excitementFactorLevel: number,
+    // lastDecreaseScaleTime: nullable<secondUnit>,
+    damageBiggerFactorLevel: number,
 
 
 
+    // moveDamageEnhanceLevel: levelNumber,
 
 
-    // getValueFunc: nullable<(name: string) => girlValue>,
+
+    originPlayerGirlScale: nullable<number>,
+
+
+    scaleIncrease: number,
+    hpIncrease: number,
+}
+
+export type wildGiantessData = {
+}
+
+export type enemyGiantessData = wildGiantessData
+
+export type playerGiantessData = wildGiantessData
+
+type biggerCount = number
+
+export type girl = {
+    // usedGirlDataMap: ImmutableMap<usedGirlData>,
+    // usedGirlDataMap: Record<usedGirl, usedGirlData>,
+    usedGirlDataMap: Map<usedGirl, usedGirlData>,
+
+
+    // currentUsedGirl: usedGirl,
+    currentUsedGirls: Array<usedGirl>,
+
+    playerGirlData: playerGirlData,
+
+    wildGiantessData: wildGiantessData,
+    enemyGiantessData: enemyGiantessData,
+    playerGiantessData: playerGiantessData,
+
+    // isFirstAdd: Record<usedGirl, boolean>,
+
+
+    isCanActiveSmallerFunc: nullable<(state: state, usedGirl: usedGirl) => boolean>,
+
+    addHitEffectFunc: nullable<(state: state, fromName: name, damagePosition: nullable<Vector3>, damageType_, armorType_: armorType) => state>,
 }
 
 // export type otherGirls = {
@@ -372,36 +534,13 @@ export type girl = {
 // }
 
 
-export enum bulletPropName {
-    BasicBullet,
-    LaserBullet,
-    RocketBullet,
-    BiggerBullet,
-    SmallestBullet,
-}
-
-export type propName = bulletPropName
-export const propName = {
-    ...bulletPropName
-}
-
-export enum propType {
-    Bullet
-}
 
 export enum gunName {
-    BasicGun = "BasicGun",
     LaserGun = "LaserGun",
     RocketGun = "RocketGun",
     PropGun = "PropGun",
 }
 
-
-export type prop = {
-    name: propName,
-    count: number,
-    type: propType,
-}
 
 export enum resourceLevel {
     White = "White",
@@ -417,11 +556,22 @@ export type qte = {
     isStart: boolean,
 }
 
+// type shootTarget = [Vector3, nullable<staticLODContainerIndex>, nullable<name>, nullable<collisionPart>]
+export type shootTarget = [Vector3, nullable<staticLODContainerIndex>, nullable<[Box3, name, lodQueueIndex]>, nullable<[collisionPart, usedGirl]>]
+
+export enum fireWay {
+    Burst,
+    Continuous,
+}
+
 export type littleMan = {
+    currentStudyActions: Array<studyAction<LittleManDataType.actionName>>,
+    // savedStudyActions: Array<studyAction<LittleManDataType.actionName>>,
+
     stateMachine: stateMachine<state>,
 
-    props: List<prop>,
-    usedBulletPropName: bulletPropName,
+    usedBulletPropName: nullable<bulletPropName | string>,
+    // usedBulletPropName: bulletPropName | string,
 
     currentModel: modelName,
 
@@ -452,14 +602,14 @@ export type littleMan = {
     // lastRotationYForThirdPersonControl: nullable<number>,
     // quaternionForThirdPersonControl: Quaternion,
 
-    // collisionShapeMap: Map<collisionPart, OBB>,
+    // collisionShapeMap: ImmutableMap<collisionPart, OBB>,
 
-    isComputeCollisionMap: Map<number, Map<frameIndex, boolean>>,
+    isComputeCollisionMap: ImmutableMap<number, ImmutableMap<frameIndex, boolean>>,
     // isResetActionCollision: boolean,
-    lastFrameIndexMap: Map<LittleManDataType.animationName, frameIndex>,
+    lastFrameIndexMap: ImmutableMap<LittleManDataType.animationName, frameIndex>,
 
 
-    // isComputeDamageMap: Map<animationName, Map<name, Map<phase, boolean>>>,
+    // isComputeDamageMap: ImmutableMap<animationName, ImmutableMap<name, ImmutableMap<phase, boolean>>>,
 
 
     hp: hp,
@@ -475,23 +625,38 @@ export type littleMan = {
 
     triggeredAction: nullable<LittleManDataType.actionName>,
     actionState: littleManActionState,
-    triggeredActionTime: Map<LittleManDataType.actionName, number>,
+    triggeredActionTime: ImmutableMap<LittleManDataType.actionName, number>,
+
+    triggeredActionBeforeLock: nullable<LittleManDataType.actionName>,
+    fireWay: fireWay,
 
 
     // scaleState: scaleState,
     // lastScaleChangeTime: number,
 
 
-    // boneCacheMap: Map<boneName, Bone>,
+    // boneCacheMap: ImmutableMap<boneName, Bone>,
 
 
 
     // pickDataList: List<giantessAddToSkeletonData>,
     // giantessAddToSkeletonData: nullable<giantessAddToSkeletonData>,
 
+
+
     // gun: nullable<Object3D>,
-    gunMap: Map<gunName, Object3D>,
+    gunMap: ImmutableMap<gunName, Object3D>,
+
     aim: nullable<Sprite>,
+    aimCrossWhenDamage: nullable<Sprite>,
+    aimCrossWhenDestroy: nullable<Sprite>,
+    headShot: nullable<Sprite>,
+    isShowingHeadShot: boolean,
+
+    aimTarget: nullable<shootTarget>,
+    lockTarget: nullable<shootTarget>,
+    lockImage: nullable<Sprite>,
+
 
 
     bloodData: bloodData,
@@ -503,6 +668,17 @@ export type littleMan = {
     // qte: qte
 
     movableRanges: Array<xzRange>,
+
+
+    lastDamageTime: number,
+
+    actuallyMoveSpeedRecordInTwoSeconds: Array<{
+        speed: number,
+        time: millisecondUnit
+    }>,
+    lastPosition: nullable<Vector3>,
+
+    hpIncrease: number,
 
     updateControlsWhenZoomOutToThirdPersonControlsFunc: (state: state) => state,
 }
@@ -541,7 +717,7 @@ export enum objectStateName {
 
     Scenario,
 
-    // // Idle,
+    Idle,
     // Walk,
     Run,
     // Stomp,
@@ -573,13 +749,26 @@ export enum objectStateName {
 
 
 
-    Controlled,
+    PickedControlled,
+    UBControlled,
+    BreastControlled,
+    ShoeControlled,
 
     Lie,
     Standup,
 
     Climb,
 
+
+    Fall,
+    Repel,
+
+    Flatten,
+
+
+
+
+    // Excitement,
 
     // Damaged,
 
@@ -592,10 +781,12 @@ export enum objectStateName {
 
 export type treeAndProp = {
     treesAndProps: Array<staticLODData>,
-    // damageAnimationStatusMap: Map<name>,
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    // damageAnimationStatusMap: ImmutableMap<name>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
+    // defenseFactorMap: ImmutableMap<name, number>,
+    hpMap: ImmutableMap<name, hp>,
+
+    stressingTweens: Array<tween>,
 }
 
 // export type buildingFragments = Array<Mesh>
@@ -604,23 +795,34 @@ export type building = {
     // buildings: Array<[staticLODData, buildingFragments]>,
     buildings: Array<staticLODData>,
 
-    crackDecalLODQueueMap: Map<name, LODQueue>,
-    isAddCrackDecalMap: Map<name, boolean>,
+    // fragmentCubeOriginBox: nullable<Box3>,
+    fragmentCubeQueue: nullable<LODQueue>,
+    // aviailablefragmentCubeNames: Array<name>,
+    reallocateFragmentCubeQueueIndex: Array<lodQueueIndex>,
+    fragmentCubeQueueMaxCount: number,
 
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+
+    crackDecalLODQueueMap: ImmutableMap<name, LODQueue>,
+    isAddCrackDecalMap: ImmutableMap<name, boolean>,
+
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
+    // defenseFactorMap: ImmutableMap<name, number>,
+    hpMap: ImmutableMap<name, hp>,
 
     ruinOriginBox: nullable<Box3>,
     ruinQueue: nullable<LODQueue>,
     aviailableRuinNames: Array<name>,
+
+    stressingTweens: Array<tween>,
 }
 
 export type car = {
     cars: Array<staticLODData>,
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
+    // defenseFactorMap: ImmutableMap<name, number>,
+    hpMap: ImmutableMap<name, hp>,
+
+    stressingTweens: Array<tween>,
 }
 
 // type lodQueueData = {
@@ -633,13 +835,15 @@ export type car = {
 
 export type dynamicCar = {
     // cars: Array<lodQueueData>,
-    carMap: Map<categoryName, LODQueue>,
-    lodQueueIndexMap: Map<name, lodQueueIndex>,
+    carMap: ImmutableMap<categoryName, LODQueue>,
+    lodQueueIndexMap: ImmutableMap<name, lodQueueIndex>,
 
-    moveTweenMap: Map<name, Array<tween>>,
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    moveTweenMap: ImmutableMap<name, Array<tween>>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
+    // defenseFactorMap: ImmutableMap<name, number>,
+    hpMap: ImmutableMap<name, hp>,
+
+    stressingTweens: Array<tween>,
 }
 
 
@@ -655,10 +859,10 @@ export type mountain = {
 // export type windMill = {
 //     windMills: Array<staticLODData>,
 
-//     wingTweenMap: Map<name, tween>,
-//     stateMachineMap: Map<name, stateMachine<state>>,
-//     defenseFactorMap: Map<name, number>,
-//     hpMap: Map<name, hp>,
+//     wingTweenMap: ImmutableMap<name, tween>,
+//     stateMachineMap: ImmutableMap<name, stateMachine<state>>,
+//     defenseFactorMap: ImmutableMap<name, number>,
+//     hpMap: ImmutableMap<name, hp>,
 // }
 
 
@@ -674,11 +878,36 @@ export type terrain = {
     footDamageDecalOriginBox: nullable<Box3>,
     footDamageDecalQueue: nullable<LODQueue>,
     aviailableFootDamageDecalNames: Array<name>,
+
+    rightFootPrintDecalOriginBox: nullable<Box3>,
+    rightFootPrintDecalQueue: nullable<LODQueue>,
+    aviailableRightFootPrintDecalNames: Array<name>,
+
+    leftFootPrintDecalOriginBox: nullable<Box3>,
+    leftFootPrintDecalQueue: nullable<LODQueue>,
+    aviailableLeftFootPrintDecalNames: Array<name>,
+
+    leftCommonShoePrintDecalOriginBox: nullable<Box3>,
+    leftCommonShoePrintDecalQueue: nullable<LODQueue>,
+    aviailableLeftCommonShoePrintDecalNames: Array<name>,
+
+    rightCommonShoePrintDecalOriginBox: nullable<Box3>,
+    rightCommonShoePrintDecalQueue: nullable<LODQueue>,
+    aviailableRightCommonShoePrintDecalNames: Array<name>,
+
+
+    heelShoePrintDecalOriginBox: nullable<Box3>,
+    heelShoePrintDecalQueue: nullable<LODQueue>,
+    aviailableHeelShoePrintDecalNames: Array<name>,
 }
 
 export type map = {
     wall: nullable<StaticLODContainer>,
     // wall: nullable<LODQueue>,
+
+    // meshMap: ImmutableMap<resourceId, Mesh>,
+
+    lastRogueMapIndex: nullable<number>,
 }
 
 
@@ -730,14 +959,47 @@ export type pick = {
     boxCube: nullable<Box3Helper>
 }
 
+export enum missionFinishStatus {
+    Fail,
+    FailByDestoyed,
+    Complete,
+    End
+}
+
+type applyFuncForNextLevel = (state: state) => Promise<state>
+
 export type mission = {
-    startGameTime: Moment,
-    isMissionFinishByDestroyedRateReach: boolean,
+    startGameTimeForLevel: Moment,
+    startGameTimeForWhole: Moment,
+    isMissionFinish: boolean,
+
+    startNowForLevel: millisecondUnit,
 
     allBuildingCount: number,
     destroyedBuildingCount: number,
 
-    lastDestroyedRate: number
+    lastDestroyedRate: number,
+
+    isEnteringNextLevel: boolean,
+    completeLevelData: List<{
+        sceneChapter: scene,
+        levelNumber: number,
+    }>,
+
+
+    applyFuncsForNextLevel: List<applyFuncForNextLevel>,
+
+
+    // doorImage: nullable<Sprite>,
+    doorImage: nullable<Mesh>,
+    // isWaiting: boolean,
+
+    isShowEnterDoorToast: boolean,
+
+
+
+
+    lockedAttackTargetToPlayer: boolean,
 }
 
 // export type scene = {
@@ -751,6 +1013,7 @@ export type mission = {
 export enum thirdPersonCameraTarget {
     Chest,
     Foot,
+    Free,
 }
 
 export enum firstPersonCameraTarget {
@@ -758,6 +1021,7 @@ export enum firstPersonCameraTarget {
     Leg,
 }
 
+export type upgradeLevel = number
 
 export type damageData = {
     // lodContainerGroup: nullable<Group>,
@@ -766,17 +1030,61 @@ export type damageData = {
     // damageFuncs: List<(state: state, octree: StaticLODContainer, [size, direction]: [number, Vector3], transforms: Array<number>, boxes: Array<Box3>, names: Array<name>) => [state, Array<string>]>,
     funcs: List<{
         isSelfFunc: (categoryName: string) => boolean,
-        damageFunc: (state: state, container: StaticLODContainer, [size, direction]: [number, Vector3], transforms: Array<number>, boxes: Array<Box3>, names: Array<name>) => Promise<[state, Array<string>]>,
-        getValueFunc: (name: name) => objectValue,
+        // damageFunc: (state: state, container: StaticLODContainer, [size, direction]: [number, Vector3], transforms: Array<number>, boxes: Array<Box3>, names: Array<name>) => Promise<[state, Array<string>]>,
+        damageFunc: (state: state, forceData: [[number, Vector3], [damageType, weaponType]], weaponValue: weaponValue, fromName: name, damagePosition: nullable<Vector3>,
+            // critRatioFactor: critRatioFactor, attackFactor: attackFactor,
+            transform: Matrix4, box: Box3, name: name) => Promise<[state, string]>,
+        getValueFunc: (state: state, name: name) => objectValue,
     }>,
-    damageGiantessFunc: nullable<(state: state, [size, damageType, weaponType]: [number, damageType, weaponType], collisionPart: collisionPart, damagePosition: nullable<Vector3>) => Promise<state>>,
+    damageGiantessFunc: nullable<(state: state, usedGirl, [size, damageType, weaponType]: [number, damageType, weaponType],
+        fromName: name,
+        collisionPart: collisionPart, damagePosition: nullable<Vector3>,
+        weaponValue_: weaponValue,
+        // critRatioFactor: critRatioFactor,
+        // attackFactor: attackFactor,
+    ) => Promise<state>>,
+
+
+
+
+
+
+    isEnableComboStorm: boolean,
+    comboStormLayerCount: nullable<number>,
+    lastComboStormDamageTime: nullable<number>,
+    // computeDamageForceFunc: (state: state, name: name, fromName: name, forceSize: forceSize) => [state, forceSize],
+
+
+    clothDamageEnhanceLevel: upgradeLevel,
+
+
+    // fragileGrowthLevel: upgradeLevel,
+    crazyLevel: upgradeLevel,
+
+
+    // isEnableOldSoldierForLittleMan: boolean,
+    // isEnableOldSoldierForGiantess: boolean,
+
+    oldSoldierLevelForLittleMan: number,
+    oldSoldierLevelForGiantess: number,
+
+    oldSoldierHpForLittleMan: nullable<number>,
+    oldSoldierHpForGiantess: nullable<number>,
+
+
+
+
+    lifeCountForLittleMan: number,
+    lifeCountForGiantess: number,
+    isLifeCountSubForLittleMan: boolean,
+    isLifeCountSubForGiantess: boolean,
 }
 
 type lodQueueIndex = number
 
-type skinLODData = LODQueue
+export type skinLODData = LODQueue
 
-type categoryName = string
+export type categoryName = string
 
 export type bloodData = {
     bloodDecalOriginBox: nullable<Box3>,
@@ -787,23 +1095,23 @@ export type bloodData = {
 }
 
 export type cityzen = {
-    cityzenMap: Map<categoryName, skinLODData>,
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    cityzenMap: ImmutableMap<categoryName, skinLODData>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
+    // defenseFactorMap: ImmutableMap<name, number>,
+    hpMap: ImmutableMap<name, hp>,
 
-    moveTweenMap: Map<name, Array<tween>>,
+    moveTweenMap: ImmutableMap<name, Array<tween>>,
 
     // cityzen1Queue: nullable<LODQueue>,
     // cityzen2Queue: nullable<LODQueue>,
     // cityzen1Lod: nullable<InstancedSkinLOD2>,
     // cityzen2Lod: nullable<InstancedSkinLOD2>,
 
-    lodQueueIndexMap: Map<name, lodQueueIndex>,
+    lodQueueIndexMap: ImmutableMap<name, lodQueueIndex>,
 
 
     // shadowQueueMap: nullable<LODQueue>,
-    shadowQueueMap: Map<name, LODQueue>,
+    shadowQueueMap: ImmutableMap<name, LODQueue>,
 
     bloodData: bloodData,
 }
@@ -834,36 +1142,43 @@ export type xzRange = {
 
 export type commander = {
     // pointingRange: Array<xzRange>,
-    pointingRangeMap: Map<name, xzRange>,
+    pointingRangeMap: ImmutableMap<name, xzRange>,
 }
 
 export type soldier = {
-    soldierMap: Map<categoryName, skinLODData>,
+    soldierMap: ImmutableMap<categoryName, skinLODData>,
 
     // glb: nullable<GLTF>,
 
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
 
-    moveTweenMap: Map<name, Array<tween>>,
+    // defenseFactorMap: ImmutableMap<name, defenseFactor>,
+    // moveSpeedMap: ImmutableMap<name, speed>,
+    // attackFactorMap: ImmutableMap<name, attackFactor>,
+    // emitSpeedFactorMap: ImmutableMap<name, emitSpeedFactor>,
+    // critRatioFactorMap: ImmutableMap<name, critRatioFactor>,
+    // missRatioMap: ImmutableMap<name,>,
 
-    lodQueueIndexMap: Map<name, lodQueueIndex>,
+    hpMap: ImmutableMap<name, hp>,
+
+    moveTweenMap: ImmutableMap<name, Array<tween>>,
+
+    lodQueueIndexMap: ImmutableMap<name, lodQueueIndex>,
 
 
-    shadowQueueMap: Map<name, LODQueue>,
+    shadowQueueMap: ImmutableMap<name, LODQueue>,
 
     bloodData: bloodData,
 
 
-    allClipDurations: Map<categoryName, Array<number>>,
-    allClipSteps: Map<categoryName, Array<number>>,
+    allClipDurations: ImmutableMap<categoryName, Array<number>>,
+    allClipSteps: ImmutableMap<categoryName, Array<number>>,
 
-    moveDataMap: Map<name, Array<Vector2>>,
+    moveDataMap: ImmutableMap<name, Array<Vector2>>,
 
-    crowdPositions: Array<Vector3>,
+    // crowdPositions: Array<Vector3>,
 
-    initialQuaternionMap: Map<SoldierData.modelName, Quaternion>,
+    initialQuaternionMap: ImmutableMap<SoldierData.modelName, Quaternion>,
 
     // rocketQueue: nullable<LODQueue>,
     // rockets: Array<rocket>,
@@ -873,61 +1188,93 @@ export type soldier = {
 
 type queueName = string
 
-type hierachyLODQueueData = Map<queueName, HierachyLODQueue>
+type hierachyLODQueueData = ImmutableMap<queueName, HierachyLODQueue>
 // type hierachyLODQueueData = Array<{
 //     queue: HierachyLODQueue,
 //     lod: InstancedLOD2
 // }>
 
 export type milltaryVehicle = {
-    milltaryVehicleMap: Map<categoryName, hierachyLODQueueData>,
-    // tankWholeMap: Map<categoryName, LODQueue>,
+    // tweens: Array<tween>,
+
+    milltaryVehicleMap: ImmutableMap<categoryName, hierachyLODQueueData>,
+    // tankWholeMap: ImmutableMap<categoryName, LODQueue>,
 
     // glb: nullable<GLTF>,
 
-    // fireRayMap: Map<name, Ray>,
+    // fireRayMap: ImmutableMap<name, Ray>,
 
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
 
-    moveTweenMap: Map<name, Array<tween>>,
-    fireTweenMap: Map<name, Array<tween>>,
+    // defenseFactorMap: ImmutableMap<name, defenseFactor>,
+    // moveSpeedMap: ImmutableMap<name, speed>,
+    // attackFactorMap: ImmutableMap<name, attackFactor>,
+    // emitSpeedFactorMap: ImmutableMap<name, emitSpeedFactor>,
+    // critRatioFactorMap: ImmutableMap<name, critRatioFactor>,
+    // missRatioMap: ImmutableMap<name,>,
 
-    lodQueueIndexMap: Map<name, lodQueueIndex>,
+    hpMap: ImmutableMap<name, hp>,
+
+    moveTweenMap: ImmutableMap<name, Array<tween>>,
+    fireTweenMap: ImmutableMap<name, Array<tween>>,
+
+    lodQueueIndexMap: ImmutableMap<name, lodQueueIndex>,
 
     // allQueueLocalMatrices: nullable<[Matrix4, Matrix4, Matrix4]>,
-    allQueueLocalMatricesMap: Map<categoryName, Array<Matrix4>>,
+    allQueueLocalMatricesMap: ImmutableMap<categoryName, Array<Matrix4>>,
 
-    moveDataMap: Map<name, Array<Vector2>>,
+    moveDataMap: ImmutableMap<name, Array<Vector2>>,
 
-    crowdPositions: Array<Vector3>,
+    // crowdPositions: Array<Vector3>,
 
-    initialQuaternionMap: Map<MilltaryVehicleData.modelName, Quaternion>,
+    initialQuaternionMap: ImmutableMap<MilltaryVehicleData.modelName, Quaternion>,
 }
 
 export type milltaryBuilding = {
-    milltaryBuildingMap: Map<categoryName, hierachyLODQueueData>,
+    milltaryBuildingMap: ImmutableMap<categoryName, hierachyLODQueueData>,
 
-    stateMachineMap: Map<name, stateMachine<state>>,
-    defenseFactorMap: Map<name, number>,
-    hpMap: Map<name, hp>,
+    stateMachineMap: ImmutableMap<name, stateMachine<state>>,
 
-    // moveTweenMap: Map<name, Array<tween>>,
-    fireTweenMap: Map<name, Array<tween>>,
+    // defenseFactorMap: ImmutableMap<name, defenseFactor>,
+    // moveSpeedMap: ImmutableMap<name, speed>,
+    // attackFactorMap: ImmutableMap<name, attackFactor>,
+    // emitSpeedFactorMap: ImmutableMap<name, emitSpeedFactor>,
+    // critRatioFactorMap: ImmutableMap<name, critRatioFactor>,
+    // missRatioMap: ImmutableMap<name,>,
 
-    lodQueueIndexMap: Map<name, lodQueueIndex>,
+    hpMap: ImmutableMap<name, hp>,
 
-    allQueueLocalMatricesMap: Map<categoryName, Array<Matrix4>>,
+    // moveTweenMap: ImmutableMap<name, Array<tween>>,
+    fireTweenMap: ImmutableMap<name, Array<tween>>,
 
-    // moveDataMap: Map<name, Array<Vector2>>,
+    lodQueueIndexMap: ImmutableMap<name, lodQueueIndex>,
+
+    allQueueLocalMatricesMap: ImmutableMap<categoryName, Array<Matrix4>>,
+
+    // moveDataMap: ImmutableMap<name, Array<Vector2>>,
 
     // shellTurretPositions: Array<Vector3>,
     // missileTurretPositions: Array<Vector3>,
-    turretPositionMap: Map<categoryName, Array<Vector3>>,
+    turretPositionMap: ImmutableMap<categoryName, Array<Vector3>>,
 
-    initialQuaternionMap: Map<MilltaryBuildingData.modelName, Quaternion>,
+    initialQuaternionMap: ImmutableMap<MilltaryBuildingData.modelName, Quaternion>,
 }
+
+
+
+export type eliteGiantess = {
+    animationDurationFactor: number,
+}
+
+
+export enum cameraRotateSpeed {
+    VeryHigh = 2,
+    High = 1.5,
+    Middle = 1,
+    Low = 0.7,
+    VeryLow = 0.4
+}
+
 
 export type camera = {
     cameraType: cameraType,
@@ -935,8 +1282,24 @@ export type camera = {
     firstPersonCameraTarget: firstPersonCameraTarget,
     cameraZoom: number,
 
-    distanceRate: number,
+    freeThirdPersonCameraTargetYOffset: number,
+
+    distanceRateData: [frameIndex, number],
     targetToCameraDirection: Vector3,
+
+    savedCameraType: Record<characterType, cameraType>,
+    savedCameraTarget: Record<characterType, Record<cameraType, string>>,
+
+    savedFreeThirdPersonCameraTargetYOffset: number,
+
+    // cameraRotateSpeed: cameraRotateSpeed,
+    savedCameraRotateSpeed: Record<characterType, cameraRotateSpeed>,
+
+    // savedThirdPersonCameraToTargetDistance: Record<characterType, number>,
+    // savedThirdPersonCameraToTargetDistance: Record<characterType, number>,
+    // savedThirdPersonCameraToTargetDistance: Record<characterType, Record<mmdCharacter, number>>,
+    savedThirdPersonCameraToTargetDistance: Record<characterType, Record<mmdCharacter | modelName, number>>,
+
 
 
     orbitControlsConfig: nullable<orbitControlsConfig>,
@@ -962,6 +1325,8 @@ export type littleManCamera = {
     // needRestoreData: nullable<[near, far, distance, cameraType]>,
     needRestoreData: nullable<[near, far, Vector3, Vector3, cameraType]>,
 
+    // needRestoreDistanceToTarget: nullable<number>,
+
 
     // orbitControlsConfig: nullable<orbitControlsConfig>,
     // thirdPersonControlsConfig: nullable<thirdPersonControlsConfig>,
@@ -979,20 +1344,23 @@ type scenarioName = any
 
 export type scenario = {
     isEnterScenario: boolean,
+
     allCommands: List<[nullable<commandCompleteFunc>, any, command<any>]>,
 
     currentScenarioName: nullable<scenarioName>,
 }
 
-type gameEventName = any
+export type gameEventName = any
 
 export type gameEvent = {
-    // isTriggerEvent: Map<event, boolean>
+    // isTriggerEvent: ImmutableMap<event, boolean>
+    isStopGameEvent: boolean,
+
 
     currentMainEventName: nullable<gameEventName>,
     currentSubEventName: nullable<gameEventName>,
 
-    customDataMap: Map<string, any>,
+    customDataMap: ImmutableMap<string, any>,
 }
 
 export enum behaviourTreeNodeExecuteResult {
@@ -1004,7 +1372,7 @@ export enum behaviourTreeNodeExecuteResult {
 // export type behaviourTreeNodeResult = [state, behaviourTreeNodeExecuteResult]
 export type behaviourTreeNodeResult = [state, any]
 
-export type actionNodeFunc = (state: state, id: id, config: nullable<any>) => Promise<behaviourTreeNodeResult>
+export type actionNodeFunc = (state: state, usedGirl: usedGirl, id: id, config: nullable<any>) => Promise<behaviourTreeNodeResult>
 
 export type actionNode = {
     id: id,
@@ -1015,16 +1383,34 @@ export type actionNode = {
 export type controlNode = (state: state, key: behaviourTreeKey, children: Array<behaviourTreeData>) => Promise<behaviourTreeNodeResult>
 
 export enum attackRange {
-    Small,
-    Middle,
-    Big
+    // Small,
+    // Middle,
+    // Big,
+
+    InfinityRange = "InfinityRange",
+
+    PrecisionStompRange = "PrecisionStompRange",
+    RangeStompRange = "RangeStompRange",
+    JumpStompRange = "JumpStompRange",
+
+    SprayMilkRange = "SprayMilkRange",
+
+    BreastPressRange = "BreastPressRange",
+    CrawlLickRange = "CrawlLickRange",
+    CrawlBeatRange = "CrawlBeatRange",
+    PickRange = "PickRange",
+
+
+    SitRange = "SitRange",
+    // PrecisionSitRange = "PrecisionSitRange",
+    SitRubRange = "SitRubRange",
 }
 
 export type behaviourTreeData = {
     name?: string,
-    config?: (state: state) => any,
-    returnSuccessCondition: (state: state) => boolean,
-    returnFailCondition: (state: state) => boolean,
+    config?: (state: state, usedGirl: usedGirl) => any,
+    conditionReturnSuccess: (state: state, usedGirl: usedGirl) => boolean,
+    conditionReturnFail: (state: state, usedGirl: usedGirl) => boolean,
     actionNode: nullable<actionNode>,
     controlNode: nullable<controlNode>,
     children: Array<behaviourTreeData>
@@ -1037,11 +1423,13 @@ export enum targetType {
     Soldier,
     MilltaryVehicle,
     MilltaryBuilding,
+    EliteGiantess,
 }
 
 export type targetData = {
     isAliveFunc: (state: state) => boolean,
     getPositionFunc: (state: state) => Vector3,
+    getStateMachineFunc: (state: state, name: name) => stateMachine<state>,
 
     // position: Vector3,
     type: targetType,
@@ -1051,69 +1439,160 @@ export type targetData = {
 
 export type behaviourTreeKey = string
 
-export type behaviourTree = {
-    // data: nullable<behaviourTreeData>,
-    // isRunning: boolean,
-    // finishedData: nullable<[id, behaviourTreeNodeExecuteResult]>,
-    // finishedResult: nullable<behaviourTreeNodeExecuteResult>,
+export enum attackAction {
+    None = "None",
 
+    Rest = "Rest",
 
-    dataMap: Map<behaviourTreeKey, behaviourTreeData>,
-    isRunningMap: Map<behaviourTreeKey, boolean>,
-    finishedDataMap: Map<behaviourTreeKey, [id, behaviourTreeNodeExecuteResult]>,
+    Bigger = "Bigger",
+
+    Stomp = "Stomp",
+    StompRub = "StompRub",
+    LeftStomp = "LeftStomp",
+    JumpStomp = "JumpStomp",
+
+    SprayMilk = "SprayMilk",
+    PutToBreast = "PutToBreast",
+    PutToShoe = "PutToShoe",
+
+    FreeUB = "FreeUB",
+    FreeBreast = "FreeBreast",
+    FreeShoe = "FreeShoe",
+
+    Pickup = "Pickup",
+    Pinch = "Pinch",
+    Eat = "Eat",
+    BreastPress = "BreastPress",
+    BreastPressRub = "BreastPressRub",
+    CrawlLick = "CrawlLick",
+    CrawlBeat = "CrawlBeat",
+    Thrust = "Thrust",
+    Insert = "Insert",
+
+    SitRub = "SitRub",
+    TightenLeg = "TightenLeg",
+}
+
+export enum personality {
+    Strategic = "Strategic",
+    Aggressive = "Aggressive",
+    Defensive = "Defensive",
+    Playful = "Playful",
+}
+
+export type singleBehaviourTreeData = {
+    dataMap: ImmutableMap<behaviourTreeKey, behaviourTreeData>,
+    isRunningMap: ImmutableMap<behaviourTreeKey, boolean>,
+    finishedDataMap: ImmutableMap<behaviourTreeKey, [id, behaviourTreeNodeExecuteResult]>,
 
     targetData: nullable<targetData>,
-    // targetDataMap: Map<behaviourTreeKey, targetData>,
+    attackAction: nullable<attackAction>,
+    // targetDataMap: ImmutableMap<behaviourTreeKey, targetData>,
     // lastGirlPosition:nullable<Vector3>,
+    lastChangePoseTime: nullable<millisecondUnit>,
+    lastSetTargetTime: nullable<millisecondUnit>,
+    // lastHardTime: nullable<millisecondUnit>,
 
-    idMap: Map<string, id>,
-    // customDataMap: Map<string, any>,
+
+
+    idMap: ImmutableMap<string, id>,
+    // customDataMap: ImmutableMap<string, any>,
+    // isNotExecuteGiantessAI: boolean,
 
     isNotExecuteGiantessAI: boolean,
+
+    personality: personality,
+}
+
+export type behaviourTree = {
+    data: Record<usedGirl, singleBehaviourTreeData>,
 }
 
 export type ui = {
     uiUpdateLoopCount: number,
-    needUpdateSkillBar: boolean,
+
+
+    // needShowSkillBar: boolean,
+    // needShowSkillBar: Record<usedGirl, boolean>,
+
+    // intervalId: number,
+
+    isShowingUILightTip: boolean,
+    lightUITips: Array<string>,
+
+    openedModalCount: number,
+
+    isShowGemAnimation: boolean,
+    isShowCoinAnimation: boolean,
+    isGenerateProp: boolean,
+    isShowUpgradeParticle: boolean,
+    isShowBuildingSmoke: boolean,
+    isShowExplosionSmoke: boolean,
+    isEliteGiantePlayDeathAnimation: boolean,
+
+    isFullScreenFlag: boolean,
+
+    isHideUI: boolean,
+
+    bossStatusUpdateFunc: nullable<(state: state, usedGirl: usedGirl) => state>,
 }
 
 export type configData = {
     operateRenderData: operateRenderData,
-    collisionShapeData: nullable<CollisionShapeData.data<pose, any>>,
+
+    littleManOperateRenderData: nullable<littleManOperateData>,
+
+
+    getCollisionShapeDataFunc: (state: state) => data<any, pose, any>,
+    collisionShapeData: nullable<data<any, pose, any>>,
+    // originCollisionShapeData: nullable<data<any, pose, any>>,
     animationBlendData: animationBlendData<animationName>,
     animationCollisionData: Array<animationCollisionData<animationName>>,
     actionData: actionData<animationName>,
     phaseData: phaseData<animationName>,
-    articluatedAnimationData: Array<articluatedAnimationData<any>>,
-    girlAllAnimationNames: nullable<Array<animationName>>,
+
     girlAllAnimationFrameCountMap: Record<animationName, number>,
+    girlAllAnimationNames: nullable<Array<animationName>>,
+    articluatedAnimationData: Array<articluatedAnimationData<any>>,
+    girlAnimationData: Partial<Record<animationName, animationData>>,
 
-    girlValue: nullable<girlValue>,
+    // girlValue: nullable<girlValue>,
+    girlValueMap: ImmutableMap<usedGirl, girlValue>,
 
-    gameEventData: gameEventData<any>,
+    // gameEventData: gameEventData<any>,
+    gameEventData: nullable<gameEventData<any>>,
     scenaryData: nullable<scenarioData<any, any>>,
+
+    gameEventDirectorData: nullable<gameEventDirectorData>,
 
     allMMDData: allMMDData,
     clothCollisionData: clothCollisionData<collisionPart>,
-    clothHpData: nullable<clothHpData>,
+    // clothHpData: nullable<clothHpData>,
+    clothHpDataMap: ImmutableMap<usedGirl, clothHpData>,
     firstPersonControlsData: firstPersonControlsData,
     shoeData: shoeData,
 
 
 
-    behaviourTreeDataMap: Map<behaviourTreeKey, BehaviourTreeDataType.behaviourTreeData<any>>,
+    behaviourTreeDataMap: ImmutableMap<behaviourTreeKey, BehaviourTreeDataType.behaviourTreeData<any>>,
 
 
-    littleManAnimationBlendData: animationBlendData<LittleManDataType.animationName>,
+    littleManAnimationBlendData: LittleManDataType.animationBlendData<LittleManDataType.animationName>,
     littleManAnimationCollisionData: Array<LittleManDataType.animationCollisionData>,
     littleModelData: Array<modelData>,
     littleManSkillData: skillData,
 
     littleManValue: nullable<littleManValue>,
 
+
     soldierModelData: Array<SoldierData.modelData>,
     milltaryVehicleData: Array<MilltaryVehicleData.modelData>,
     milltaryBuildingData: Array<MilltaryBuildingData.modelData>,
+
+    // eliteGiantessModelData: Array<EliteGiantessData.modelData>,
+
+    rewardData: nullable<rewardData>,
+    buildData: nullable<buildData>,
 }
 
 // export enum mode {
@@ -1182,81 +1661,239 @@ export enum excitementIncrease {
     Low
 }
 
-export type littleManSetting = {
-    armyCount: armyCount,
-    giantessStrength: giantessStrength,
-    littleManStrength: littleManStrength,
-    giantessScale: giantessScale,
-    biggerFrequency: biggerFrequency,
-    propCount: propCount,
-    isBiggerNoLimit: boolean,
-}
+// export type littleManSetting = {
+//     armyCount: armyCount,
+//     giantessStrength: giantessStrength,
+//     littleManStrength: littleManStrength,
+//     giantessScale: giantessScale,
+//     biggerFrequency: biggerFrequency,
+//     propCount: propCount,
+//     isBiggerNoLimit: boolean,
+// }
 
-export type giantessSetting = {
-    armyCount: armyCount,
-    giantessStrength: giantessStrength,
-    giantessScale: giantessScale,
-    excitementIncrease: excitementIncrease,
-    isBiggerNoLimit: boolean,
-}
+// export type giantessSetting = {
+//     armyCount: armyCount,
+//     giantessStrength: giantessStrength,
+//     giantessScale: giantessScale,
+//     excitementIncrease: excitementIncrease,
+//     isBiggerNoLimit: boolean,
+// }
 
 // export enum targetPrior = targetType
-export enum targetPrior {
-    None,
-    LittleMan,
-    Building,
-    Cityzen,
-    Soldier,
-    MilltaryVehicle,
-    MilltaryBuilding,
-}
+// export enum targetPrior {
+//     None,
+//     LittleMan,
+//     Building,
+//     Cityzen,
+//     Soldier,
+//     MilltaryVehicle,
+//     MilltaryBuilding,
+//     EliteGiantess,
+// }
 
-export type littleManSettingInGame = {
-    // selectTargetPrior: nullable<targetPrior>,
-    selectTargetPrior: targetPrior,
-    // isSelectLittleManPrior: boolean,
-    // isSelectTankPrior: boolean,
-    // isSelectSoldierPrior: boolean,
-    // isSelectBuildingPrior: boolean,
-    // isSelectCityzenPrior: boolean,
-}
+// export type littleManSettingInGame = {
+//     // selectTargetPrior: nullable<targetPrior>,
+//     selectTargetPrior: 
+//     // isSelectLittleManPrior: boolean,
+//     // isSelectTankPrior: boolean,
+//     // isSelectSoldierPrior: boolean,
+//     // isSelectBuildingPrior: boolean,
+//     // isSelectCityzenPrior: boolean,
+// }
 
-export enum camp {
-    Giantess,
-    LittleMan
-}
+// export enum camp {
+//     None,
+//     // Giantess,
+//     // LittleMan
+//     Player,
+//     Enemy,
+//     Giantess,
+// }
+
+export type camp = campAbstract
+export const camp = { ...campAbstract }
+
 
 export enum attackTargetExtend {
     None,
     Giantess,
     LittleMan,
+
     // Soldier,
     // MilltaryBuilding,
-    // MilltaryVehicle
+    // MilltaryVehicle,
+
+    // EliteGiantess,
+    Object,
+    Building,
 }
 // export type attackTarget = collisionPart | attackTargetExtend
 // export const attackTarget = { ...collisionPart, ...attackTargetExtend }
 export type attackTarget = attackTargetExtend
 export const attackTarget = { ...attackTargetExtend }
 
+export type attackTargetObjectData = {
+    name: name,
+    getPositionFunc: (state: state) => Vector3,
+    getBoxFunc: (state: state) => Box3,
+}
+
 export type army = {
     attackTargetMap: Map<name, attackTarget>,
+    attackTargetObjectDataMap: Map<name, attackTargetObjectData>,
+    attackTargetUsedGirlMap: Map<name, usedGirlEnum>,
+
     campMap: Map<name, camp>,
 
+    crowdPositions: Array<Vector3>,
+    // generatedCrowdPositions: Array<Vector3>,
+    validCrowdPositions: Array<Vector3>,
+    isShowNoValidCrowdPositionsTip: boolean,
+
+    lastJudgeRayCastTimeMap: Map<name, number>,
+    lastJudgeRayCastResultMap: Map<name, boolean>,
+
+    deferDisposeDataNames: Array<[name, lodQueueIndex]>,
+
+    isLightStressingMap: Map<name, boolean>,
+
+    isEliteGiantessAttackingMap: Map<name, boolean>,
+
+    lastAttackFrameMap: Map<name, frameIndex>,
+
+    isNeedRefindPathMap: Map<name, boolean>,
+
+
+    isNotAttackLittleManTime: nullable<number>,
+
+    allArmyContainers: Array<LODQueue>,
+
+
+    // defenseFactorMap: ImmutableMap<name, defenseFactor>,
+    // moveSpeedMap: ImmutableMap<name, speed>,
+    // attackFactorMap: ImmutableMap<name, attackFactor>,
+    // emitSpeedFactorMap: ImmutableMap<name, emitSpeedFactor>,
+    // critRatioFactorMap: ImmutableMap<name, critRatioFactor>,
+    // missRatioMap: ImmutableMap<name,>,
+
+
+
+
     getPositionYFuncMap: Map<string, (state: state, x: number, z: number) => number>,
+
+    updateLittleManWeaponFunc: (state: state, weaponName: weaponName, weaponValue: weaponValue) => weaponValue,
+
+    addHitEffectFunc: nullable<(state: state, fromName: name, targetName: name, damagePosition: nullable<Vector3>, damageType_, weaponValue_: weaponValue, armorType_: armorType) => state>,
 }
 
-export enum difficulty {
-    VeryEasy,
-    Easy,
-    Middle,
-    Hard,
-    VeryHard
+export type armyDirector = {
+    // armyCountRatio: number,
 }
 
-export type biwuSetting = {
-    difficulty: difficulty
+export type minuteUnit = number
+
+export type secondUnit = number
+
+export type millisecondUnit = number
+
+export type singleImpendingGameEventData = {
+    // conditionFunc: (state: state) => boolean,
+
+    // eventName: eventName_,
+    // gameEventName: gameEventName,
+    eventName: any,
+    gameEventName: any,
+    title: string,
+    description: string,
+    time: millisecondUnit,
+    isAlreadyShowedUIInfo: boolean,
 }
+
+export type singleInstantGameEventData = {
+    // eventName: eventName_,
+    // gameEventName: gameEventName,
+    eventName: any,
+    gameEventName: any,
+    title: string,
+    description: nullable<string>,
+    // time: millisecondUnit,
+    // isAlreadyShowedUIInfo: boolean,
+}
+
+export type gameEventDirector = {
+    // gtsPoints: Array<Vector3>,
+
+    customData: ImmutableMap<string, any>,
+
+    selectedGameEvents: List<eventName>,
+
+    isTriggeredMap: ImmutableMap<eventName, boolean>,
+
+    // impendingGameEventData: List<singleImpendingGameEventData>
+    impendingGameEventData: nullable<singleImpendingGameEventData>
+    instantGameEventData: List<singleInstantGameEventData>
+}
+
+export type propOnGround = {
+    name: propName,
+    title: string,
+    description: string,
+    position: Vector3,
+    count: number,
+    image: Sprite,
+    imageSrc: string,
+}
+
+export type propNotOutLevelBuild = {
+    name: propName,
+    count: number,
+}
+
+
+// export type coinOnGround = {
+//     position: Vector3,
+//     // count: number,
+//     image: Sprite,
+// }
+
+export type reward = {
+    gem: number,
+    levelGem: number,
+
+    coin: number,
+    levelCoin: number,
+    // coinsOnGround: List<coinOnGround>,
+    // isHandleGetCoinOnGround: boolean,
+
+    props: List<propData>,
+    propsOnGround: List<propOnGround>,
+    propsNotOutLevelBuild: List<propNotOutLevelBuild>,
+    isHandleGetPropOnGround: boolean,
+    // disabledProps: List<propName>,
+
+    isEnableLuckDogForLittleMan: boolean,
+    isEnableLuckDogForGiantess: boolean,
+
+    lastGemHitTime: nullable<millisecondUnit>,
+    lastCoinHitTime: nullable<millisecondUnit>,
+
+    itemPriceFactor: number,
+    coinFactor: number,
+    propCountFactor: number,
+}
+
+
+// export enum difficulty {
+//     VeryEasy,
+//     Easy,
+//     Middle,
+//     Hard,
+//     VeryHard
+// }
+
+// export type biwuSetting = {
+//     difficulty: difficulty
+// }
 
 
 
@@ -1290,19 +1927,613 @@ export type climb = {
     notOnCollisionParts: Array<any>,
 }
 
+export type levelData = {
+    level: number,
+    experienceValue: number,
+    lastExperienceValueWhenUpgradeLevel: number,
+
+    lastHandledLevelForUpgrade: number,
+
+    lastHandledLevelForSelectItem: number,
+
+    // enforceFuncs: Array<(state: state) => state>,
+}
+
+export enum upgradeInteractionWay {
+    Auto,
+    Manual,
+}
+
+export type level = {
+    upgradeInteractionWay: upgradeInteractionWay,
+
+    isWait: boolean,
+    isSaveState: boolean,
+    savedfirstPersonControlData: nullable<[number, number]>,
+
+    // isGiveTipOnce: boolean,
+
+    isApplying: boolean,
+
+    isSelectItems: boolean,
+
+    changeNeedCoin: Record<characterType, number>,
+
+    littleMan: levelData,
+    giantess: levelData,
+
+    littleManNotWantCurrentUpgradeItems: Array<littleManUpgradeName>,
+    giantessNotWantCurrentUpgradeItems: Array<giantessUpgradeName>,
+
+    littleManUpgradeFuncs: Array<upgradeFuncData>,
+    giantessUpgradeFuncs: Array<upgradeFuncData>,
+}
+
+// export type careerApplyFunc = (state:state) => Promise<state>
+
+// export type name = string
+
+export enum needGem {
+    Zero = 0,
+    // VeryLow = 500,
+    // // Low = 5000,
+    // Low = 1000,
+    // // Middle = 10000,
+    // Middle = 2000,
+    // // High = 20000,
+    // // VeryHigh = 40000,
+    // // MostHigh = 80000,
+    // High = 4000,
+    // VeryHigh = 8000,
+
+    // MostHigh = 50000,
+    VeryLow = 250,
+    // Low = 5000,
+    Low = 500,
+    // Middle = 10000,
+    Middle = 1000,
+    // High = 20000,
+    // VeryHigh = 40000,
+    // MostHigh = 80000,
+    High = 2000,
+    VeryHigh = 4000,
+    VeryHigh2 = 6000,
+    VeryHigh3 = 8000,
+
+    // MostHigh = 80000,
+    // MostHigh = 50000,
+    MostHigh = 10000,
+}
+
+export type careerData = {
+    name: string,
+    title: string,
+    imageSrc: string,
+
+    needGem: number,
+
+
+    // characterType?: characterType,
+
+    // getCareerFeatureData: (state:state) => Array<[
+    //     careerFeatureName, careerFeatureValue
+    // ]>
+    getCareerFeatureData: (state: state) => Record<
+        careerFeatureName, careerFeatureValue
+    >
+    // getPositiveDescriptionFunc: (state: state) => Array<string>,
+    // getNegativeDescriptionFunc: (state: state) => Array<string>,
+    // applyFunc: (state: state, characterType: characterType) => Promise<state>,
+}
+
+type randomNumber = number
+
+export type career = {
+    // littleManData: nullable<careerData>,
+    // giantessData: nullable<careerData>,
+    littleManData: Array<careerData>,
+    giantessData: Array<careerData>,
+
+    isUseFullHpReplaceCoinCharacterTypes: Array<characterType>,
+    // lastTime: Record<careerFeatureName, millisecondUnit>,
+    lastTime: Record<careerFeatureName, Record<randomNumber, millisecondUnit>>,
+    ubCapacityFactor: number,
+    isControlledUnitCanAttack: boolean,
+    enhenceByCarryLevel: number,
+    expFactor: Record<characterType, number>,
+
+    needGem: Record<characterType, number>,
+
+}
+
+export type talent = {
+    talentData: talentData,
+
+    // affectedUsedGirls: Array<usedGirlEnum>,
+}
+
+export type build = {
+    level: level,
+
+    career: career,
+
+    // littleManTalentMap: ImmutableMap<modelName, singleTalentData>,
+    // littleManTalentData: talentData,
+    // giantessTalentData: talentData,
+    talent: talent,
+}
+
+export type character = {
+    littleManCharacters: List<{
+        modelName: modelName,
+        isAlive: boolean
+    }>,
+    giantessCharacters: List<{
+        mmdCharacter: mmdCharacter,
+        isAlive: boolean
+    }>,
+}
+
+export enum bulletPropName {
+    // BasicBullet = "普通子弹",
+    // LaserBullet = "激光子弹",
+    // RocketBullet = "火箭弹",
+    // BiggerBullet = "变大子弹",
+    // SmallerToLastBiggerCount = "缩小子弹",
+    // BasicBullet = "1",
+    LaserBullet = "LaserBullet",
+    RocketBullet = "RocketBullet",
+    // BiggerBullet = "4",
+    // SmallerToLastBiggerCount = "5",
+    // SubMachineBullet = "6",
+}
+
+export enum waterPropName {
+    // AddHp1 = "加血（小）",
+    // AddHp2 = "加血（中）",
+    // AddHp3 = "加血（大）",
+    // AddHp4 = "加血（极大）",
+    // AddExcitement1 = "加兴奋（小）",
+    // AddExcitement2 = "加兴奋（中）",
+    // AddExcitement3 = "加兴奋（大）",
+    // AddExcitement4 = "加兴奋（极大）",
+
+    AddHp1 = "AddHp1",
+    AddHp2 = "AddHp2",
+    AddHp3 = "AddHp3",
+    AddHp4 = "AddHp4",
+    AddExcitement1 = "AddExcitement1",
+    AddExcitement2 = "AddExcitement2",
+    AddExcitement3 = "AddExcitement3",
+    AddExcitement4 = "AddExcitement4",
+}
+
+export enum assistantPropName {
+    // CallGiantess = "召唤巨大娘",
+    // ClearHatred = "清除仇恨",
+
+    CallGiantess = "CallGiantess",
+    ClearHatred = "ClearHatred",
+}
+
+
+export enum otherPropName {
+    // Revive = "复活石",
+    Revive = "Revive",
+}
+
+export type propName = bulletPropName | waterPropName | assistantPropName | otherPropName | string
+export const propName = {
+    ...bulletPropName,
+    ...waterPropName,
+    ...assistantPropName,
+    ...otherPropName
+}
+
+export enum propType {
+    // None = "无",
+    // Bullet = "子弹",
+    // Water = "补品",
+    // Assistant = "辅助",
+    // Other = "其它",
+
+
+    None = "0",
+    Artifact = "1",
+    Bullet = "2",
+    Water = "3",
+    Assistant = "4",
+    Other = "5",
+}
+
+export type propData = {
+    name: propName,
+    title: string,
+    description: string,
+    imageSrc: string,
+    count: number,
+    type: propType,
+    // typeTitle: string,
+
+    characterType: characterType,
+    isOutLevelBuild: boolean,
+
+    // isDisable?: (state: state, name: propName) => boolean,
+}
+
+export type propDataBackend = {
+    name: propName,
+    count: number,
+}
+
+// export type prop = {
+// }
+
+
+export enum autoDifficulty {
+    VeryEasy = 0,
+    Easy = 1,
+    Middle = 2,
+    Hard = 3,
+    VeryHard = 4,
+    VeryHard1 = 5,
+    VeryHard2 = 6,
+    VeryHard3 = 7,
+    VeryHard4 = 8,
+    VeryHard5 = 9,
+}
+
+// type autoDifficulty = -5 | -4 | -3 | -2 | -1 | 0 | 1 | 2 | 3 | 4 | 5
+// type autoDifficulty = 0 | 1 | 2 | 3 | 4 | 5
+
+
+type ratio = number
+
+type difficultyLevel = number
+
+export type difficulty_ = {
+    difficultyData: ImmutableMap<scene, ImmutableMap<levelNumber, difficultyData<any>>>,
+
+    autoDifficultyForLittleMan: autoDifficulty,
+    autoDifficultyForGiantess: autoDifficulty,
+
+
+    armyCountRatio: ratio,
+    eliteArmyCountRatio: ratio,
+    enemyDamageRatio: ratio,
+    restoreHpRatio: ratio,
+    enemyHpRatio: ratio,
+
+    enhenceArmyLevel: difficultyLevel,
+    enhenceEliteGiantessLevel: difficultyLevel,
+    enhenceLevelGiantessLevel: difficultyLevel,
+    maxMMDGiantessCountLevel: difficultyLevel,
+    isAllowFriendDamage: boolean,
+    isRemoveMapEdgeZone: boolean,
+
+    enhenceBossGiantessLevel: difficultyLevel,
+
+
+    enhenceArmyFactor: number,
+    enhenceEliteGiantessFactor: number,
+    enhenceLevelGiantessFactor: number,
+
+    duelistFactor: number,
+
+    decreaseGenerateArmyIntervalRatio: ratio,
+}
+
+// export enum timeMode {
+//     Default,
+//     Special,
+// }
+
+// type randomNumber = number
+export type specialTimeKey = string
+
+export type time = {
+    stopLoopTime: nullable<millisecondUnit>,
+    deferTime: millisecondUnit,
+
+    // mode: timeMode,
+    // lastTime: Record<timeMode, millisecondUnit>,
+    // startSpecialTime: Record<specialTimeKey, millisecondUnit>,
+    startSpecialTime: nullable<millisecondUnit>,
+    specialTimeKey: nullable<specialTimeKey>,
+    specialTimeDuration: secondUnit,
+}
+
+export type tweenManager = {
+    tweens: Array<tween>,
+    tweensMap: Record<string, tween>,
+}
+
+export type debug = {
+    hpMap: ImmutableMap<name, number>,
+}
+
+type getBoxFunc = (state: state) => Box3
+
+type getHpRatioFunc = (state: state) => ratio
+
+type progressValue = { value: number }
+
+export enum playerStateStatusName {
+    IncreaseMoveSpeed,
+    IncreaseActionSpeed,
+    // DecreaseActionSpeed,
+
+    ActiveBiggerNumber,
+    // PassiveBiggerAddedScaleNumber,
+
+    ComboStormNumber,
+    OldSoldierNumber,
+
+    ClearHatred,
+
+    // Strong,
+
+}
+
+export enum bossStateStatusName {
+    // IncreaseMoveSpeed,
+    IncreaseActionSpeed,
+    DecreaseActionSpeed,
+
+    ActiveBiggerNumber,
+
+    Hard,
+    UnDamage,
+}
+
+export type playerStateStatusName_ = playerStateStatusName | string
+
+export type bossStateStatusName_ = bossStateStatusName | string
+
+export type playerStateStatusData = {
+    name: playerStateStatusName_,
+    number: nullable<number>,
+    characterType: characterType,
+    isPositive: boolean,
+    imageSrc: string,
+    description: string,
+}
+
+export type bossStateStatusData = {
+    name: bossStateStatusName_,
+    // number: nullable<number>,
+    number: nullable<string | number>,
+    isPositive: boolean,
+    imageSrc: string,
+    description: string,
+}
+
+export type playerStateStatus = {
+    status: List<playerStateStatusData>
+}
+
+export type bossStateStatus = {
+    // status: List<bossStateStatusData>
+    status: ImmutableMap<usedGirl, List<bossStateStatusData>>
+
+    // currentUsedGirl: usedGirl,
+}
+
+
+export type status = {
+    // showStatusData: ImmutableMap<staticLODContainerIndex | lodQueueIndex, [getBoxFunc, getHpRatioFunc, progressValue, [Sprite, Sprite]]>,
+    // showStatusData: ImmutableMap<name, [getBoxFunc, getHpRatioFunc, progressValue, [Sprite, Sprite]]>,
+    showStatusData: ImmutableMap<name, [getBoxFunc, getHpRatioFunc, progressValue, Sprite]>,
+    markStatusData: ImmutableMap<name, [getBoxFunc, Sprite]>,
+    // dataPool: List<[Sprite, Sprite]>,
+
+    isNotDamage: ImmutableMap<name, boolean>,
+
+    playerStateStatus: playerStateStatus,
+    bossStateStatus: bossStateStatus,
+}
+
+
+export type singleBuff = {
+    buffName: buffName,
+    imageSrc: string,
+
+    characterType: characterType,
+
+    // target: target,
+    name: name,
+    usedGirl: nullable<usedGirl>,
+    // usedGirl: usedGirl,
+
+    superPositionCount: number,
+    time: secondUnit,
+    // maxSuperPositionCount: number,
+
+    sumValue: number,
+
+
+    isPositive: boolean,
+
+
+    isWorkInContinueLevels?: boolean,
+
+    getDescriptionFunc: (state: state, funcData: funcData, superPositionCount: number, sumValue: number) => string,
+}
+
+type buffKey = string
+
+export type buff = {
+    // buffs: List<singleBuff>,
+    // remainedBuffsForNextLevel: List<singleBuff>,
+
+    buffs: Record<buffKey, singleBuff>,
+    remainedBuffsForNextLevel: Record<buffKey, singleBuff>,
+
+    sumValueMap: Record<buffName, Record<name, number>>,
+}
+
+export type staticDynamicUnit = {
+    defenseFactorMap: ImmutableMap<name, defenseFactor>,
+    moveSpeedMap: ImmutableMap<name, speed>,
+    attackFactorMap: ImmutableMap<name, attackFactor>,
+    emitSpeedFactorMap: ImmutableMap<name, emitSpeedFactor>,
+    // emitterLifeFactorMap: ImmutableMap<name, emitterLife>,
+    critRatioFactorMap: ImmutableMap<name, critRatioFactor>,
+    // missRatioMap: ImmutableMap<name,>,
+}
+
+export enum interactionName {
+    ChestBox,
+    TradeGirl,
+    // WarGirl,
+    // BlessGirl,
+    FateGirl,
+}
+
+export type interaction = {
+    // chestBox: nullable<LODQueue>,
+    queues: Array<LODQueue>,
+
+    isUsedMap: ImmutableMap<name, boolean>,
+
+    // currentInteractioName: nullable<interactionName>,
+    currentInteractioData: nullable<[LODQueue, lodQueueIndex]>,
+    // isTriggeringEvent: boolean,
+
+    tradeVarietyFactor: number,
+    freeBuyCount: number,
+}
+
+
+export enum cameraFarLevel {
+    Normal,
+
+    VeryHigh,
+    High,
+    Middle,
+    Low,
+}
+
+export type mod = {
+    api: api,
+    // renderAccuracy: renderAccuracyLevel,
+    cameraFar: cameraFarLevel,
+    allBlockNames: Array<blockName>,
+
+    allServicesCache: Map<string, blockService>,
+
+    // giantessStressingRate: number,
+}
+
+
+// export enum destroyUnit {
+//     Soldier,
+//     MilltaryVehicle,
+//     MilltaryBuilding,
+//     EliteGiantess,
+//     LevelGiantess,
+//     Other,
+// }
+
+type namePrefix = string
+
+export type littleManStatistic = {
+    totalDamageForce: number,
+    destroyUnitCountMap: Record<namePrefix, number>,
+}
+
+export type giantessStatistic = {
+    totalDamageForce: number,
+    destroyUnitCountMap: Record<namePrefix, number>,
+}
+
+export type statistic = {
+    littleMan: littleManStatistic,
+    giantess: giantessStatistic,
+}
+
+export type internation = {
+    textData: dataInternation,
+    textDataByVariable: variableData,
+    imageData: imageData,
+}
+
+
+type characterFastPropData = ImmutableMap<number, {
+    usePropFunc: any,
+    propName: string,
+    propImageSrc: string,
+}>
+
+export type fastProp = {
+    littleMan: characterFastPropData,
+    giantess: characterFastPropData,
+}
+
+// type pxStr = string
+type rem = number
+
+export type operate = {
+    savedOperatePosition: Record<characterType,
+        Record<actionName, {
+            // left: pxStr,
+            // top: pxStr,
+            right: rem,
+            bottom: rem,
+        }>
+    >,
+    isStartDrag: boolean,
+}
+
+export enum role {
+    None = 0,
+    Player = 1,
+    Vip = 2,
+}
+
+export enum activeType {
+    No = 0,
+    Full = 1,
+}
+
+export type day = number
+
+export type momentMillisecondUnit = number
+
+export type user = {
+    isLogin: boolean,
+
+    registerTime: nullable<momentMillisecondUnit>,
+    // lastLoginTime: nullable<millisecondUnit>,
+    lastGetRewardTime: nullable<momentMillisecondUnit>,
+    // wholeGameTime: nullable<millisecondUnit>,
+    role: role,
+    activeType: activeType,
+    activeDuration: day,
+    activeTime: nullable<momentMillisecondUnit>,
+    activeCode: nullable<string>,
+    lastActiveTime: nullable<momentMillisecondUnit>,
+}
 
 export type cityScene = {
+    debug: debug,
+
+    time: time,
+
+    tweenManager: tweenManager,
+
     isFirstEnter: boolean,
+    // isMustStopLoop: boolean,
+    isMustStopLoop: boolean,
+    isDisposed: boolean,
 
     scene: nullable<Object3D>,
 
     sceneChapter: scene,
-    levelNumber: number,
-    levelData: Map<string, any>,
+    levelNumber: levelNumber,
+    levelData: ImmutableMap<string, any>,
 
     // mode: mode,
-
-    hpMap: Map<name, number>,
 
     damageData: damageData,
 
@@ -1341,6 +2572,10 @@ export type cityScene = {
     milltaryVehicle: milltaryVehicle,
     milltaryBuilding: milltaryBuilding,
 
+
+    // eliteGiantess: eliteGiantess,
+
+
     army: army,
 
     map: map,
@@ -1355,12 +2590,47 @@ export type cityScene = {
 
     configData: configData,
 
-    littleManSetting: littleManSetting,
-    giantessSetting: giantessSetting,
+    // littleManSetting: littleManSetting,
+    // giantessSetting: giantessSetting,
 
-    littleManSettingInGame: littleManSettingInGame,
+    // littleManSettingInGame: littleManSettingInGame,
 
-    biwuSetting: biwuSetting,
+    // biwuSetting: biwuSetting,
 
     climb: climb,
+
+    reward: reward,
+    build: build,
+    // prop: prop,
+
+    character: character,
+
+    armyDirector: armyDirector,
+    gameEventDirector: gameEventDirector,
+
+    difficulty: difficulty_,
+
+    status: status,
+
+    buff: buff,
+
+    staticDynamicUnit: staticDynamicUnit,
+
+    interaction: interaction,
+
+    mod: mod,
+
+    statistic: statistic,
+
+    internation: internation,
+
+    fastProp: fastProp,
+
+    eliteGiantess: eliteGiantess,
+
+    operate: operate,
+
+    user: user,
+
+
 }

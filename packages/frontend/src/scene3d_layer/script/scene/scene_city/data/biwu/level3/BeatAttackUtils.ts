@@ -1,6 +1,6 @@
 import { Console } from "meta3d-jiehuo-abstract"
 import { state } from "../../../../../../type/StateType"
-import { actionNodeFunc, behaviourTreeNodeExecuteResult, result } from "../../../type/StateType"
+import { actionNodeFunc, behaviourTreeNodeExecuteResult, result, usedGirl,usedGirlEnum } from "../../../type/StateType"
 import { markIsRunning } from "../../../utils/BehaviourManagerUtils"
 import { getIdExn, markFinish, setId } from "../../../behaviour_tree/BehaviourTreeManager"
 import { Vector3 } from "three"
@@ -10,8 +10,8 @@ import { getAbstractState, setAbstractState, writeState } from "../../../../../.
 import { Flow } from "meta3d-jiehuo-abstract"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import * as LittleManTransform from "../../../little_man/Transform";
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
-import { getMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
+import { getMMDAnimationHelper, hasMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
 import { getDataFactor, getDownTarget } from "./ActionNodeUtils"
 import { computeDamage } from "../ActionNodeUtils"
 import { getCollisionPartOBB } from "../../../girl/Collision"
@@ -20,9 +20,10 @@ import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getIsDebug } from "../../../../Scene"
 import { getGirlVolume, getLittleManVolume } from "../../../utils/SoundUtils"
 import { getBeatSoundResourceId } from "../../../manage/biwu/level3/ManageScene"
-import { getGirlState } from "../../../girl/Girl"
-import { getOrbitControlsTarget } from "../../../LittleManCamera"
+import { getOrbitControlsTarget, moveCameraForScreenShake } from "../../../LittleManCamera"
 import { collisionPart } from "./CollisionShapeData"
+import { addTweens } from "../../../TweenManager"
+import { getUsedGirlData } from "../../../girl/Girl"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 // const _b1 = /*@__PURE__*/ new Box3();
@@ -56,6 +57,7 @@ let _getData = (state: state): data => {
 
     return {
         force: 0.05 * factor,
+        // force: 0.02 * factor,
         // downForce: 8 * factor,
         // rubForce: 3 * factor,
         // // expandSize: 2,
@@ -98,16 +100,16 @@ let _buildKeyForDeferByTime = () => "BeatAttack_DeferByTime"
 
 
 let _downAndUp = (state,
-    [getBoneFunc, isFootIKBoneFunc,
+    [getBoneFunc, isIKBoneFunc,
         getOriginBoneLocalPositionFunc,
         markIsNotActionFunc,
         setCurrentTweensFunc,
-    ],
+    ], usedGirl: usedGirl,
     collisionPart_,
     actionName_,
     key
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -118,18 +120,18 @@ let _downAndUp = (state,
     let downTarget
     switch (collisionPart_) {
         case collisionPart.RightHand:
-            downTarget = getDownTarget(state, worldPosition, 5, "右中指１", "右腕ＩＫ")
+            downTarget = getDownTarget(state, usedGirl, worldPosition, 5, "右中指１", "右腕ＩＫ")
             break
         case collisionPart.LeftHand:
-            downTarget = getDownTarget(state, worldPosition, 5, "左中指１", "左腕ＩＫ")
+            downTarget = getDownTarget(state, usedGirl, worldPosition, 5, "左中指１", "左腕ＩＫ")
             break
         default:
             throw new Error("err")
     }
 
-    let d2 = createTween(state,
+    let d2 = createTween(state, usedGirl,
         [
-            isFootIKBoneFunc,
+            isIKBoneFunc,
             (bone, object) => {
                 let _ = TransformUtils.setWorldPosition(bone, getAbstractState(state), _v1.set(
                     object.x,
@@ -139,19 +141,19 @@ let _downAndUp = (state,
             },
             state => {
                 const force = _getData(state).force
-                let collisionPartOBB = getCollisionPartOBB(state, collisionPart_)
-                return computeDamage(state, collisionPartOBB, buildDownDirection(), _getRandomForce(force)).then(([state, isHit]) => {
-                    getGirlState(state).screenShake.shake(getOrbitControlsTarget, 3, 150)
+                let collisionPartOBB = getCollisionPartOBB(state, usedGirl, collisionPart_)
+                return computeDamage(state, usedGirl, collisionPartOBB, buildDownDirection(), _getRandomForce(force)).then(([state, isHit]) => {
+                    getUsedGirlData(state, usedGirl).screenShake.shake(moveCameraForScreenShake, 3, 150)
 
-                    state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getBeatSoundResourceId(), getIsDebug(state), getGirlVolume(state, LittleManTransform.getWorldPosition(state)))))
+                    state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getBeatSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl, collisionPartOBB.center))))
 
                     state = setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
                         return Promise.resolve(_up(state,
-                            [getBoneFunc, isFootIKBoneFunc,
+                            [getBoneFunc, isIKBoneFunc,
                                 getOriginBoneLocalPositionFunc,
                                 markIsNotActionFunc,
                                 setCurrentTweensFunc,
-                            ],
+                            ], usedGirl,
                             actionName_,
                             key
                         )
@@ -179,19 +181,21 @@ let _downAndUp = (state,
 
     state = setCurrentTweensFunc(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
 let _up = (state: state,
-    [getBoneFunc, isFootIKBoneFunc,
+    [getBoneFunc, isIKBoneFunc,
         getOriginBoneLocalPositionFunc,
         markIsNotActionFunc,
         setCurrentTweensFunc,
-    ],
+    ], usedGirl: usedGirl,
     actionName_,
     key
 ) => {
-    let d = getBoneFunc(state)
+    let d = getBoneFunc(state, usedGirl)
     state = d[0]
     let bone = d[1]
 
@@ -199,9 +203,9 @@ let _up = (state: state,
 
     let boneLocalPositionBeforeDown = getOriginBoneLocalPositionFunc(state)
 
-    let d2 = createTween(state,
+    let d2 = createTween(state, usedGirl,
         [
-            isFootIKBoneFunc,
+            isIKBoneFunc,
             (bone, object) => {
                 bone.position.copy(_v1.set(
                     object.x,
@@ -217,10 +221,10 @@ let _up = (state: state,
                 state = markIsNotActionFunc(state)
 
 
-                state = _clearIKBoneCustomData(state, actionName_)
+                state = _clearIKBoneCustomData(state, usedGirl, actionName_)
 
 
-                return markFinish(state, getIdExn(state, actionName_), behaviourTreeNodeExecuteResult.Success, key).then(writeState)
+                return markFinish(state, usedGirl, getIdExn(state, usedGirl, actionName_), behaviourTreeNodeExecuteResult.Success, key).then(writeState)
             }
         ],
         {
@@ -240,11 +244,13 @@ let _up = (state: state,
 
     state = setCurrentTweensFunc(state, [tween])
 
+    state = addTweens(state, [tween])
+
     return state
 }
 
-// let _getHandIKBone = (state: state) => {
-//     return getBone(state, Girl.getGirl(state), "左腕ＩＫ")
+// let _getHandIKBone = (state: state, usedGirl) => {
+//     return getBone(state,usedGirl, Girl.getGirl(state, usedGirl), "左腕ＩＫ")
 // }
 
 // let _isHandIKBone = (bone) => {
@@ -254,13 +260,13 @@ let _up = (state: state,
 export let attack = (
     [
         getBoneFunc,
-        isFootIKBoneFunc,
+        isIKBoneFunc,
         getOriginBoneLocalPositionFunc,
         setOriginBoneLocalPositionFunc,
         markIsActionFunc,
         markIsNotActionFunc,
         setCurrentTweensFunc,
-    ],
+    ], usedGirl: usedGirl,
     collisionPart_,
     actionName_,
     key): actionNodeFunc => {
@@ -273,11 +279,11 @@ export let attack = (
         // })
         state = markIsActionFunc(state)
 
-        state = markIsRunning(state, true, key)
+        state = markIsRunning(state, usedGirl, true, key)
 
-        state = setId(state, actionName_, id)
+        state = setId(state, usedGirl, actionName_, id)
 
-        let d = getBoneFunc(state)
+        let d = getBoneFunc(state, usedGirl)
 
         state = d[0]
         let bone = d[1]
@@ -289,11 +295,11 @@ export let attack = (
         state = setOriginBoneLocalPositionFunc(state, bone.position.clone())
 
         state = _downAndUp(state,
-            [getBoneFunc, isFootIKBoneFunc,
+            [getBoneFunc, isIKBoneFunc,
                 getOriginBoneLocalPositionFunc,
                 markIsNotActionFunc,
                 setCurrentTweensFunc,
-            ],
+            ], usedGirl,
             collisionPart_,
             actionName_,
             key
@@ -303,8 +309,10 @@ export let attack = (
     }
 }
 
-let _clearIKBoneCustomData = (state: state, actionName_) => {
-    MutableMapUtils.remove(getMMDAnimationHelper(getAbstractState(state)).ikBoneCustomData, actionName_)
+let _clearIKBoneCustomData = (state: state, usedGirl, actionName_) => {
+    if (hasMMDAnimationHelper(getAbstractState(state), usedGirl)) {
+        MutableRecordUtils.remove(getMMDAnimationHelper(getAbstractState(state), usedGirl).ikBoneCustomData, actionName_)
+    }
 
     return state
 }
@@ -315,10 +323,10 @@ let _clearIKBoneCustomData = (state: state, actionName_) => {
 //     return state
 // }
 
-export let dispose = (state: state, actionName_) => {
+export let dispose = (state: state, usedGirl, actionName_) => {
     // state = setAbstractState(state, Event.off(getAbstractState(state), getTwoHandsDefaultToOneFingerEndEventName(), _twoHandsDefaultToOneFingerEndHandler))
 
-    state = _clearIKBoneCustomData(state, actionName_)
+    state = _clearIKBoneCustomData(state, usedGirl, actionName_)
 
     return state
 }

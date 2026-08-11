@@ -1,14 +1,16 @@
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getAbstractState, setAbstractState } from "../../../../../../../state/State"
 import { state } from "../../../../../../../type/StateType"
-import { emitShellEmitOrExplode, handleHitArmy } from "../../../../utils/ArmyUtils"
+import { emitShellEmitOrExplode } from "../../../../utils/ArmyUtils"
 import { Box3, Vector3 } from "three"
 import { getVolume } from "../../../../utils/SoundUtils"
 import { getIsDebug } from "../../../../../Scene"
-import { getShellGunBarretHitSoundResourceId } from "../../../../CityScene"
-import { getValue } from "../MissileVehicle"
+import { getMissileRackHitSoundResourceId, getShellGunBarretHitSoundResourceId } from "../../../../CityScene"
 import { explodeSize } from "../../../../data/ValueType"
 import { computeHitPosition } from "../../../../utils/WeaponUtils"
+import { getValue } from "../../../../weapon/MissileRack"
+import { handleHitArmy } from "../../../../utils/ArmyUtils2"
+import { TupleUtils } from "meta3d-jiehuo-abstract"
 
 const _v1 = new Vector3();
 const _v2 = new Vector3();
@@ -21,7 +23,7 @@ export let handleMissileHitStatic = (state: state, handleFunc, position,
     let hitPositionVec = computeHitPosition(position, pointBox, direction, 0.8)
 
     state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
-        SoundManager.buildNeedToPlaySoundData(getShellGunBarretHitSoundResourceId(), getIsDebug(state), getVolume(state, getValue(state).emitterVolume,
+        SoundManager.buildNeedToPlaySoundData(getMissileRackHitSoundResourceId(), getIsDebug(state), getVolume(state, getValue(state).emitterVolume,
             hitPositionVec,
             0
         ))
@@ -31,11 +33,29 @@ export let handleMissileHitStatic = (state: state, handleFunc, position,
         hitPositionVec.toArray(),
         explodeSize.Big)
 
-    return handleFunc(state)
+    return handleFunc(state).then(TupleUtils.getTuple2First)
 }
 
-export let handleMissileHitGirl = handleMissileHitStatic
+export let handleMissileHitGirl = (state: state, handleFunc, usedGirl, position,
+    pointBox: Box3,
+    direction: [number, number, number]
+) => {
+    let hitPositionVec = computeHitPosition(position, pointBox, direction, 0.8)
 
-// export let handleMissileHitArmy = handleHitArmy(handleMissileHitStatic)
+    state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
+        SoundManager.buildNeedToPlaySoundData(getMissileRackHitSoundResourceId(), getIsDebug(state), getVolume(state, getValue(state).emitterVolume,
+            hitPositionVec,
+            0
+        ))
+    ))
+
+    state = emitShellEmitOrExplode(state,
+        hitPositionVec.toArray(),
+        explodeSize.Big)
+
+    return handleFunc(state).then(TupleUtils.getTuple2First)
+}
+
+export let handleMissileHitArmy = handleHitArmy(handleMissileHitStatic)
 
 export let handleMissileHitLittleMan = handleMissileHitStatic

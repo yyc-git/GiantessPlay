@@ -23,14 +23,7 @@ module.exports = {
         // devMiddleware: {
         //     writeToDisk: true,
         // },
-        client: {
-            logging: 'error', // 只显示错误，不显示警告,
-            overlay: {
-                warnings: false
-            }
-        },
     },
-    // stats: 'errors-only', // 只输出错误信息
 
 
     // // Enable sourcemaps for debugging webpack's output.
@@ -107,7 +100,7 @@ module.exports = {
             hash: true, // cache busting
             filename: 'index.html',
             inject: true,
-            favicon: path.resolve('favicon.ico'),//favicon路径
+            favicon: path.resolve('favicon_cn.ico'),//favicon路径
         }),
         new CopyWebpackPlugin({
             patterns: [
@@ -122,7 +115,24 @@ module.exports = {
                 {
                     from: '../meta3d-jiehuo-abstract/src/resource/',
                     to: './meta3d-jiehuo-abstract/'
-                }
+                },
+
+
+                {
+                    from: '../../mods/',
+                    to: './'
+                },
+
+
+
+                {
+                    from: '../website/chinese/build/',
+                    to: './website/chinese/'
+                },
+                {
+                    from: '../website/english/build/',
+                    to: './website/english/'
+                },
             ],
         }),
     ],

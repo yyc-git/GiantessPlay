@@ -23,7 +23,7 @@ import { Flow } from "meta3d-jiehuo-abstract"
 import { buildDownDirection, buildRandomDirectionInXZ } from "../../../../../../utils/DirectionUtils"
 import { ensureCheck, requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { InstanceSourceLOD as InstanceSourceLODType } from "meta3d-jiehuo-abstract/src/lod/InstanceSourceLOD"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { fontType, fsm_state, labelAnimation, lodQueueIndex, name, shellParticle, staticLODContainerIndex, tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Collision } from "meta3d-jiehuo-abstract"
@@ -34,29 +34,29 @@ import { GPUSkin } from "meta3d-jiehuo-abstract"
 import { LODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/LODQueue"
 import { Device } from "meta3d-jiehuo-abstract"
 import { InstancedSkinLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedSkinLOD2"
-import { armyValue, emitPrecision, emitSpeed, emitVolume, emitterLife, emitterSize, emitterSpeed, objectValue, milltaryValue, explodeSize } from "../../../data/ValueType"
+import { armyValue, emitPrecision, emitSpeed, emitterVolume, emitterLife, emitterSize, emitterSpeed, objectValue, milltaryValue, explodeSize } from "../../../data/ValueType"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import { Loader } from "meta3d-jiehuo-abstract"
-import { add, buildQueue } from "../../../utils/LODQueueUtils"
+import { add, buildQueue } from "../../../utils/AviailableLODQueueUtils"
 import { fixZFighting } from "meta3d-jiehuo-abstract/src/utils/MaterialUtils"
 import { solveBlackBoardProblem } from "meta3d-jiehuo-abstract/src/utils/TextureUtils"
 import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import { buildStatus } from "../../../utils/LODContainerUtils"
 import { getRandomCollisionPart, isNearGirl } from "../../../utils/CollisionUtils"
 import { buildMultipleTweens, computeEuler, computeMoveTime, getMoveData, position, singleMoveData } from "../../../utils/MoveUtils"
-import { RenderSetting } from "meta3d-jiehuo-abstract"
+
 import { LabelManager } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { convertPositionFromThreejsToBlender } from "../../../utils/BlenderUtils"
 import { getGrid } from "../PathFind"
 import { ModelLoader } from "meta3d-jiehuo-abstract"
-import { parseArmyVehicleQueues, parseCharacter } from "../WholeScene"
+import { getNearDistance, parseArmyVehicleQueues } from "../WholeScene"
 import { Render } from "meta3d-jiehuo-abstract"
-import { getActualHeight, getGirlPositionParrelToObj, getPositionParrelToObj, getScale, getSmallGirlBox } from "../../../girl/Utils"
+import { getActualHeight, getGirlPositionParrelToObj, getPositionParrelToObj, getScale } from "../../../girl/Utils"
 import { ParticleManager } from "meta3d-jiehuo-abstract"
 // import { InstancedSkinnedMesh } from "meta3d-jiehuo-abstract/src/gpu_skin/InstancedSkinnedMesh"
 import * as Buildings from "../Buildings"
-import { getCollisionPartCenter, queryAllOBBShapesCollisionWithBox } from "../../../girl/Collision"
+import { getCollisionPartCenter, queryOBBShapeCollisionWithBox } from "../../../girl/Collision"
 import { SoundManager } from "meta3d-jiehuo-abstract"
 import { getVolume } from "../../../utils/SoundUtils"
 import { InstancedLOD2 } from "meta3d-jiehuo-abstract/src/lod/lod2/InstancedLOD2"
@@ -64,14 +64,13 @@ import { HierachyLODQueue } from "meta3d-jiehuo-abstract/src/lod/lod2/HierachyLO
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { findArticluatedAnimationData, playArticluatedAnimation } from "../../../data/DataUtils"
 import * as HierachyLODQueueUtils from "../../../utils/HierachyLODQueueUtils"
-import { articluatedAnimationName, defenseFactor, excitement, forceSize, hp, speed } from "../../../data/DataType"
+import { armorStrength, armorRatio, articluatedAnimationName, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, excitement, forceSize, hp, speed, armorType } from "../../../data/DataType"
 import { LOD } from "meta3d-jiehuo-abstract"
-import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, setParticleNeedCollisionCheckLoopCount, getParticleNeedCollisionCheckLoopCount, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy, emitShellEmitOrExplode, buildGunBarrelTween, deferFire, getTargetBox, getLittleManPositionParrelToArmy, getTargetPositionParrelToArmy } from "../../../utils/ArmyUtils"
+import { getShootDirection, updateAI, createMoveState as createMoveStateUtils, checkParticleCollisionWithStatic, getGirlPositionParrelToArmy, emitShellEmitOrExplode, buildGunBarrelTween, deferFire, getTargetBox, getLittleManPositionParrelToArmy, getTargetPositionParrelToArmy, computeAttackFrames } from "../../../utils/ArmyUtils"
 import * as Girl from "../../../girl/Girl"
 import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { getTransformData, updatePositionTween } from "../../../data/InstancedLOD2Utils"
 import { clearTween } from "../../../utils/TweenUtils"
-
 import { getLocalTransform as getLocalTransformUtils, getBoxForPick as getBoxForPickUtils } from "../../../girl/PickPoseUtils"
 import { getGiantessTransformFunc, getPickTransformPrefix } from "../../../utils/SkeletonUtils"
 import * as ShellGunBarrel from "../../../weapon/ShellGunBarrel"
@@ -83,8 +82,13 @@ import { getTankResourceId, getModelData, modelName } from "../../../army_data/M
 import * as MilltaryVehicle from "./MilltaryVehicle"
 import { Console } from "meta3d-jiehuo-abstract"
 import { getCurrentScene } from "meta3d-jiehuo-abstract/src/scene/Scene"
-import { getAttackTarget } from "../Army"
+import { getAttackTargetExn, getCampExn } from "../Army"
 import * as LittleManTransform from "../../../little_man/Transform"
+import { getNamePrefixTank, isTankUtils } from "./MilltaryVehicleUtils"
+import { updateArmyValue } from "../../../difficulty/HeatImplementer"
+import { getEmitSpeedFactor } from "../../../StaticDynamicUnit"
+import { getParticleNeedCollisionCheckLoopCount } from "../../../utils/ArmyUtils2"
+import { MutableMapUtils } from "meta3d-jiehuo-abstract"
 
 const _q = new Quaternion();
 const _e = new Euler();
@@ -94,7 +98,7 @@ const _v2 = new Vector3();
 const _v1_1 = new Vector2();
 const _v1_2 = new Vector2();
 
-export let getNamePrefix = () => `${MilltaryVehicle.getNamePrefix()}_tank`
+export let getNamePrefix = getNamePrefixTank
 
 export let buildTankCategoryName = getNamePrefix
 
@@ -172,14 +176,19 @@ export let getAllMeshData = (group: Group) => {
 	]
 }
 
-export let isTank = (name: string) => {
-	return name.includes(getNamePrefix())
-}
+export let isTank = isTankUtils
 
-export let getValue = (state:state): armyValue & milltaryValue => {
-	return {
+export let getValue = (state: state) => {
+	return updateArmyValue<armyValue & milltaryValue>(state, {
 		excitement: excitement.High,
-		defenseFactor: defenseFactor.High,
+		defenseFactor: defenseFactor.Middle,
+		armorType: armorType.Heavy,
+		armorRatio: armorRatio.Heavy,
+		armorStrength: armorStrength.Middle,
+		attackFactor: attackFactor.VeryLow2,
+		emitSpeedFactor: emitSpeedFactor.Low,
+		critRatioFactor: critRatioFactor.Low,
+		//missRatio: missRatio.VeryLow,
 		hp: hp.Middle,
 		// hp: 15000,
 
@@ -189,15 +198,9 @@ export let getValue = (state:state): armyValue & milltaryValue => {
 		// speed: 3,
 
 
-		// TODO update
-		// emitSpeed: emitSpeed.Middle,
-		emitSpeed: emitSpeed.Slow,
-		emitVolume: emitVolume.Middle,
+		// emitSpeed: emitSpeed.Slow,
 		emitPrecision: emitPrecision.High,
-
-
-		emitterVolume: emitVolume.Big,
-	}
+	})
 }
 
 export let getTankBodyQueue = (state: state): HierachyLODQueue => {
@@ -264,7 +267,7 @@ export let getModelAllQueues = (state: state): [HierachyLODQueue, HierachyLODQue
 // }
 
 
-let _getAllBodyNames = (state): Array<string> => {
+let _getAllBodyNames = (state) => {
 	return MilltaryVehicle.getModelQueueByQueueName(state,
 		buildTankCategoryName(),
 		buildBodyLODQueueName(buildTankCategoryName())).names
@@ -288,10 +291,11 @@ export let initWhenImportScene = (state: state) => {
 				getAllMeshData,
 				MilltaryVehicle.setData,
 				setHierachy,
+				box => box
 			],
 			tank.scene,
 			boxFactor,
-			500,
+			getNearDistance,
 			true,
 			getScene(state)
 		)
@@ -304,12 +308,12 @@ export let initWhenImportScene = (state: state) => {
 		.then(state => {
 			let abstractState = getAbstractState(state)
 
-			abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat([MilltaryVehicle.getModelQueueByQueueName(state, buildTankCategoryName(), buildBodyLODQueueName(buildTankCategoryName()))]))
+			// abstractState = Collision.setPlayerMoveCollisionableContainers(abstractState, Collision.getPlayerMoveCollisionableContainers(abstractState).concat([MilltaryVehicle.getModelQueueByQueueName(state, buildTankCategoryName(), buildBodyLODQueueName(buildTankCategoryName()))]))
 
 
 			state = setAbstractState(state, abstractState)
 
-			return ArrayUtils.reducePromise(_getAllBodyNames(state), (state, name) => {
+			return MutableMapUtils.reducePromise(_getAllBodyNames(state), (state, name) => {
 				state = setAbstractState(state, Flow.addDeferExecFuncData(getAbstractState(state), (state) => {
 					return StateMachine.changeAndExecuteState(state, MilltaryVehicle.setStateMachine, MilltaryVehicle.getStateMachine(state, name), createFireState(), name, NullableUtils.return_(name))
 				}, 1))
@@ -317,10 +321,6 @@ export let initWhenImportScene = (state: state) => {
 				return StateMachine.execute(state, MilltaryVehicle.getStateMachine(state, name), name)
 			}, state)
 		})
-}
-
-let _getFullHp = (state) => {
-	return getValue(state).hp
 }
 
 
@@ -400,7 +400,7 @@ let _fixGimbalLock = (turretLookatEuler, turretEuler) => {
 	return turretLookatEuler
 }
 
-let _buildTurretTween = (state, [bodyQueue, turretQueue], name, allModelQueues, lODQueueIndex, targetPart) => {
+let _buildTurretTween = (state, [bodyQueue, turretQueue]: [HierachyLODQueue, HierachyLODQueue], name, allModelQueues, lODQueueIndex, targetPart) => {
 	let turretPosition = MilltaryVehicle.getTurretPosition(turretQueue, lODQueueIndex)
 
 	let targetPosition = getTargetPositionParrelToArmy(state, name, turretPosition.y, targetPart)
@@ -417,7 +417,7 @@ let _buildTurretTween = (state, [bodyQueue, turretQueue], name, allModelQueues, 
 		getIsDebug(state)
 	)
 
-	let turretTransform = turretQueue.transforms[lODQueueIndex].clone()
+	let turretTransform = turretQueue.getTransform(lODQueueIndex).clone()
 
 
 	let turretEuler = TransformUtils.getRotationEulerFromMatrix4(turretTransform)
@@ -435,7 +435,7 @@ let _buildTurretTween = (state, [bodyQueue, turretQueue], name, allModelQueues, 
 	// )
 
 
-	let bodyTransform = bodyQueue.transforms[lODQueueIndex].clone()
+	let bodyTransform = bodyQueue.getTransform(lODQueueIndex).clone()
 	let bodyEuler = TransformUtils.getRotationEulerFromMatrix4(bodyTransform)
 
 	turretLookatEuler.set(turretLookatEuler.x, turretLookatEuler.y - bodyEuler.z, turretLookatEuler.z)
@@ -459,24 +459,29 @@ let _buildTurretTween = (state, [bodyQueue, turretQueue], name, allModelQueues, 
 		.onUpdate(() => {
 			let state = readState()
 
-			// let box = makeBoxHeightMax(getCollisionPartOBB(state, targetPart).toBox3())
+			// let box = makeBoxHeightMax(getCollisionPartOBB(state, usedGirl,  targetPart).toBox3())
 
+			let targetBox = getTargetBox(state, name, targetPart)
+			if (NullableUtils.isNullable(targetBox)) {
+				return tween.end()
+			}
+			targetBox = NullableUtils.getExn(targetBox)
 
 			if (MilltaryVehicle.isRoughTowardsTarget(state,
 				_buildRoughFireRay,
-				allModelQueues, lODQueueIndex, makeBoxHeightMax(getTargetBox(state, name, targetPart)))) {
+				allModelQueues, lODQueueIndex, makeBoxHeightMax(targetBox))) {
 				return tween.end()
 			}
 
 
-			turretQueue.transforms[lODQueueIndex] = TransformUtils.setQuaternionToMatrix4(
+			turretQueue.setTransform(lODQueueIndex, TransformUtils.setQuaternionToMatrix4(
 				turretTransform,
 				_q.setFromEuler(_e.set(
 					0,
 					0,
 					object.y,
 				))
-			)
+			))
 
 			state = setAbstractState(state, LOD.markNeedsUpdate(getAbstractState(state), bodyQueue.name, lODQueueIndex, true))
 
@@ -539,9 +544,9 @@ let _playFireAnimation = (
 	onCompleteFunc, state: state, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex,
 	name
 ) => {
-	let gunBarrelTransform = gunBarrelQueue.transforms[lODQueueIndex]
+	let gunBarrelTransform = gunBarrelQueue.getTransform(lODQueueIndex)
 	let gunBarrelLocalPosition = TransformUtils.getPositionFromMatrix4(gunBarrelTransform)
-	let gunBarrelBox = gunBarrelQueue.boxes[lODQueueIndex]
+	let gunBarrelBox = gunBarrelQueue.getBox(lODQueueIndex)
 
 	let articluatedAnimationData = findArticluatedAnimationData(state, articluatedAnimationName.Tank_Fire)
 	let fireAnimationTweens = playArticluatedAnimation(state,
@@ -576,7 +581,8 @@ let _playFireAnimation = (
 			},
 			(allTweens) => {
 				DamageUtils.handleTweenRepeatComplete2(onCompleteFunc, allTweens, articluatedAnimationData.repeatCount)
-			}
+			},
+			NullableUtils.getEmpty()
 		],
 		articluatedAnimationData
 	)
@@ -588,53 +594,61 @@ let _playFireAnimation = (
 
 
 
-let _fireShell = (state: state, name, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex, targetPart) => {
+let _fireShell = (state: state, name, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex, targetPart, targetBox) => {
 	let tankPosition = TransformUtils.getPositionFromMatrix4(bodyQueue.getWorldMatrix(lODQueueIndex))
 
+	let { emitterVolume } = ShellGunBarrel.getValue(state)
 	let {
-		emitSpeed,
-		emitVolume,
 		emitPrecision
 	} = getArmyValueForAttack(state, getValue(state), tankPosition)
 	let {
+		emitSpeed,
 		emitterSpeed,
 		emitterLife,
 		emitterSize,
 	} = ShellGunBarrel.getValue(state)
 
+
+	// let targetBox = getTargetBox(state, name, targetPart)
+	// if (NullableUtils.isNullable(targetBox)) {
+	//     return state
+	// }
+	targetBox = NullableUtils.getExn(targetBox)
+
 	// let fireRay = _buildRoughFireRay([bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex)
-	let targetPosition = getTargetBox(state, name, targetPart).getCenter(new Vector3())
+	let targetPosition = targetBox.getCenter(new Vector3())
 
-	return deferFire(state, (state) => {
-		state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
-			SoundManager.buildNeedToPlaySoundData(getShellGunBarretEmitSoundResourceId(), getIsDebug(state), getVolume(state, emitVolume, tankPosition, 0.0))
-		))
-
+	state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state),
+		SoundManager.buildNeedToPlaySoundData(getShellGunBarretEmitSoundResourceId(), getIsDebug(state), getVolume(state, emitterVolume, tankPosition, 0.0))
+	))
 
 
-		let emitPosition = _getShellStartLocalPosition(bodyQueue, gunBarrelQueue, lODQueueIndex).toArray()
 
+	let emitPosition = _getShellStartLocalPosition(bodyQueue, gunBarrelQueue, lODQueueIndex).toArray()
 
-		state = setAbstractState(state, ParticleManager.emitShell(getAbstractState(state), {
-			fromName: name,
-			speed: emitterSpeed,
-			life: emitterLife,
-			size: emitterSize,
-			// position: fireRay.origin.toArray(),
-			position: emitPosition,
-			// direction: getShootDirection(fireRay.direction, emitPrecision).toArray()
-			direction: getShootDirection(
-				targetPosition.clone().sub(_v1.fromArray(emitPosition)).normalize(),
-				emitPrecision).toArray()
-		},
-			getParticleNeedCollisionCheckLoopCount(state)
-		))
+	let camp = getCampExn(state, name)
 
-		state = emitShellEmitOrExplode(state, emitPosition, explodeSize.Middle)
+	state = setAbstractState(state, ParticleManager.emitShell(getAbstractState(state), {
+		fromName: name,
+		camp,
+		speed: emitterSpeed,
+		life: emitterLife,
+		size: emitterSize,
+		// position: fireRay.origin.toArray(),
+		position: emitPosition,
+		// direction: getShootDirection(fireRay.direction, emitPrecision).toArray()
+		direction: getShootDirection(
+			targetPosition.clone().sub(_v1.fromArray(emitPosition)).normalize(),
+			emitPrecision).toArray()
+	},
+		getParticleNeedCollisionCheckLoopCount(state, emitterSpeed)
+	))
 
+	state = emitShellEmitOrExplode(state, emitPosition, explodeSize.Middle)
 
-		state = _playFireAnimation(state => {
-			return Promise.resolve(MilltaryVehicle.fire(state,
+	return _playFireAnimation(state => {
+		return Promise.resolve(deferFire(state, (state) => {
+			return MilltaryVehicle.fire(state,
 				[
 					_buildRoughFireRay,
 					_rotateTowardsTarget,
@@ -642,11 +656,10 @@ let _fireShell = (state: state, name, [bodyQueue, turretQueue, gunBarrelQueue], 
 					getTankBodyQueue,
 					ShellGunBarrel.getValue
 				],
-				name, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex, targetPart))
-		}, state, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex, name)
+				name, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex, targetPart)
+		}, name, computeAttackFrames(state, name, emitSpeed)))
+	}, state, [bodyQueue, turretQueue, gunBarrelQueue], lODQueueIndex, name)
 
-		return Promise.resolve(state)
-	}, name, emitSpeed)
 }
 
 
@@ -662,16 +675,17 @@ export let createFireState = MilltaryVehicle.createFireState(
 )
 
 
-let _getInitialEulerForTweenToFaceNegativeX = () => {
+let _getInitialEulerForMoveTween = () => {
 	// return new Euler(-Math.PI / 2, 0, 0)
-	return new Euler(0, 0, 0)
+	// return NullableUtils.return_(new Euler(0, 0, 0))
+	return NullableUtils.return_(new Euler(0, Math.PI / 2, 0))
 }
 
 export let createMoveState = (state) => {
 	return MilltaryVehicle.createMoveState(
 		[
 			getTankBodyQueue,
-			_getInitialEulerForTweenToFaceNegativeX
+			_getInitialEulerForMoveTween
 		],
 		getValue(state),
 		modelName.Tank
@@ -682,7 +696,7 @@ export let createMoveState = (state) => {
 // 	return MilltaryVehicle.createStressingState(
 // 		[
 // 			getTankBodyQueue,
-// 			_getFullHp,
+// 			getFullHp,
 
 // 			getModelAllQueues,
 // 			_buildRoughFireRay,
@@ -698,9 +712,12 @@ let _setStatus = (state: state, status, index) => {
 	let turretQueue = MilltaryVehicle.getModelQueueByQueueName(state, buildTankCategoryName(), buildTurretLODQueueName(buildTankCategoryName()))
 	let gunBarrelQueue = MilltaryVehicle.getModelQueueByQueueName(state, buildTankCategoryName(), buildGunBarrelLODQueueName(buildTankCategoryName()))
 
-	LOD.setStatusForLODQueue(getAbstractState(state), bodyQueue.names[index], status)
-	LOD.setStatusForLODQueue(getAbstractState(state), turretQueue.names[index], status)
-	LOD.setStatusForLODQueue(getAbstractState(state), gunBarrelQueue.names[index], status)
+	// LOD.setStatusForLODQueue(getAbstractState(state), bodyQueue.getName(index), status)
+	// LOD.setStatusForLODQueue(getAbstractState(state), turretQueue.getName(index), status)
+	// LOD.setStatusForLODQueue(getAbstractState(state), gunBarrelQueue.getName(index), status)
+	bodyQueue.setStatus(index, status)
+	turretQueue.setStatus(index, status)
+	gunBarrelQueue.setStatus(index, status)
 
 	return state
 }
@@ -722,15 +739,18 @@ export let updateQueue = (state: state) => {
 }
 
 export let initialAttributes = (state, name, index) => {
-	return MilltaryVehicle.initialAttributes(state, [getValue, _getFullHp], name, index)
+	return MilltaryVehicle.initialAttributes(state, [getValue, getFullHp], name, index)
 }
 
 export let damage = (damageFunc) => {
-	return (state: state, forceData, fromName, damagePosition, transforms, boxes, names) => {
+	return (state: state, forceData, weaponValue_, fromName, damagePosition,
+		// critRatioFactor,
+		// attackFactor,
+		transforms, boxes, names) => {
 		return damageFunc(state,
 			[
 				getTankBodyQueue,
-				_getFullHp,
+				getFullHp,
 				_setStatus,
 				MilltaryVehicle.emitBodyExplode,
 
@@ -738,12 +758,16 @@ export let damage = (damageFunc) => {
 				_buildRoughFireRay,
 				_rotateTowardsTarget,
 				_fireShell,
-				ShellGunBarrel.getValue
+				ShellGunBarrel.getValue,
+				setScaleY
 			],
 			getShellGunBarretHitSoundResourceId(),
 			getValue(state),
 
-			forceData, fromName, damagePosition, transforms, boxes, names
+			forceData, weaponValue_, fromName, damagePosition,
+			// critRatioFactor,
+			// attackFactor,
+			transforms, boxes, names
 		)
 	}
 }
@@ -763,12 +787,35 @@ export let update = (state: state) => {
 
 export let getPickedTransform = MilltaryVehicle.getPickedTransform(modelName.Tank)
 
+export let getUBControlledTransform = MilltaryVehicle.getUBControlledTransform(modelName.Tank)
+
+export let getPutToBreastTransform = MilltaryVehicle.getPutToBreastTransform(modelName.Tank)
+
+export let getPutToShoeTransform = MilltaryVehicle.getPutToShoeTransform(modelName.Tank)
+
 
 export let handlePickup = MilltaryVehicle.handlePickup
 
 export let updateTransform = MilltaryVehicle.updateTransform
 
 export let handlePickdown = MilltaryVehicle.handlePickdown(getTankBodyQueue)
+
+export let handleFall = MilltaryVehicle.handleFall(getTankBodyQueue)
+
+export let handleRepel = MilltaryVehicle.handleRepel(getTankBodyQueue)
+
+export let handleUBControl = MilltaryVehicle.handleUBControl
+
+export let handlePutToBreast = MilltaryVehicle.handlePutToBreast
+
+export let handlePutToShoe = MilltaryVehicle.handlePutToShoe
+
+export let updateUBControlledTransform = MilltaryVehicle.updateUBControlledTransform
+
+export let updatePutToBreastTransform = MilltaryVehicle.updatePutToBreastTransform
+
+export let updatePutToShoeTransform = MilltaryVehicle.updatePutToShoeTransform
+
 
 export let getLocalTransform = MilltaryVehicle.getLocalTransform
 
@@ -779,3 +826,24 @@ export let getBoxForPick = MilltaryVehicle.getBoxForPick
 export let getModelQueueIndex = MilltaryVehicle.getModelQueueIndex
 
 export let getHp = MilltaryVehicle.getHp
+
+export let getHpRatio = (state, name) => {
+	return MilltaryVehicle.getHpWithDefault(state, name) / getFullHp(state)
+}
+
+export let updateHp = MilltaryVehicle.updateHp
+
+export let getFullHp = (state) => {
+	return getValue(state).hp
+}
+
+
+export let getSnapshot = () => `./resource/ui/in_game/snapshot/tank.png`
+
+export let createInitialState = MilltaryVehicle.createInitialState
+
+export let getModelName = () => modelName.Tank
+
+export let setScaleY = (scale: Vector3, factor) => {
+	return scale.setZ(scale.z * factor)
+}

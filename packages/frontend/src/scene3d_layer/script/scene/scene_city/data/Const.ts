@@ -1,129 +1,139 @@
-import { getName } from "../girl/Girl"
 import { animationName } from "./DataType"
 import { getConfigData, getName as getSceneName } from "../CityScene"
 import { state } from "../../../../type/StateType"
+import { animationData } from "./ValueType"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
+// import { getAnimationFrameCount as getAnimationFrameCountMod } from "../../../../mod/SkillGiantessMod"
 
-export let getAnimationFrameCountMap = () => {
-	return {
+export let getAnimationFrameCountMap = (state: state, getAnimationFrameCountModFunc) => {
+	return MutableRecordUtils.concat(
+		{
 
-		[animationName.Walk]: 32,
-		[animationName.Run]: 20,
-		[animationName.Stomp]: 70,
+			[animationName.Walk]: 32,
+			[animationName.Run]: 20,
+			// [animationName.Stomp]: 70,
 
-		[animationName.BreastPress]: 80,
-		[animationName.KeepCrawl]: 120,
-		[animationName.StandToCrawl]: 60,
-		[animationName.CrawlToStand]: 60,
-		[animationName.CrawlMove]: 39,
-
-
-
-		[animationName.Pickup]: 90,
-		[animationName.Pickdown]: 65,
-		[animationName.KeepPick]: 30,
-		[animationName.Pinch]: 40,
-		[animationName.Eat]: 60,
+			// [animationName.BreastPress]: 80,
+			[animationName.KeepCrawl]: 120,
+			[animationName.StandToCrawl]: 60,
+			[animationName.CrawlToStand]: 60,
+			[animationName.CrawlMove]: 39,
 
 
 
-
-		[animationName.HeavyStressing]: 60,
-		[animationName.HeavyStressingBreast]: 60,
-		[animationName.HeavyStressingTrigoneAndButt]: 60,
-		[animationName.Death]: 60,
-
-
-		[animationName.CrawlHeavyStressing]: 60,
-		[animationName.CrawlHeavyStressingBreast]: 60,
-		[animationName.CrawlHeavyStressingTrigoneAndButt]: 60,
-		[animationName.CrawlDeath]: 60,
+			[animationName.Pickup]: 90,
+			[animationName.Pickdown]: 65,
+			[animationName.KeepPick]: 30,
+			[animationName.Pinch]: 40,
+			[animationName.Eat]: 60,
 
 
-		[animationName.Hello]: 50,
-	} as Record<animationName, number>
+
+
+			[animationName.HeavyStressing]: 60,
+			[animationName.HeavyStressingBreast]: 60,
+			[animationName.HeavyStressingTrigoneAndButt]: 60,
+			[animationName.Death]: 60,
+
+
+			[animationName.CrawlHeavyStressing]: 60,
+			[animationName.CrawlHeavyStressingBreast]: 60,
+			[animationName.CrawlHeavyStressingTrigoneAndButt]: 60,
+			[animationName.CrawlDeath]: 60,
+
+
+			// [animationName.Hello]: 50,
+		} as Record<animationName, number>,
+		getAnimationFrameCountModFunc(state)
+	)
 }
 
 export let getAnimationFrameCount = (state: state, animationName_) => {
 	return getConfigData(state).girlAllAnimationFrameCountMap[animationName_]
 }
 
-export let getAnimationFrameCountWithoutState = (animationName_) => {
-	return getAnimationFrameCountMap()[animationName_]
+export let getAnimationFrameCountWithoutState = (state, getAnimationFrameCountModFunc, animationName_) => {
+	return getAnimationFrameCountMap(state, getAnimationFrameCountModFunc)[animationName_]
 }
 
-export let getMikuResourcePath = (name) => `./resource_girl/${name}/miku_v2.pmd`
-
-export let getNeruResourcePath = (name) => `./resource_girl/${name}/Neru_Akita.pmd`
-
-export let getLukaResourcePath = (name) => `./resource_girl/${name}/Luka_Megurine.pmd`
-
-export let getMeikoResourcePath = (name) => `./resource_girl/${name}/Meiko/Meiko_Sakine.pmx`
-
-export let getHakuQPResourcePath = (name) => `./resource_girl/${name}/旗袍 Haku/tda haku QP.pmx`
-// export let getHakuQPResourcePath = (name) => `./resource_girl/${name}/Tda Miku Standard Base 2.5/Tda Miku Standard Base 2.5.pmx`
-
-export let getHakuLadyResourcePath = (name) => `./resource_girl/${name}/The TDA Lady Haku Is Trump Ver2.00 [Silver]/The TDA Lady Haku Is Trump Ver2.00 [Silver].pmx`
-
-// export let getLuoli1ResourcePath = (name) => `./resource_girl/${name}/ぷにる/傉偵傞_僶僢僌塃.pmx`
-
-export let getBaixiMaidResourcePath = (name) => `./resource_girl/${name}/女仆白希/女仆白希安全裤.pmx`
-
-export let getXiahuiResourcePath = (name) => `./resource_girl/${name}/TDA式宴 夏卉/TDA Utage CORAL COAST.pmx`
-
-export let getXiaye1ResourcePath = (name) => `./resource_girl/${name}/Tda 夏夜1 HMS illustrious Prom Dress Ver1.00 [Silver]/Tda HMS illustrious Prom Dress Ver1.00 [Silver].pmx`
-
-export let getXiaye2ResourcePath = (name) => `./resource_girl/${name}/TDA 夏夜2 MOON LIGHT DANCER LTY/TDA MOON LIGHT DANCER LTY.pmx`
-
-export let getNeroResourcePath = (name) => `./resource_girl/${name}/TDA Nero Claudius L2 bride Ver 1.00/TDA Nero Claudius L2 bride.pmx`
-
-export let getChangeeResourcePath = (name) => `./resource_girl/${name}/TDA 嫦娥123话OL装 Ver 1.00/TDA 嫦娥123话OL装 Ver 1.00.pmx`
-
-// export let getLuotianyiResourcePath = (name) => `./resource_girl/${name}/TDA 洛天依旗袍 芒种 Ver1.00/TDA 洛天依旗袍 芒种 Ver1.00.pmx`
-
-export let getMiku1ResourcePath = (name) => `./resource_girl/${name}/Tda初音Ver1.10/Tda幃弶壒儈僋丒傾儁儞僪_Ver1.10.pmx`
-
-export let getVanillaResourcePath = (name) => `./resource_girl/${name}/Vanilla v1.0/Vanilla.pmx`
-
-export let getMeibiwusiResourcePath = (name) => `./resource_girl/${name}/梅比乌斯OL装/梅比乌斯5.0.pmx`
-
-export let getMoyeResourcePath = (name) => `./resource_girl/${name}/摩耶ver1.04/捁奀夵擇ver1.04.pmx`
+export let getAnimationData = (state: state, animationName_): animationData => {
+	return getConfigData(state).girlAnimationData[animationName_]
+}
 
 
-export let getMikuResourceId = () => `${getSceneName()}_${getName()}_${getMikuResourcePath(getName())}`
+// export let getMikuResourcePath = (name) => `./resource_girl/${name}/miku_v2.pmd`
 
-export let getNeruResourceId = () => `${getSceneName()}_${getName()}_${getNeruResourcePath(getName())}`
+// export let getNeruResourcePath = (name) => `./resource_girl/${name}/Neru_Akita.pmd`
 
-export let getLukaResourceId = () => `${getSceneName()}_${getName()}_${getLukaResourcePath(getName())}`
+// export let getLukaResourcePath = (name) => `./resource_girl/${name}/Luka_Megurine.pmd`
 
-export let getMeikoResourceId = () => `${getSceneName()}_${getName()}_${getMeikoResourcePath(getName())}`
+// export let getMeikoResourcePath = (name) => `./resource_girl/${name}/Meiko/Meiko_Sakine.pmx`
 
-export let getHakuQPResourceId = () => `${getSceneName()}_${getName()}_${getHakuQPResourcePath(getName())}`
+// export let getHakuQPResourcePath = (name) => `./resource_girl/${name}/旗袍 Haku/tda haku QP.pmx`
+// // export let getHakuQPResourcePath = (name) => `./resource_girl/${name}/Tda Miku Standard Base 2.5/Tda Miku Standard Base 2.5.pmx`
 
-export let getHakuLadyResourceId = () => `${getSceneName()}_${getName()}_${getHakuLadyResourcePath(getName())}`
+// export let getHakuLadyResourcePath = (name) => `./resource_girl/${name}/The TDA Lady Haku Is Trump Ver2.00 [Silver]/The TDA Lady Haku Is Trump Ver2.00 [Silver].pmx`
 
-// export let getLuoli1ResourceId = () => `${getSceneName()}_${getName()}_${getLuoli1ResourcePath(getName())}`
+// // export let getLuoli1ResourcePath = (name) => `./resource_girl/${name}/ぷにる/傉偵傞_僶僢僌塃.pmx`
 
-export let getBaixiMaidResourceId = () => `${getSceneName()}_${getName()}_${getBaixiMaidResourcePath(getName())}`
+// export let getBaixiMaidResourcePath = (name) => `./resource_girl/${name}/女仆白希/女仆白希安全裤.pmx`
 
-export let getXiahuiResourceId = () => `${getSceneName()}_${getName()}_${getXiahuiResourcePath(getName())}`
+// export let getXiahuiResourcePath = (name) => `./resource_girl/${name}/TDA式宴 夏卉/TDA Utage CORAL COAST.pmx`
 
-export let getXiaye1ResourceId = () => `${getSceneName()}_${getName()}_${getXiaye1ResourcePath(getName())}`
+// export let getXiaye1ResourcePath = (name) => `./resource_girl/${name}/Tda 夏夜1 HMS illustrious Prom Dress Ver1.00 [Silver]/Tda HMS illustrious Prom Dress Ver1.00 [Silver].pmx`
 
-export let getXiaye2ResourceId = () => `${getSceneName()}_${getName()}_${getXiaye2ResourcePath(getName())}`
+// export let getXiaye2ResourcePath = (name) => `./resource_girl/${name}/TDA 夏夜2 MOON LIGHT DANCER LTY/TDA MOON LIGHT DANCER LTY.pmx`
 
-export let getNeroResourceId = () => `${getSceneName()}_${getName()}_${getNeroResourcePath(getName())}`
+// export let getNeroResourcePath = (name) => `./resource_girl/${name}/TDA Nero Claudius L2 bride Ver 1.00/TDA Nero Claudius L2 bride.pmx`
 
-export let getChangeeResourceId = () => `${getSceneName()}_${getName()}_${getChangeeResourcePath(getName())}`
+// export let getChangeeResourcePath = (name) => `./resource_girl/${name}/TDA 嫦娥123话OL装 Ver 1.00/TDA 嫦娥123话OL装 Ver 1.00.pmx`
 
-// export let getLuotianyiResourceId = () => `${getSceneName()}_${getName()}_${getLuotianyiResourcePath(getName())}`
+// // export let getLuotianyiResourcePath = (name) => `./resource_girl/${name}/TDA 洛天依旗袍 芒种 Ver1.00/TDA 洛天依旗袍 芒种 Ver1.00.pmx`
 
-export let getMiku1ResourceId = () => `${getSceneName()}_${getName()}_${getMiku1ResourcePath(getName())}`
+// export let getMiku1ResourcePath = (name) => `./resource_girl/${name}/Tda初音Ver1.10/Tda幃弶壒儈僋丒傾儁儞僪_Ver1.10.pmx`
 
-export let getVanillaResourceId = () => `${getSceneName()}_${getName()}_${getVanillaResourcePath(getName())}`
+// export let getVanillaResourcePath = (name) => `./resource_girl/${name}/Vanilla v1.0/Vanilla.pmx`
 
-export let getMeibiwusiResourceId = () => `${getSceneName()}_${getName()}_${getMeibiwusiResourcePath(getName())}`
+// export let getMeibiwusiResourcePath = (name) => `./resource_girl/${name}/梅比乌斯OL装/梅比乌斯5.0.pmx`
 
-export let getMoyeResourceId = () => `${getSceneName()}_${getName()}_${getMoyeResourcePath(getName())}`
+// export let getMoyeResourcePath = (name) => `./resource_girl/${name}/摩耶ver1.04/捁奀夵擇ver1.04.pmx`
+
+
+// export let getMikuResourceId = () => `${getSceneName()}_${getName()}_${getMikuResourcePath(getName())}`
+
+// export let getNeruResourceId = () => `${getSceneName()}_${getName()}_${getNeruResourcePath(getName())}`
+
+// export let getLukaResourceId = () => `${getSceneName()}_${getName()}_${getLukaResourcePath(getName())}`
+
+// export let getMeikoResourceId = () => `${getSceneName()}_${getName()}_${getMeikoResourcePath(getName())}`
+
+// export let getHakuQPResourceId = () => `${getSceneName()}_${getName()}_${getHakuQPResourcePath(getName())}`
+
+// export let getHakuLadyResourceId = () => `${getSceneName()}_${getName()}_${getHakuLadyResourcePath(getName())}`
+
+// // export let getLuoli1ResourceId = () => `${getSceneName()}_${getName()}_${getLuoli1ResourcePath(getName())}`
+
+// export let getBaixiMaidResourceId = () => `${getSceneName()}_${getName()}_${getBaixiMaidResourcePath(getName())}`
+
+// export let getXiahuiResourceId = () => `${getSceneName()}_${getName()}_${getXiahuiResourcePath(getName())}`
+
+// export let getXiaye1ResourceId = () => `${getSceneName()}_${getName()}_${getXiaye1ResourcePath(getName())}`
+
+// export let getXiaye2ResourceId = () => `${getSceneName()}_${getName()}_${getXiaye2ResourcePath(getName())}`
+
+// export let getNeroResourceId = () => `${getSceneName()}_${getName()}_${getNeroResourcePath(getName())}`
+
+// export let getChangeeResourceId = () => `${getSceneName()}_${getName()}_${getChangeeResourcePath(getName())}`
+
+// // export let getLuotianyiResourceId = () => `${getSceneName()}_${getName()}_${getLuotianyiResourcePath(getName())}`
+
+// export let getMiku1ResourceId = () => `${getSceneName()}_${getName()}_${getMiku1ResourcePath(getName())}`
+
+// export let getVanillaResourceId = () => `${getSceneName()}_${getName()}_${getVanillaResourcePath(getName())}`
+
+// export let getMeibiwusiResourceId = () => `${getSceneName()}_${getName()}_${getMeibiwusiResourcePath(getName())}`
+
+// export let getMoyeResourceId = () => `${getSceneName()}_${getName()}_${getMoyeResourcePath(getName())}`
 
 
 
@@ -134,10 +144,10 @@ export let getWalkAnimationResourcePath = (name) => `./resource_girl/${name}/vmd
 
 export let getRunAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/run.vmd`
 
-export let getStompAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/stomp.vmd`
+// export let getStompAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/stomp.vmd`
 
 
-export let getBreastPressAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/breast_press.vmd`
+// export let getBreastPressAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/breast_press.vmd`
 
 export let getCrawlMoveAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/crawl_move.vmd`
 

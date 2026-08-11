@@ -1,0 +1,12 @@
+import { getBlockName } from "../script/Utils"
+import { particleType } from "particle-protocol/src/state/StateType"
+
+export let getImagePath = () => `./${getBlockName()}/src/asset/particle.png`
+
+export let getImageId = getImagePath
+
+export let getColCount = () => 3
+
+export let getRowCount = () => 5
+
+export let getParticleType = () => particleType.Billboard

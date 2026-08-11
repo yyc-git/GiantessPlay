@@ -9,12 +9,11 @@ import { getAbstractState, setAbstractState } from "../../../../../../../state/S
 import { computeAndSetDirectionData, convertPathPointToVec3Position, convertVec3PositionToPathPoint, isReach, optimizeFirstPathPoint, stopMove } from "../../../../behaviour_tree/action_node/WalkToTarget";
 import { getPivotWorldPosition, setPivotWorldPositionAndUpdateBox, unlockGirlRotation } from "../../../../girl/Utils";
 import { getGridForGirl } from "../../../../manage/city1/PathFind";
-import { getName } from "../../../../girl/Girl";
 import { getIsDebug, getIsNotTestPerf } from "../../../../../Scene";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { NumberUtils } from "meta3d-jiehuo-abstract";
 import { CameraControls } from "meta3d-jiehuo-abstract";
-import { road } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { characterType } from "meta3d-jiehuo-abstract/src/type/StateType";
 import { Flow } from "meta3d-jiehuo-abstract";
 import { actionName } from "../../../../data/biwu/level1/DataType";
 import { triggerAction as triggerGirlAction } from "../../Girl";
@@ -26,6 +25,10 @@ import { enterScenario, exitScenario, markBegin, markFinish, moveCamera, playGir
 import { getCustomData, getCustomDataExn, setCustomData } from "../../../../game_event/GameEvent";
 import { lookatTargetPosition } from "../../../../behaviour_tree/action_node/Utils";
 import { pickdownArmy, walkToTargetPosition } from "../../scenario/Command";
+import { getUsedGirl, setGirlCanDamageTarget } from "../../Utils";
+import { setIsNotDamage } from "../../../../Status";
+import { isAllowMoveCollision } from "../../../../girl/Move";
+import { buildNameByUsedGirl } from "../../../../girl/Girl";
 
 const _q1 = new Quaternion();
 const _v1 = new Vector3();
@@ -35,7 +38,7 @@ type pickdownArmyData = {
 	index: number
 }
 
-export let getCommand = (command_: commandData) => {
+export let getCommand = (state, command_: commandData) => {
 	switch (command_) {
 		case commandData.walkToTargetPosition:
 			return walkToTargetPosition
@@ -72,26 +75,26 @@ export let getCommand = (command_: commandData) => {
 // let _move = (state: state, onCompleteFunc, pathIndex, path, targetPosition) => {
 // 	// let stopMoveResult = NullableUtils.getEmpty()
 
-// 	// if (!hasTarget(state)) {
+// 	// if (!hasTarget(state, usedGirl)) {
 // 	//     return _stopMove(state, id, behaviourTreeNodeExecuteResult.Fail)
 // 	// }
 
 
 // 	if (pathIndex + 1 >= path.length
-// 		// || isInGirlAttackRange(state, targetPosition, attackRange.Small, NullableUtils.getEmpty())
+// 		// || isInGirlAttackRange(state, usedGirl, targetPosition, attackRange.Small, NullableUtils.getEmpty())
 // 		// || isMoveCollisioned(state)
 // 	) {
 // 		// stopMoveResult = NullableUtils.return_(behaviourTreeNodeExecuteResult.Success)
 
 
-// 		state = setAbstractState(state, CameraControls.resetDirectionData(getAbstractState(state), road.Giantess))
+// 		state = setAbstractState(state, CameraControls.resetDirectionData(getAbstractState(state), characterType.Giantess))
 // 		// return stopMove(state, id, NullableUtils.getExn(stopMoveResult))
 // 		return onCompleteFunc(state)
 // 	}
 // 	// else if (
 // 	//     isMoveCollisioned(state)
-// 	//     || isChangeScaling(state)
-// 	//     || isStressingState(getStateMachine(state))
+// 	//     || isChangeScaling(state, usedGirl)
+// 	//     || isControlledState(state, getStateMachine(state))
 // 	// ) {
 // 	//     stopMoveResult = NullableUtils.return_(behaviourTreeNodeExecuteResult.Fail)
 // 	// }
@@ -110,7 +113,7 @@ export let getCommand = (command_: commandData) => {
 // 		if (isReach(state, path[pathIndex + 1])) {
 // 			state = setPivotWorldPositionAndUpdateBox(state, convertPathPointToVec3Position(path[pathIndex + 1]))
 
-// 			// if (!hasTarget(state)) {
+// 			// if (!hasTarget(state, usedGirl)) {
 // 			//     state = _stopMove(state, id, behaviourTreeNodeExecuteResult.Fail)
 
 // 			//     return Promise.resolve(state)
@@ -124,8 +127,8 @@ export let getCommand = (command_: commandData) => {
 // 		//     Console.warn(`far away from ${path[pathIndex + 1].toArray()}`)
 
 // 		//     // Console.warn(
-// 		//     //     convertVec3PositionToPathPoint(getPivotWorldPosition(state)),
-// 		//     //     convertVec3PositionToPathPoint(getPivotWorldPosition(state)).distanceTo(
+// 		//     //     convertVec3PositionToPathPoint(getPivotWorldPosition(state, usedGirl)),
+// 		//     //     convertVec3PositionToPathPoint(getPivotWorldPosition(state, usedGirl)).distanceTo(
 // 		//     //         path[pathIndex + 1]
 // 		//     //     )
 // 		//     // )
@@ -154,7 +157,7 @@ export let getCommand = (command_: commandData) => {
 // 	let targetPosition = _v1.fromArray(data.targetPosition)
 
 // 	let pathData = PathFind.findPath(getAbstractState(state), finder,
-// 		convertVec3PositionToPathPoint(getPivotWorldPosition(state)),
+// 		convertVec3PositionToPathPoint(getPivotWorldPosition(state, usedGirl)),
 // 		convertVec3PositionToPathPoint(targetPosition),
 // 		getGridForGirl(state),
 // 		getName(),
@@ -175,7 +178,7 @@ export let getCommand = (command_: commandData) => {
 // 		}
 
 
-// 		// state = markIsRunning(state, true)
+// 		// state = markIsRunning(state, usedGirl,true)
 
 
 // 		state = unlockGirlRotation(state)
@@ -217,31 +220,41 @@ export let getCommand = (command_: commandData) => {
 export let lookat: command<{
 	getTargetPositionFunc: (state: state) => [number, number, number]
 }> = (state: state, onCompleteFunc, data) => {
+	let usedGirl = getUsedGirl()
 	// state = lookatTargetPosition(state, (state, lookatQuaternion) => lookatQuaternion, LittleManTransform.getWorldPosition(state))
-	state = lookatTargetPosition(state, (state, lookatQuaternion) => lookatQuaternion, _v1.fromArray(data.getTargetPositionFunc(state)))
+	state = lookatTargetPosition(state, (state, lookatQuaternion) => lookatQuaternion, usedGirl, _v1.fromArray(data.getTargetPositionFunc(state)))
 
 	return Promise.resolve(state)
 }
 
 export let wait: command<number> = (state: state, onCompleteFunc, data) => {
-	state = markWhetherNotExecuteGiantessAI(state, true)
+	// state = markWhetherNotExecuteGiantessAI(state,usedGirl, true)
 
 	return Promise.resolve(setAbstractState(state, Flow.addDeferExecFuncDataByTime(getAbstractState(state), (state) => {
-		state = markWhetherNotExecuteGiantessAI(state, false)
+		// state = markWhetherNotExecuteGiantessAI(state,usedGirl, false)
 
 		return onCompleteFunc(state)
 	}, data / 1000)))
 }
 
 export let stompLittleMan: command<null> = (state: state, onCompleteFunc, data) => {
-	state = markWhetherNotExecuteGiantessAI(state, false)
+	let usedGirl = getUsedGirl()
 
-	state = setTarget(state, {
+	state = markWhetherNotExecuteGiantessAI(state, usedGirl, false)
+
+	state = setGirlCanDamageTarget(state, usedGirl)
+	state = setIsNotDamage(state, buildNameByUsedGirl(usedGirl), false)
+	state = isAllowMoveCollision(state, usedGirl, true)
+
+	state = setTarget(state, usedGirl, {
 		isAliveFunc: (state) => {
 			return true
 		},
 		getPositionFunc: (state) => {
 			return LittleManTransform.getPosition(state)
+		},
+		getStateMachineFunc: (state, name) => {
+			return LittleMan.getStateMachine(state)
 		},
 
 		name: LittleMan.getName(),

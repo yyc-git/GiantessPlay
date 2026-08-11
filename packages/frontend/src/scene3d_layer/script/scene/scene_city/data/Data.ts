@@ -1,126 +1,106 @@
-import { actionState, breastPressPhase, collisionPart, crawlMovePhase, crawlToStandPhase, eatPhase, pinchPhase, pose, runPhase, standToCrawlPhase, stompPhase, walkPhase } from "../type/StateType"
-import { actionData, actionName, animationBlendData, animationCollisionData, animationName, articluatedAnimationData, articluatedAnimationName, effect, particle, phaseData, skillStressingFactor, track } from "./DataType"
-import { getWalkLeftSoundResourceId, getWalkRightSoundResourceId, getStompSoundResourceId, getWalkVehicle1SoundResourceId, getWalkVehicle2SoundResourceId, getLaughSoundResourceId, getWalkCharacterSoundResourceId, getStandToCrawlHandSoundResourceId, getStandToCrawlShankSoundResourceId, getBreastPressLaughSoundResourceId, getPinchMilltarySoundResourceId, getPinchCharacterSoundResourceId, getEatSoundResourceId } from "../CityScene"
+import { actionState, collisionPart, crawlMovePhase, crawlToStandPhase, eatPhase, pinchPhase, pose, runPhase, standToCrawlPhase, stompPhase, usedGirlEnum, walkPhase } from "../type/StateType"
+import { actionData, actionName, animatioNameAndActionName, animationBlendData, animationCollisionData, animationName, articluatedAnimationData, articluatedAnimationName, effect, experienceFactor, giantessForceSize, particle, phaseData, skillStressingFactor, skillStressingValue, track } from "./DataType"
+import { getWalkLeftSoundResourceId, getWalkRightSoundResourceId, getWalkVehicle1SoundResourceId, getWalkVehicle2SoundResourceId, getWalkCharacterSoundResourceId, getStandToCrawlHandSoundResourceId, getStandToCrawlShankSoundResourceId, getPinchMilltarySoundResourceId, getPinchCharacterSoundResourceId, getEatSoundResourceId } from "../CityScene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
-import { Vector3 } from "three"
-import { buildHitTerrainEventData, buildPickdownEventData, buildPickupEventData, getCrawlToStandEventName, getEatEventName, getHitTerrainEventName, getPickdownEventName, getPickupEventName, getPinchJudageDamageEventName, getStandToCrawlEventName } from "../../../../utils/EventUtils"
+import { AnimationMixer, Vector3 } from "three"
+import { buildStompHitTerrainEventData, buildPickdownEventData, buildPickupEventData, getCrawlToStandEventName, getEatEventName, getStompHitTerrainEventName, getPickdownEventName, getPickupEventName, getPinchJudageDamageEventName, getStandToCrawlEventName, getMoveHitTerrainEventName, buildMoveHitTerrainEventData } from "../../../../utils/EventUtils"
 import { getIsDebug } from "../../Scene"
-import { getEatRemovePickDataFrameIndex, getEatWorkFrameIndex, getPickObjectBox, getPickObjectQueueName, getPickdownWorkFrameIndex, getPickupWorkFrameIndex, getPinchWorkFrameIndex, hasPickData } from "../girl/PickPose"
+import { getEatRemovePickDataFrameIndex, getEatWorkFrameIndex, getPickObjectBox, getPickdownWorkFrameIndex, getPickupWorkFrameIndex, getPinchWorkFrameIndex, getRandomPickObjectName, hasPickData } from "../girl/PickPoseUtils"
 import { getMaxForce } from "../utils/DamageUtils"
 import * as MilltaryVehicle from "../manage/city1/milltary_vehicle/MilltaryVehicle"
-import { getFirstFrameIndex, getLastFrameIndex } from "../utils/DataUtils"
+import { getEarlyFrameIndex, getLastFrameIndex, getLateFrameIndex } from "../utils/DataUtils"
 import { getAllAnimationNames, getDamageAnimationNames } from "../girl/Animation"
 import { getAnimationFrameCountWithoutState } from "./Const"
 import { getPositionParrelToObj } from "../girl/Utils"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
+import { getShoeType } from "./mmd/Shoe"
+import { getCollisionPartOBB } from "../girl/Collision"
+import { isMilltaryVehicle } from "../manage/city1/milltary_vehicle/MilltaryVehicleUtils"
+import { animationData } from "./ValueType"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
+import { isMilltaryBuilding } from "../manage/city1/milltary_building/MilltaryBuildingUtils"
+import { getSoundSetting } from "../../../../mod/SettingMod"
+import { getGiantessVolume } from "../utils/SoundUtils"
+import { getAnimationBlendData as getAnimationBlendDataMod, getAnimationCollisionData as getAnimationCollisionDataMod, getActionData as getActionDataMod, getPhase as getPhaseMod, getSkillStressingFactor as getSkillStressingFactorMod, getAnimationData as getAnimationDataMod, getAnimationFrameCount, } from "../../../../mod/SkillGiantessMod"
+import { state } from "../../../../type/StateType"
+import { getModAPI } from "../Mod"
 
 const _v1 = new Vector3();
 const _v2 = new Vector3();
+const _v3 = new Vector3();
 
-let _getAnimationNamesExceptDamageNames = () => {
-	return getAllAnimationNames().filter(name => {
-		return !getDamageAnimationNames().includes(name)
+export let getAnimationNamesExceptDamageNames = (state) => {
+	return getAllAnimationNames(state).filter(name => {
+		return !getDamageAnimationNames(state).includes(name)
 	})
 }
 
-export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, getFrameIndexFunc, isSpecificFrameIndexFunc, isEndFunc, isPreviousAnimationFunc, hasPickDataFunc]): animationBlendData<animationName> => {
+export let getAnimationBlendData = (state: state, [{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, getFrameIndexFunc, isSpecificFrameIndexFunc, isEndFunc, isPreviousAnimationFunc, hasPickDataFunc]): animationBlendData<animationName> => {
 	return [
 		{
-			condition: state => {
-				return isMoveFunc(state) && isActionStateFunc(state, actionState.Initial)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl) && isActionStateFunc(state, usedGirl, actionState.Initial)
 			},
 			currentAnimationNames: [animationName.Idle],
 			nextAnimationName: animationName.Walk
 		},
 		{
-			condition: state => {
-				return isMoveFunc(state) && isActionStateFunc(state, actionState.Run)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl) && isActionStateFunc(state, usedGirl, actionState.Run)
 			},
 			currentAnimationNames: [animationName.Idle],
 			nextAnimationName: animationName.Run
 		},
 		{
-			condition: state => {
-				return isMoveFunc(state) && isActionStateFunc(state, actionState.Run)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl) && isActionStateFunc(state, usedGirl, actionState.Run)
 			},
 			currentAnimationNames: [animationName.Walk],
 			nextAnimationName: animationName.Run
 		},
 		{
-			condition: state => {
-				return !isMoveFunc(state)
-				//  && !hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return !isMoveFunc(state, usedGirl)
+				//  && !hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Walk],
 			nextAnimationName: animationName.Idle
 		},
 		{
-			condition: state => {
-				return !isMoveFunc(state)
-				//  && !hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return !isMoveFunc(state, usedGirl)
+				//  && !hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Run],
 			nextAnimationName: animationName.Idle
 		},
 		{
-			condition: state => {
-				return isMoveFunc(state) && isActionStateFunc(state, actionState.Initial)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl) && isActionStateFunc(state, usedGirl, actionState.Initial)
 			},
 			currentAnimationNames: [animationName.Run],
 			nextAnimationName: animationName.Walk
 		},
 
-		{
-			condition: state => {
-				return isEndFunc(state, animationName.Stomp, getIsDebug(state)) && !hasPickDataFunc(state)
-			},
-			currentAnimationNames: [animationName.Stomp],
-			nextAnimationName: animationName.Idle,
-			noBlend: true
-		},
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Stomp)
-			},
-			currentAnimationNames: [animationName.Idle],
-			weight: 0.5,
-			nextAnimationName: animationName.Stomp
-		},
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Stomp)
-			},
-			currentAnimationNames: [animationName.Walk],
-			weight: 0.5,
-			nextAnimationName: animationName.Stomp
-		},
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Stomp)
-			},
-			currentAnimationNames: [animationName.Run],
-			weight: 0.5,
-			nextAnimationName: animationName.Stomp
-		},
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.StandToCrawl)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.StandToCrawl)
 			},
 			currentAnimationNames: [animationName.Idle],
 			weight: 0.5,
 			nextAnimationName: animationName.StandToCrawl
 		},
 		{
-			condition: state => {
-				// return getFrameIndexFunc(state, animationName.StandToCrawl) >= getAnimationFrameCountWithoutState( animationName.StandToCrawl) * 6 / 7
-				// return getFrameIndexFunc(state, animationName.StandToCrawl) >= 58
+			condition: (state, usedGirl) => {
+				// return getFrameIndexFunc(state, usedGirl, animationName.StandToCrawl) >= getAnimationFrameCountWithoutState getAnimationFrameCount( animationName.StandToCrawl) * 6 / 7
+				// return getFrameIndexFunc(state, usedGirl, animationName.StandToCrawl) >= 58
 
-				// return isSpecificFrameIndexFunc(getFrameIndexFunc(state, animationName.StandToCrawl),
-				// 	getAnimationFrameCountWithoutState( animationName.StandToCrawl),
-				// 	getAnimationFrameCountWithoutState( animationName.StandToCrawl),
+				// return isSpecificFrameIndexFunc(getFrameIndexFunc(state, usedGirl, animationName.StandToCrawl),
+				// 	getAnimationFrameCountWithoutState( animationName.StandToCrawl), getAnimationFrameCount
+				// 	getAnimationFrameCountWithoutState( animationName.StandToCrawl), getAnimationFrameCount
 				// )
-				return isEndFunc(state, animationName.StandToCrawl, getIsDebug(state))
+				return isEndFunc(state, usedGirl, animationName.StandToCrawl, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.StandToCrawl],
 			nextAnimationName: animationName.KeepCrawl,
@@ -128,50 +108,50 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 		},
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlToStand)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.CrawlToStand)
 			},
 			currentAnimationNames: [animationName.KeepCrawl],
 			weight: 0.5,
 			nextAnimationName: animationName.CrawlToStand
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.CrawlToStand, getIsDebug(state))
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.CrawlToStand, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.CrawlToStand],
 			nextAnimationName: animationName.Idle,
 			noBlend: true
 		},
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.BreastPress)
-			},
-			currentAnimationNames: [animationName.KeepCrawl],
-			weight: 0.5,
-			nextAnimationName: animationName.BreastPress
-		},
-		{
-			condition: state => {
-				return isEndFunc(state, animationName.BreastPress, getIsDebug(state))
-			},
-			currentAnimationNames: [animationName.BreastPress],
-			nextAnimationName: animationName.KeepCrawl,
-			noBlend: true
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.BreastPress)
+		// 	},
+		// 	currentAnimationNames: [animationName.KeepCrawl],
+		// 	weight: 0.5,
+		// 	nextAnimationName: animationName.BreastPress
+		// },
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isEndFunc(state, usedGirl,animationName.BreastPress, getIsDebug(state))
+		// 	},
+		// 	currentAnimationNames: [animationName.BreastPress],
+		// 	nextAnimationName: animationName.KeepCrawl,
+		// 	noBlend: true
+		// },
 
 
 		{
-			condition: state => {
-				return isMoveFunc(state)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.KeepCrawl],
 			nextAnimationName: animationName.CrawlMove
 		},
 		{
-			condition: state => {
-				return !isMoveFunc(state)
+			condition: (state, usedGirl) => {
+				return !isMoveFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.CrawlMove],
 			nextAnimationName: animationName.KeepCrawl
@@ -181,24 +161,24 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Pickup)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Pickup)
 			},
 			currentAnimationNames: [animationName.Idle],
 			weight: 0.5,
 			nextAnimationName: animationName.Pickup
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.Pickup, getIsDebug(state)) && hasPickData(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.Pickup, getIsDebug(state)) && hasPickData(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Pickup],
 			nextAnimationName: animationName.KeepPick,
 			noBlend: true
 		},
 		{
-			condition: state => {
-				return getFrameIndexFunc(state, animationName.Pickup) > getPickupWorkFrameIndex() && !hasPickData(state)
+			condition: (state, usedGirl) => {
+				return getFrameIndexFunc(state, usedGirl, animationName.Pickup) > getPickupWorkFrameIndex() && !hasPickData(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Pickup],
 			nextAnimationName: animationName.Idle,
@@ -206,54 +186,47 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 		},
 
 		{
-			condition: state => {
-				return isMoveFunc(state) && isActionStateFunc(state, actionState.Initial)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl) && isActionStateFunc(state, usedGirl, actionState.Initial)
 			},
 			currentAnimationNames: [animationName.KeepPick],
 			nextAnimationName: animationName.Walk
 		},
 		{
-			condition: state => {
-				return isMoveFunc(state) && isActionStateFunc(state, actionState.Run)
+			condition: (state, usedGirl) => {
+				return isMoveFunc(state, usedGirl) && isActionStateFunc(state, usedGirl, actionState.Run)
 			},
 			currentAnimationNames: [animationName.KeepPick],
 			nextAnimationName: animationName.Run
 		},
 		{
-			condition: state => {
-				return !isMoveFunc(state) && hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return !isMoveFunc(state, usedGirl) && hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Walk],
 			nextAnimationName: animationName.KeepPick
 		},
 		{
-			condition: state => {
-				return !isMoveFunc(state) && hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return !isMoveFunc(state, usedGirl) && hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Run],
 			nextAnimationName: animationName.KeepPick
 		},
+
+
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.Stomp, getIsDebug(state)) && hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return !hasPickData(state, usedGirl)
 			},
-			currentAnimationNames: [animationName.Stomp],
-			nextAnimationName: animationName.KeepPick,
-			// noBlend: true
-		},
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Stomp)
-			},
-			currentAnimationNames: [animationName.KeepPick],
+			currentAnimationNames: [animationName.Pinch, animationName.KeepPick],
 			weight: 0.5,
-			nextAnimationName: animationName.Stomp
+			nextAnimationName: animationName.Idle
 		},
 
-
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Pinch)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Pinch)
 			},
 			currentAnimationNames: [animationName.KeepPick],
 			// weight: 0.5,
@@ -261,33 +234,25 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 			noBlend: true
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.Pinch, getIsDebug(state))
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.Pinch, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.Pinch],
 			nextAnimationName: animationName.KeepPick,
 			noBlend: true
 		},
-		{
-			condition: state => {
-				return !hasPickData(state)
-			},
-			currentAnimationNames: [animationName.Pinch],
-			weight: 0.5,
-			nextAnimationName: animationName.Idle
-		},
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Eat)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Eat)
 			},
 			currentAnimationNames: [animationName.KeepPick],
 			nextAnimationName: animationName.Eat,
 			noBlend: true
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.Eat, getIsDebug(state))
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.Eat, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.Eat],
 			nextAnimationName: animationName.Idle,
@@ -296,25 +261,25 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Pickdown)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Pickdown)
 			},
 			currentAnimationNames: [animationName.KeepPick],
 			weight: 1,
 			nextAnimationName: animationName.Pickdown
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.Pickdown, getIsDebug(state)) && !hasPickData(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.Pickdown, getIsDebug(state)) && !hasPickData(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Pickdown],
 			nextAnimationName: animationName.Idle,
 			noBlend: true
 		},
 		{
-			condition: state => {
-				// return isEndFunc(state, animationName.Pickdown, getIsDebug(state)) && hasPickData(state)
-				return getFrameIndexFunc(state, animationName.Pickdown) > getPickdownWorkFrameIndex() && hasPickData(state)
+			condition: (state, usedGirl) => {
+				// return isEndFunc(state, usedGirl,animationName.Pickdown, getIsDebug(state)) && hasPickData(state, usedGirl)
+				return getFrameIndexFunc(state, usedGirl, animationName.Pickdown) > getPickdownWorkFrameIndex() && hasPickData(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.Pickdown],
 			nextAnimationName: animationName.KeepPick,
@@ -328,93 +293,93 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.HeavyStressing)
-			},
-			currentAnimationNames: [
-				animationName.Idle,
-				animationName.KeepPick,
-				animationName.Walk,
-				animationName.Run
-			],
-			weight: 0.0,
-			nextAnimationName: animationName.HeavyStressing
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressing)
+		// 	},
+		// 	currentAnimationNames: [
+		// 		animationName.Idle,
+		// 		animationName.KeepPick,
+		// 		animationName.Walk,
+		// 		animationName.Run
+		// 	],
+		// 	weight: 0.0,
+		// 	nextAnimationName: animationName.HeavyStressing
+		// },
 
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.HeavyStressing, getIsDebug(state)) && !hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.HeavyStressing, getIsDebug(state)) && !hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.HeavyStressing],
 			nextAnimationName: animationName.Idle,
 			noBlend: true
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.HeavyStressing, getIsDebug(state)) && hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.HeavyStressing, getIsDebug(state)) && hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.HeavyStressing],
 			nextAnimationName: animationName.KeepPick,
 			weight: 0.5,
 		},
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.HeavyStressingBreast)
-			},
-			currentAnimationNames: [
-				animationName.Idle,
-				animationName.KeepPick,
-				animationName.Walk,
-				animationName.Run
-			],
-			weight: 0.0,
-			nextAnimationName: animationName.HeavyStressingBreast
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingBreast)
+		// 	},
+		// 	currentAnimationNames: [
+		// 		animationName.Idle,
+		// 		animationName.KeepPick,
+		// 		animationName.Walk,
+		// 		animationName.Run
+		// 	],
+		// 	weight: 0.0,
+		// 	nextAnimationName: animationName.HeavyStressingBreast
+		// },
 
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.HeavyStressingBreast, getIsDebug(state)) && !hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.HeavyStressingBreast, getIsDebug(state)) && !hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.HeavyStressingBreast],
 			nextAnimationName: animationName.Idle,
 			noBlend: true
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.HeavyStressingBreast, getIsDebug(state)) && hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.HeavyStressingBreast, getIsDebug(state)) && hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.HeavyStressingBreast],
 			nextAnimationName: animationName.KeepPick,
 			weight: 0.5,
 		},
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.HeavyStressingTrigoneAndButt)
-			},
-			currentAnimationNames: [
-				animationName.Idle,
-				animationName.KeepPick,
-				animationName.Walk,
-				animationName.Run
-			],
-			weight: 0.0,
-			nextAnimationName: animationName.HeavyStressingTrigoneAndButt
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingTrigoneAndButt)
+		// 	},
+		// 	currentAnimationNames: [
+		// 		animationName.Idle,
+		// 		animationName.KeepPick,
+		// 		animationName.Walk,
+		// 		animationName.Run
+		// 	],
+		// 	weight: 0.0,
+		// 	nextAnimationName: animationName.HeavyStressingTrigoneAndButt
+		// },
 
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.HeavyStressingTrigoneAndButt, getIsDebug(state)) && !hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.HeavyStressingTrigoneAndButt, getIsDebug(state)) && !hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.HeavyStressingTrigoneAndButt],
 			nextAnimationName: animationName.Idle,
 			noBlend: true
 		},
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.HeavyStressingTrigoneAndButt, getIsDebug(state)) && hasPickDataFunc(state)
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.HeavyStressingTrigoneAndButt, getIsDebug(state)) && hasPickDataFunc(state, usedGirl)
 			},
 			currentAnimationNames: [animationName.HeavyStressingTrigoneAndButt],
 			nextAnimationName: animationName.KeepPick,
@@ -430,8 +395,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Death)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Death)
 			},
 			currentAnimationNames: [animationName.Idle],
 			weight: 0.0,
@@ -439,8 +404,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 			nextAnimationName: animationName.Death
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Death)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Death)
 			},
 			currentAnimationNames: [animationName.KeepPick],
 			weight: 0.0,
@@ -448,8 +413,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 			nextAnimationName: animationName.Death
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Death)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Death)
 			},
 			currentAnimationNames: [animationName.Walk],
 			weight: 0.0,
@@ -457,8 +422,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 			nextAnimationName: animationName.Death
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.Death)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Death)
 			},
 			currentAnimationNames: [animationName.Run],
 			weight: 0.0,
@@ -470,65 +435,65 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlHeavyStressing)
-			},
-			currentAnimationNames: [
-				animationName.KeepCrawl,
-				animationName.CrawlMove,
-			],
-			weight: 0.0,
-			nextAnimationName: animationName.CrawlHeavyStressing
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.CrawlHeavyStressing)
+		// 	},
+		// 	currentAnimationNames: [
+		// 		animationName.KeepCrawl,
+		// 		animationName.CrawlMove,
+		// 	],
+		// 	weight: 0.0,
+		// 	nextAnimationName: animationName.CrawlHeavyStressing
+		// },
 
 		{
-			condition: state => {
-				return isEndFunc(state, animationName.CrawlHeavyStressing, getIsDebug(state))
+			condition: (state, usedGirl) => {
+				return isEndFunc(state, usedGirl, animationName.CrawlHeavyStressing, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.CrawlHeavyStressing],
 			nextAnimationName: animationName.KeepCrawl,
 			noBlend: true
 		},
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlHeavyStressingBreast)
-			},
-			currentAnimationNames: [
-				animationName.KeepCrawl,
-				animationName.CrawlMove,
-			],
-			weight: 0.0,
-			nextAnimationName: animationName.CrawlHeavyStressingBreast
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.CrawlHeavyStressingBreast)
+		// 	},
+		// 	currentAnimationNames: [
+		// 		animationName.KeepCrawl,
+		// 		animationName.CrawlMove,
+		// 	],
+		// 	weight: 0.0,
+		// 	nextAnimationName: animationName.CrawlHeavyStressingBreast
+		// },
 
 		{
-			condition: state => {
-				// return getFrameIndexFunc(state, animationName.CrawlHeavyStressingBreast) >= getAnimationFrameCountWithoutState( animationName.CrawlHeavyStressingBreast) * 5 / 6
-				return isEndFunc(state, animationName.CrawlHeavyStressingBreast, getIsDebug(state))
+			condition: (state, usedGirl) => {
+				// return getFrameIndexFunc(state, usedGirl, animationName.CrawlHeavyStressingBreast) >= getAnimationFrameCountWithoutState getAnimationFrameCount( animationName.CrawlHeavyStressingBreast) * 5 / 6
+				return isEndFunc(state, usedGirl, animationName.CrawlHeavyStressingBreast, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.CrawlHeavyStressingBreast],
 			nextAnimationName: animationName.KeepCrawl,
 			noBlend: true
 		},
 
-		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlHeavyStressingTrigoneAndButt)
-			},
-			currentAnimationNames: [
-				animationName.KeepCrawl,
-				animationName.CrawlMove,
-			],
-			weight: 0.0,
-			nextAnimationName: animationName.CrawlHeavyStressingTrigoneAndButt
-		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.CrawlHeavyStressingTrigoneAndButt)
+		// 	},
+		// 	currentAnimationNames: [
+		// 		animationName.KeepCrawl,
+		// 		animationName.CrawlMove,
+		// 	],
+		// 	weight: 0.0,
+		// 	nextAnimationName: animationName.CrawlHeavyStressingTrigoneAndButt
+		// },
 
 		{
-			condition: state => {
-				// return getFrameIndexFunc(state, animationName.CrawlHeavyStressingTrigoneAndButt) >= getAnimationFrameCountWithoutState( animationName.CrawlHeavyStressingTrigoneAndButt) * 5 / 6
-				return isEndFunc(state, animationName.CrawlHeavyStressingTrigoneAndButt, getIsDebug(state))
+			condition: (state, usedGirl) => {
+				// return getFrameIndexFunc(state, usedGirl, animationName.CrawlHeavyStressingTrigoneAndButt) >= getAnimationFrameCountWithoutState getAnimationFrameCount( animationName.CrawlHeavyStressingTrigoneAndButt) * 5 / 6
+				return isEndFunc(state, usedGirl, animationName.CrawlHeavyStressingTrigoneAndButt, getIsDebug(state))
 			},
 			currentAnimationNames: [animationName.CrawlHeavyStressingTrigoneAndButt],
 			nextAnimationName: animationName.KeepCrawl,
@@ -538,8 +503,8 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlDeath)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.CrawlDeath)
 			},
 			currentAnimationNames: [animationName.KeepCrawl],
 			weight: 0.0,
@@ -547,68 +512,92 @@ export let getAnimationBlendData = ([{ isMoveFunc, isTriggerActionFunc, isAction
 			nextAnimationName: animationName.CrawlDeath
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlDeath)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.CrawlDeath)
 			},
 			currentAnimationNames: [animationName.CrawlMove],
 			weight: 0.0,
 			isOnlyPlayOnce: true,
 			nextAnimationName: animationName.CrawlDeath
 		},
+		// {
+		// 	condition: (state, usedGirl) => {
+		// 		return isTriggerActionFunc(state, usedGirl, actionName.CrawlDeath)
+		// 	},
+		// 	currentAnimationNames: [animationName.BreastPress],
+		// 	weight: 0.0,
+		// 	isOnlyPlayOnce: true,
+		// 	nextAnimationName: animationName.CrawlDeath
+		// },
 
 
 
 
 
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.HeavyStressing)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressing)
 			},
 			weight: 0.0,
-			currentAnimationNames: _getAnimationNamesExceptDamageNames(),
+			currentAnimationNames: getAnimationNamesExceptDamageNames(state),
 			nextAnimationName: animationName.HeavyStressing
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.HeavyStressingBreast)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingBreast)
 			},
 			weight: 0.0,
-			currentAnimationNames: _getAnimationNamesExceptDamageNames(),
+			currentAnimationNames: getAnimationNamesExceptDamageNames(state),
 			nextAnimationName: animationName.HeavyStressingBreast
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.HeavyStressingTrigoneAndButt)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.HeavyStressingTrigoneAndButt)
 			},
 			weight: 0.0,
-			currentAnimationNames: _getAnimationNamesExceptDamageNames(),
+			currentAnimationNames: getAnimationNamesExceptDamageNames(state),
 			nextAnimationName: animationName.HeavyStressingTrigoneAndButt
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlHeavyStressing)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.CrawlHeavyStressing)
 			},
 			weight: 0.0,
-			currentAnimationNames: _getAnimationNamesExceptDamageNames(),
+			currentAnimationNames: getAnimationNamesExceptDamageNames(state),
 			nextAnimationName: animationName.CrawlHeavyStressing
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlHeavyStressingBreast)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.CrawlHeavyStressingBreast)
 			},
 			weight: 0.0,
-			currentAnimationNames: _getAnimationNamesExceptDamageNames(),
+			currentAnimationNames: getAnimationNamesExceptDamageNames(state),
 			nextAnimationName: animationName.CrawlHeavyStressingBreast
 		},
 		{
-			condition: state => {
-				return isTriggerActionFunc(state, actionName.CrawlHeavyStressingTrigoneAndButt)
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.CrawlHeavyStressingTrigoneAndButt)
 			},
 			weight: 0.0,
-			currentAnimationNames: _getAnimationNamesExceptDamageNames(),
+			currentAnimationNames: getAnimationNamesExceptDamageNames(state),
 			nextAnimationName: animationName.CrawlHeavyStressingTrigoneAndButt
 		},
+
+		{
+			condition: (state, usedGirl) => {
+				return isTriggerActionFunc(state, usedGirl, actionName.Reborn)
+			},
+			currentAnimationNames: [animationName.Death, animationName.CrawlDeath],
+			nextAnimationName: animationName.Idle,
+			noBlend: true,
+		},
 	]
+		.concat(
+			getAnimationBlendDataMod(
+				state,
+				[{ isMoveFunc, isTriggerActionFunc, isActionStateFunc }, getFrameIndexFunc, isSpecificFrameIndexFunc, isEndFunc, isPreviousAnimationFunc, hasPickDataFunc]
+			) as any
+		)
 }
 
 export let getAnimationBlendDuration = (
@@ -637,34 +626,21 @@ export let getAnimationBlendDuration = (
 	return 0.5
 }
 
-let _getStompRangeBox = (state, [getHeightFunc, getShapeFunc]) => {
-	let height = getHeightFunc(state)
-
-	let shape = getShapeFunc(state, collisionPart.RightFoot)
-
-	let box = shape.toBox3()
-
-	// return box.expandByScalar(box.getSize(_v1).length() * Math.sqrt(height) * 0.6)
-	// return box.expandByScalar(box.getSize(_v1).length() * Math.sqrt(height) * 0.1)
-	// return box.expandByScalar(box.getSize(_v1).length() * Math.sqrt(height) * 0.001)
-	// return box.expandByScalar(Math.sqrt(height))
-	return box.expandByScalar(height * 0.2)
+let _getMovePoint = (state, getShapeFunc, usedGirl, collisionPart_) => {
+	return getShapeFunc(state, usedGirl, collisionPart_).center
 }
 
-let _getStompPoint = (state, getShapeFunc) => {
-	return getShapeFunc(state, collisionPart.RightFoot).center
-}
 
-let _handleMoveSound = (state, [isCollisionWithVehicleFunc, isCollisionWithCharacterFunc, judgePhaseFunc], animationName, phase) => {
+let _handleMoveSound = (state, [isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc, judgePhaseFunc, isMiddleGiantessOrBiggerFunc], usedGirl, animationName, phase): string => {
 	let soundId = null
-	if (isCollisionWithVehicleFunc(state, animationName, phase)) {
+	if (isCollisionWithRigidBodyFunc(state, usedGirl, animationName, phase)) {
 		let v = Math.random()
 		soundId = v > 0.5 ? getWalkVehicle1SoundResourceId() : getWalkVehicle2SoundResourceId()
 	}
-	else if (isCollisionWithCharacterFunc(state, animationName, phase)) {
+	else if (isCollisionWithCharacterFunc(state, usedGirl, animationName, phase)) {
 		soundId = getWalkCharacterSoundResourceId()
 	}
-	else {
+	else if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 		soundId = judgePhaseFunc(phase, getWalkLeftSoundResourceId(), getWalkRightSoundResourceId())
 	}
 
@@ -672,11 +648,11 @@ let _handleMoveSound = (state, [isCollisionWithVehicleFunc, isCollisionWithChara
 
 }
 
-export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
+export let getAnimationCollisionData = (state: state, [isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
 	getShapeFunc,
 	getScaleFunc,
 	getHeightFunc,
-	isLittleRoadFunc
+	isLittleCharacterTypeFunc
 ]): Array<animationCollisionData<animationName>> => {
 	return [
 		{
@@ -688,7 +664,7 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 
 			// 	track: track.ShapeDamage,
 			// 	value: (state, collisionData) => {
-			// 		// let { collisionShapeMap } = getGirlState(state)
+			// 		// let { collisionShapeMap } = getUsedGirlData(state, usedGirl)
 
 			// 		// return {
 			// 		// 	shape: collisionShapeMap.get(collisionPart.LeftFoot),
@@ -712,7 +688,7 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 
 				// 	track: track.ShapeDamage,
 				// 	value: (state, collisionData) => {
-				// 		// let { collisionShapeMap } = getGirlState(state)
+				// 		// let { collisionShapeMap } = getUsedGirlData(state, usedGirl)
 
 				// 		// return {
 				// 		// 	shape: collisionShapeMap.get(collisionPart.LeftFoot),
@@ -733,31 +709,76 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndices: [5, 20],
 
 					track: track.Audio,
-					value: (state, { animationName, phase }) => {
-						return _handleMoveSound(state, [isCollisionWithVehicleFunc, isCollisionWithCharacterFunc,
-							(phase, soundId1, soundId2) => {
-								switch (phase) {
-									case walkPhase.LeftFootDown:
-									case walkPhase.LeftFootMove:
-										return soundId1
-									case walkPhase.RightFootDown:
-									case walkPhase.RightFootMove:
-										return soundId2
+					value: (state, usedGirl, { animationName, phase }) => {
+						return NullableUtils.return_({
+							id: _handleMoveSound(state, [isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc,
+								(phase, soundId1, soundId2) => {
+									switch (phase) {
+										case walkPhase.LeftFootDown:
+										case walkPhase.LeftFootMove:
+											return soundId1
+										case walkPhase.RightFootDown:
+										case walkPhase.RightFootMove:
+											return soundId2
+									}
 								}
-							}
-						], animationName, phase)
+								, isMiddleGiantessOrBiggerFunc], usedGirl, animationName, phase),
+							volume: getGiantessVolume(state, usedGirl, false)
+						}) as any
 					}
 				},
 				{
 					frameIndices: [5, 20],
 
 					track: track.Effect,
-					value: (state, _): any => {
-						if (isMiddleGiantessOrBiggerFunc(state)) {
+					value: (state, usedGirl, _): any => {
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 							return effect.ScreenShake
 						}
 
 						return null
+					}
+
+				},
+				{
+					frameIndex: 5,
+
+					track: track.Event,
+					value: (state, usedGirl, {
+						force
+					}): any => {
+						return {
+							eventName: getMoveHitTerrainEventName(),
+							eventData: buildMoveHitTerrainEventData(
+								_getMovePoint(state, getShapeFunc, usedGirl, collisionPart.LeftFoot),
+								force,
+								getCollisionPartOBB(state, usedGirl, collisionPart.LeftFoot),
+								collisionPart.LeftFoot,
+								getShoeType(state, usedGirl),
+								usedGirl
+							)
+						}
+					}
+
+				},
+				{
+					frameIndex: 20,
+
+					track: track.Event,
+					value: (state, usedGirl, {
+						force
+					}): any => {
+						return {
+							eventName: getMoveHitTerrainEventName(),
+							eventData: buildMoveHitTerrainEventData(
+								_getMovePoint(state, getShapeFunc, usedGirl, collisionPart.RightFoot),
+								force,
+								getCollisionPartOBB(state, usedGirl, collisionPart.RightFoot),
+								collisionPart.RightFoot,
+								getShoeType(state, usedGirl),
+								usedGirl
+							)
+						}
 					}
 
 				},
@@ -772,8 +793,8 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndices: [4, 14],
 
 					track: track.Effect,
-					value: (state, _): any => {
-						if (isMiddleGiantessOrBiggerFunc(state)) {
+					value: (state, usedGirl, _): any => {
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 							return effect.ScreenShake
 						}
 
@@ -785,118 +806,178 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndices: [4, 14],
 
 					track: track.Audio,
-					value: (state, { animationName, phase }) => {
-						return _handleMoveSound(state, [isCollisionWithVehicleFunc, isCollisionWithCharacterFunc,
-							(phase, soundId1, soundId2) => {
-								switch (phase) {
-									case runPhase.LeftFootDown:
-									case runPhase.LeftFootMove:
-										return soundId1
-									case runPhase.RightFootDown:
-									case runPhase.RightFootMove:
-										return soundId2
-								}
-							}
-						], animationName, phase)
-					}
-				},
-			]
-		},
-		{
-			name: animationName.Stomp,
-
-			shapeDamage: [collisionPart.RightFoot],
-			timeline: [
-				{
-					frameIndex: 30,
-
-					track: track.Particle,
-					value: (state, _): any => {
-						let point = _getStompPoint(state, getShapeFunc)
-
-
-						if (isSmallGiantessOrBiggerFunc(state)) {
-							return NullableUtils.return_([[
-								particle.StompDust,
-								{
-									// speed: 10 * Math.max(getScaleFunc(state) / 10, 1),
-									speed: 10 * Math.max(getScaleFunc(state) / 10, 1) / 1.5,
-									changeLife: 500,
-									life: 3000,
-									size: getScaleFunc(state),
-									// position: point.toArray()
-									position: getPositionParrelToObj(point, 3).toArray()
-								}
-							]])
-						}
-
-						return NullableUtils.getEmpty()
+					value: (state, usedGirl, { animationName, phase }) => {
+						return NullableUtils.return_({
+							id: _handleMoveSound(state, [isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc,
+								(phase, soundId1, soundId2) => {
+									switch (phase) {
+										case runPhase.LeftFootDown:
+										case runPhase.LeftFootMove:
+											return soundId1
+										case runPhase.RightFootDown:
+										case runPhase.RightFootMove:
+											return soundId2
+									}
+								},
+								isMiddleGiantessOrBiggerFunc
+							], usedGirl, animationName, phase),
+							volume: getGiantessVolume(state, usedGirl, false)
+						}) as any
 					}
 				},
 				{
-					frameIndex: 30,
-
-					track: track.Effect,
-					value: (state, _): any => {
-						// if (isMiddleGiantessOrBiggerFunc(state)) {
-						// 	return effect.ScreenShake
-						// }
-
-						// return null
-						if (isLittleRoadFunc(state)) {
-							return effect.ScreenShake
-						}
-
-						return null
-					}
-
-				},
-				{
-					frameIndex: 30,
-
-					track: track.Audio,
-					value: (state, _): any => {
-						return getStompSoundResourceId()
-					}
-
-				},
-				{
-					frameIndex: 30,
-
-					track: track.RangeDamage,
-					value: (state, _) => {
-						return _getStompRangeBox(state, [getHeightFunc, getShapeFunc])
-					}
-
-				},
-				{
-					frameIndex: 30,
+					frameIndex: 4,
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
-							eventName: getHitTerrainEventName(),
-							eventData: buildHitTerrainEventData(
-								_getStompPoint(state, getShapeFunc)
-								, force, _getStompRangeBox(state, [getHeightFunc, getShapeFunc]))
+							eventName: getMoveHitTerrainEventName(),
+							eventData: buildMoveHitTerrainEventData(
+								_getMovePoint(state, getShapeFunc, usedGirl, collisionPart.RightFoot),
+								force,
+								getCollisionPartOBB(state, usedGirl, collisionPart.RightFoot),
+								collisionPart.RightFoot,
+								getShoeType(state, usedGirl),
+								usedGirl
+							)
 						}
 					}
 
 				},
 				{
-					frameIndex: 35,
+					frameIndex: 14,
 
-					track: track.Audio,
-					value: (state, _) => {
-						if (NumberUtils.isRandomRate(0.3)) {
-							return NullableUtils.return_(getLaughSoundResourceId())
+					track: track.Event,
+					value: (state, usedGirl, {
+						force
+					}): any => {
+						return {
+							eventName: getMoveHitTerrainEventName(),
+							eventData: buildMoveHitTerrainEventData(
+								_getMovePoint(state, getShapeFunc, usedGirl, collisionPart.LeftFoot),
+								force,
+								getCollisionPartOBB(state, usedGirl, collisionPart.LeftFoot),
+								collisionPart.LeftFoot,
+								getShoeType(state, usedGirl),
+								usedGirl
+							)
+						}
+					}
+				},
+
+				{
+					frameIndex: 4,
+
+					track: track.RangeRepel,
+					value: (state, usedGirl, _) => {
+						let api = getModAPI(state)
+
+						let level = api.getGiantessLevel(api, state, usedGirl, "upgrade-skill-enhence-run-repel")
+
+						if (level == 0) {
+							return api.NullableUtils.getEmpty()
+						}
+
+						let box = api.obb.toBox3(getShapeFunc(state, usedGirl, collisionPart.RightFoot))
+						box = api.box3.expandByScalar(box, 1.5 * level)
+
+						return api.NullableUtils.return_([
+							api.computeRepelDirection(api, box),
+							box
+						]) as any
+					}
+				},
+				{
+					frameIndex: 14,
+
+					track: track.RangeRepel,
+					value: (state, usedGirl, _) => {
+						let api = getModAPI(state)
+
+						let level = api.getGiantessLevel(api, state, usedGirl, "upgrade-skill-enhence-run-repel")
+
+						if (level == 0) {
+							return api.NullableUtils.getEmpty()
+						}
+
+						let box = api.obb.toBox3(getShapeFunc(state, usedGirl, collisionPart.LeftFoot))
+						box = api.box3.expandByScalar(box, 1.5 * level)
+
+						return api.NullableUtils.return_([
+							api.computeRepelDirection(api, box),
+							box
+						]) as any
+					}
+				},
+				{
+					frameIndex: 4,
+
+					track: track.Particle,
+					value: (state, usedGirl, _): any => {
+						let api = getModAPI(state)
+
+						let level = api.getGiantessLevel(api, state, usedGirl, "upgrade-skill-enhence-run-repel")
+
+						if (level == 0) {
+							return api.NullableUtils.getEmpty()
+						}
+
+						let rightFootPoint = getShapeFunc(state, usedGirl, collisionPart.RightFoot).center
+
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
+							let scalar = 1.5
+							return NullableUtils.return_([
+								[
+									particle.StompDust,
+									{
+										speed: 10 * Math.max(getScaleFunc(state, usedGirl) / 10, 1),
+										changeLife: 500 / scalar,
+										life: 3000 / scalar,
+										size: getScaleFunc(state, usedGirl) / scalar,
+										position: rightFootPoint.toArray()
+									}
+								],
+							])
 						}
 
 						return NullableUtils.getEmpty()
 					}
+				},
+				{
+					frameIndex: 14,
 
+					track: track.Particle,
+					value: (state, usedGirl, _): any => {
+						let api = getModAPI(state)
+
+						let level = api.getGiantessLevel(api, state, usedGirl, "upgrade-skill-enhence-run-repel")
+
+						if (level == 0) {
+							return api.NullableUtils.getEmpty()
+						}
+
+						let leftFootPoint = getShapeFunc(state, usedGirl, collisionPart.LeftFoot).center
+
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
+							let scalar = 1.5
+							return NullableUtils.return_([
+								[
+									particle.StompDust,
+									{
+										speed: 10 * Math.max(getScaleFunc(state, usedGirl) / 10, 1),
+										changeLife: 500 / scalar,
+										life: 3000 / scalar,
+										size: getScaleFunc(state, usedGirl) / scalar,
+										position: leftFootPoint.toArray()
+									}
+								],
+							])
+						}
+
+						return NullableUtils.getEmpty()
+					}
 				},
 			]
 		},
@@ -914,29 +995,29 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndex: 30,
 
 					track: track.Particle,
-					value: (state, _): any => {
-						let leftShankPoint = getShapeFunc(state, collisionPart.LeftShank).center
-						let rightShankPoint = getShapeFunc(state, collisionPart.RightShank).center
+					value: (state, usedGirl, _): any => {
+						let leftShankPoint = getShapeFunc(state, usedGirl, collisionPart.LeftShank).center
+						let rightShankPoint = getShapeFunc(state, usedGirl, collisionPart.RightShank).center
 
-						if (isMiddleGiantessOrBiggerFunc(state)) {
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 							return NullableUtils.return_([
 								[
 									particle.StompDust,
 									{
-										speed: 10 * Math.max(getScaleFunc(state) / 10, 1),
+										speed: 10 * Math.max(getScaleFunc(state, usedGirl) / 10, 1),
 										changeLife: 500,
 										life: 3000,
-										size: getScaleFunc(state),
+										size: getScaleFunc(state, usedGirl),
 										position: leftShankPoint.toArray()
 									}
 								],
 								[
 									particle.StompDust,
 									{
-										speed: 10 * Math.max(getScaleFunc(state) / 10, 1),
+										speed: 10 * Math.max(getScaleFunc(state, usedGirl) / 10, 1),
 										changeLife: 500,
 										life: 3000,
-										size: getScaleFunc(state),
+										size: getScaleFunc(state, usedGirl),
 										position: rightShankPoint.toArray()
 									}
 								],
@@ -947,33 +1028,33 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					}
 				},
 				{
-					frameIndex: 60 - 1,
+					frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(state, getAnimationFrameCount, animationName.StandToCrawl)),
 
 					track: track.Particle,
-					value: (state, _): any => {
-						let leftHandPoint = getShapeFunc(state, collisionPart.LeftHand).center
-						let rightHandPoint = getShapeFunc(state, collisionPart.RightHand).center
+					value: (state, usedGirl, _): any => {
+						let leftHandPoint = getShapeFunc(state, usedGirl, collisionPart.LeftHand).center
+						let rightHandPoint = getShapeFunc(state, usedGirl, collisionPart.RightHand).center
 
-						if (isMiddleGiantessOrBiggerFunc(state)) {
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 							let scalar = 1.5
 							return NullableUtils.return_([
 								[
 									particle.StompDust,
 									{
-										speed: 10 * Math.max(getScaleFunc(state) / 10, 1),
+										speed: 10 * Math.max(getScaleFunc(state, usedGirl) / 10, 1),
 										changeLife: 500 / scalar,
 										life: 3000 / scalar,
-										size: getScaleFunc(state) / scalar,
+										size: getScaleFunc(state, usedGirl) / scalar,
 										position: leftHandPoint.toArray()
 									}
 								],
 								[
 									particle.StompDust,
 									{
-										speed: 10 * Math.max(getScaleFunc(state) / 10, 1),
+										speed: 10 * Math.max(getScaleFunc(state, usedGirl) / 10, 1),
 										changeLife: 500 / scalar,
 										life: 3000 / scalar,
-										size: getScaleFunc(state) / scalar,
+										size: getScaleFunc(state, usedGirl) / scalar,
 										position: rightHandPoint.toArray()
 									}
 								],
@@ -984,11 +1065,11 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					}
 				},
 				{
-					frameIndices: [30, 60 - 1],
+					frameIndices: [30, getLastFrameIndex(getAnimationFrameCountWithoutState(state, getAnimationFrameCount, animationName.StandToCrawl))],
 
 					track: track.Effect,
-					value: (state, _): any => {
-						if (isMiddleGiantessOrBiggerFunc(state)) {
+					value: (state, usedGirl, _): any => {
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 							return effect.ScreenShake
 						}
 
@@ -997,29 +1078,43 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 
 				},
 				{
-					frameIndices: [30, 60 - 1],
+					frameIndices: [30, getLastFrameIndex(getAnimationFrameCountWithoutState(state, getAnimationFrameCount, animationName.StandToCrawl))],
 
 					track: track.Audio,
-					value: (state, { animationName, phase }): any => {
+					value: (state, usedGirl, { animationName, phase }): any => {
+						if (!isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
+							return NullableUtils.getEmpty()
+						}
+
+						let id
 						switch (phase) {
 							case standToCrawlPhase.ShankDown:
-								return getStandToCrawlShankSoundResourceId()
+								id = getStandToCrawlShankSoundResourceId()
+								break
 							case standToCrawlPhase.HandDown:
-								return getStandToCrawlHandSoundResourceId()
+								id = getStandToCrawlHandSoundResourceId()
+								break
 						}
+
+						return NullableUtils.return_({
+							id,
+							volume: getGiantessVolume(state, usedGirl, false)
+						})
 					}
 				},
 
 				{
-					frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.StandToCrawl)),
+					frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(state, getAnimationFrameCount, animationName.StandToCrawl)),
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
 							eventName: getStandToCrawlEventName(),
-							eventData: {}
+							eventData: {
+								usedGirl
+							}
 						}
 					}
 
@@ -1034,41 +1129,48 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 			],
 			timeline: [
 				{
-					// frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState( animationName.CrawlToStand)),
-					frameIndex: getFirstFrameIndex(),
+					// frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState( animationName.CrawlToStand)), getAnimationFrameCount
+					frameIndex: getEarlyFrameIndex(),
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
 							eventName: getCrawlToStandEventName(),
-							eventData: {}
+							eventData: {
+								usedGirl
+							}
 						}
 					}
 
 				},
 			]
 		},
-		{
-			name: animationName.BreastPress,
+		// {
+		// 	name: animationName.BreastPress,
 
-			shapeDamage: [
-				collisionPart.Head,
-				collisionPart.LeftBreast, collisionPart.RightBreast,
-				collisionPart.LeftThigh, collisionPart.RightThigh,
-			],
-			timeline: [
-				{
-					frameIndex: 20,
+		// 	shapeDamage: [
+		// 		collisionPart.Head,
+		// 		collisionPart.LeftBreast, collisionPart.RightBreast,
+		// 		collisionPart.LeftThigh, collisionPart.RightThigh,
+		// 		collisionPart.Torso,
+		// 		collisionPart.TrigoneAndButt,
+		// 	],
+		// 	timeline: [
+		// 		{
+		// 			frameIndex: 20,
 
-					track: track.Audio,
-					value: (state, { animationName, phase }): any => {
-						return getBreastPressLaughSoundResourceId()
-					}
-				},
-			]
-		},
+		// 			track: track.Audio,
+		// 			value: (state, usedGirl, { animationName, phase }): any => {
+		// 				return NullableUtils.return_({
+		// 					id: getBreastPressLaughSoundResourceId(),
+		// 					volume: getGiantessVolume(state, usedGirl)
+		// 				})
+		// 			},
+		// 		},
+		// 	]
+		// },
 		{
 			name: animationName.CrawlMove,
 
@@ -1083,8 +1185,8 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndices: [11, 31],
 
 					track: track.Effect,
-					value: (state, _): any => {
-						if (isMiddleGiantessOrBiggerFunc(state)) {
+					value: (state, usedGirl, _): any => {
+						if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
 							return effect.ScreenShake
 						}
 
@@ -1095,12 +1197,16 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndices: [11, 31],
 
 					track: track.Audio,
-					value: (state, { animationName, phase }) => {
-						return _handleMoveSound(state, [isCollisionWithVehicleFunc, isCollisionWithCharacterFunc,
-							(phase, soundId1, soundId2) => {
-								return soundId1
-							}
-						], animationName, phase)
+					value: (state, usedGirl, { animationName, phase }) => {
+						return NullableUtils.return_({
+							id: _handleMoveSound(state, [isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc,
+								(phase, soundId1, soundId2) => {
+									return soundId1
+								},
+								isMiddleGiantessOrBiggerFunc
+							], usedGirl, animationName, phase),
+							volume: getGiantessVolume(state, usedGirl, false)
+						}) as any
 					}
 				},
 			]
@@ -1117,13 +1223,14 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndex: getPickupWorkFrameIndex(),
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
 							eventName: getPickupEventName(),
 							eventData: buildPickupEventData(
-								getShapeFunc(state, collisionPart.RightHand).toBox3()
+								getShapeFunc(state, usedGirl, collisionPart.RightHand).toBox3(),
+								usedGirl
 							)
 						}
 					}
@@ -1139,62 +1246,72 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 			],
 			timeline: [
 				{
-					frameIndex: getFirstFrameIndex(),
+					// frameIndex: getEarlyFrameIndex(),
+					frameIndices: [getEarlyFrameIndex(), 10],
 
 					track: track.Particle,
-					value: (state, _): any => {
-						let box = getPickObjectBox(state)
-						let point = box.getCenter(_v1)
-						let sizeLength = box.getSize(_v2).length()
+					value: (state, usedGirl, _): any => {
+						return NullableUtils.bind(box => {
+							let point = box.getCenter(_v1)
+							let sizeLength = box.getSize(_v2).length()
 
-						if (isSmallGiantessOrBiggerFunc(state)) {
-							return NullableUtils.return_([
-								[
-									particle.WaterBloom,
-									{
-										speed: 1,
-										life: 1000,
-										size: Math.max(5 * sizeLength, 20),
-										position: point.toArray()
-									}
-								],
-							])
-						}
+							if (isMiddleGiantessOrBiggerFunc(state, usedGirl)) {
+								return NullableUtils.return_([
+									[
+										particle.WaterBloom,
+										{
+											speed: 1,
+											life: 1000,
+											size: Math.max(5 * sizeLength, 20),
+											position: point.toArray()
+										}
+									],
+								])
+							}
 
-						return NullableUtils.getEmpty()
+							return NullableUtils.getEmpty()
+						}, getPickObjectBox(state, usedGirl))
 					}
 				},
 				{
-					frameIndex: getLastFrameIndex(getAnimationFrameCountWithoutState(animationName.Pinch)),
+					frameIndex: getLateFrameIndex(getAnimationFrameCountWithoutState(state, getAnimationFrameCount, animationName.Pinch)),
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
 							eventName: getPinchJudageDamageEventName(),
-							eventData: {}
+							eventData: {
+								usedGirl
+							}
 						}
 					}
 
 				},
 				{
-					frameIndex: getFirstFrameIndex(),
+					// frameIndex: getEarlyFrameIndex(),
+					frameIndices: [getEarlyFrameIndex(), 10],
 
 					track: track.Audio,
-					value: (state, { animationName, phase }): any => {
-						let pickObjectQueueName = getPickObjectQueueName(state)
+					value: (state, usedGirl, { animationName, phase }): any => {
+						let pickObjectName = getRandomPickObjectName(state, usedGirl)
 
-						return NullableUtils.getWithDefault(
-							NullableUtils.map(pickObjectQueueName => {
-								if (MilltaryVehicle.isMilltaryVechile(pickObjectQueueName)) {
-									return getPinchMilltarySoundResourceId()
-								}
+						return NullableUtils.return_({
+							id: NullableUtils.getWithDefault(
+								NullableUtils.map(name => {
+									if (isMilltaryVehicle(name)
+										|| isMilltaryBuilding(name)
+									) {
+										return getPinchMilltarySoundResourceId()
+									}
 
-								return getPinchCharacterSoundResourceId()
-							}, pickObjectQueueName),
-							getPinchCharacterSoundResourceId()
-						)
+									return getPinchCharacterSoundResourceId()
+								}, pickObjectName),
+								getPinchCharacterSoundResourceId()
+							),
+							volume: getGiantessVolume(state, usedGirl, false)
+						})
 					}
 				},
 			]
@@ -1210,21 +1327,27 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndex: getEatRemovePickDataFrameIndex(),
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
 							eventName: getEatEventName(),
-							eventData: {}
+							eventData: {
+								usedGirl
+							}
 						}
 					}
 				},
 				{
+					// frameIndex: getEatHandleFrameIndex(),
 					frameIndex: getEatRemovePickDataFrameIndex(),
 
 					track: track.Audio,
-					value: (state, { animationName, phase }): any => {
-						return getEatSoundResourceId()
+					value: (state, usedGirl, { animationName, phase }): any => {
+						return NullableUtils.return_({
+							id: getEatSoundResourceId(),
+							volume: getGiantessVolume(state, usedGirl, false)
+						})
 					}
 				},
 			]
@@ -1238,13 +1361,14 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 					frameIndex: getPickdownWorkFrameIndex(),
 
 					track: track.Event,
-					value: (state, {
+					value: (state, usedGirl, {
 						force
 					}): any => {
 						return {
 							eventName: getPickdownEventName(),
 							eventData: buildPickdownEventData(
-								getShapeFunc(state, collisionPart.RightHand).center
+								getShapeFunc(state, usedGirl, collisionPart.RightHand).center,
+								usedGirl
 							)
 						}
 					}
@@ -1253,37 +1377,45 @@ export let getAnimationCollisionData = ([isCollisionWithVehicleFunc, isCollision
 			]
 		},
 
-	]
+	].concat(
+		getAnimationCollisionDataMod(state, [isCollisionWithRigidBodyFunc, isCollisionWithCharacterFunc, isSmallGiantessOrBiggerFunc, isMiddleGiantessOrBiggerFunc,
+			getShapeFunc,
+			getScaleFunc,
+			getHeightFunc,
+			isLittleCharacterTypeFunc
+		]) as any
+	)
 }
 
-export let getActionData = (): actionData<animationName> => {
+export let getActionData = (state: state): actionData<animationName> => {
 	return [
 		{
 			name: animationName.Walk,
 			force: {
-				[walkPhase.LeftFootMove]: 4,
-				[walkPhase.RightFootMove]: 4,
+				[walkPhase.LeftFootMove]: giantessForceSize.VeryLow2,
+				[walkPhase.RightFootMove]: giantessForceSize.VeryLow2,
 				// [walkPhase.LeftFootDown]: 12,
 				// [walkPhase.RightFootDown]: 12,
-				[walkPhase.LeftFootDown]: 20,
-				[walkPhase.RightFootDown]: 20,
+				// [walkPhase.LeftFootDown]: 20,
+				// [walkPhase.RightFootDown]: 20,
+				// [walkPhase.LeftFootDown]: 16,
+				// [walkPhase.RightFootDown]: 16,
+				[walkPhase.LeftFootDown]: giantessForceSize.Middle1,
+				[walkPhase.RightFootDown]: giantessForceSize.Middle1,
+
 			}
 		},
 		{
 			name: animationName.Run,
 			force: {
-				[runPhase.LeftFootMove]: 5,
-				[runPhase.RightFootMove]: 5,
-				[runPhase.LeftFootDown]: 22,
-				[runPhase.RightFootDown]: 22,
-			}
-		},
-		{
-			name: animationName.Stomp,
-			force: {
-				[stompPhase.Up]: 5,
-				[stompPhase.Down]: 30,
-				[stompPhase.Range]: 3,
+				[runPhase.LeftFootMove]: giantessForceSize.Low,
+				[runPhase.RightFootMove]: giantessForceSize.Low,
+				// [runPhase.LeftFootDown]: 22,
+				// [runPhase.RightFootDown]: 22,
+				// [runPhase.LeftFootDown]: 18,
+				// [runPhase.RightFootDown]: 18,
+				[runPhase.LeftFootDown]: giantessForceSize.Middle2,
+				[runPhase.RightFootDown]: giantessForceSize.Middle2,
 			}
 		},
 
@@ -1291,28 +1423,32 @@ export let getActionData = (): actionData<animationName> => {
 		{
 			name: animationName.StandToCrawl,
 			force: {
-				[standToCrawlPhase.ShankDown]: 20,
-				[standToCrawlPhase.HandDown]: 20,
+				// [standToCrawlPhase.ShankDown]: 20,
+				// [standToCrawlPhase.HandDown]: 20,
+				[standToCrawlPhase.ShankDown]: giantessForceSize.Middle3,
+				[standToCrawlPhase.HandDown]: giantessForceSize.Middle3,
 			}
 		},
 		{
 			name: animationName.CrawlToStand,
 			force: {
-				[crawlToStandPhase.HandUp]: 10,
+				[crawlToStandPhase.HandUp]: giantessForceSize.Middle,
 			}
 		},
-		{
-			name: animationName.BreastPress,
-			force: {
-				[breastPressPhase.Down]: 10,
-				[breastPressPhase.Up]: 5,
-			}
-		},
+		// {
+		// 	name: animationName.BreastPress,
+		// 	force: {
+		// 		[breastPressPhase.Down]: 10,
+		// 		[breastPressPhase.Up]: 5,
+		// 	}
+		// },
 		{
 			name: animationName.CrawlMove,
 			force: {
-				[crawlMovePhase.Move]: 4,
-				[crawlMovePhase.Down]: 18,
+				[crawlMovePhase.Move]: giantessForceSize.VeryLow2,
+				// [crawlMovePhase.Down]: 18,
+				// [crawlMovePhase.Down]: 15,
+				[crawlMovePhase.Down]: giantessForceSize.Low2,
 			}
 		},
 
@@ -1320,21 +1456,22 @@ export let getActionData = (): actionData<animationName> => {
 		{
 			name: animationName.Pinch,
 			force: {
-				[pinchPhase.Pinch]: 4,
+				[pinchPhase.FirstPinch]: giantessForceSize.VeryLow2,
+				[pinchPhase.SecondPinch]: giantessForceSize.Low2,
 			}
 		},
 		{
 			name: animationName.Eat,
 			force: {
-				[eatPhase.BeforeEat]: 0,
+				[eatPhase.BeforeEat]: giantessForceSize.Negative,
 				[eatPhase.Eat]: getMaxForce(),
 			}
 		},
-	]
+	].concat(getActionDataMod(state) as any)
 }
 
-export let getPhase = (): phaseData<animationName> => {
-	return [
+export let getPhase = (state: state): phaseData<animationName> => {
+	return ([
 		{
 			name: animationName.Walk,
 			value: [
@@ -1377,19 +1514,19 @@ export let getPhase = (): phaseData<animationName> => {
 				},
 			]
 		},
-		{
-			name: animationName.Stomp,
-			value: [
-				{
-					frameIndexRange: [0, 20],
-					phase: stompPhase.Up
-				},
-				{
-					frameIndexRange: [21, 70],
-					phase: stompPhase.Down
-				},
-			]
-		},
+		// {
+		// 	name: animationName.Stomp,
+		// 	value: [
+		// 		{
+		// 			frameIndexRange: [0, 20],
+		// 			phase: stompPhase.Up
+		// 		},
+		// 		{
+		// 			frameIndexRange: [21, 70],
+		// 			phase: stompPhase.Down
+		// 		},
+		// 	]
+		// },
 
 		{
 			name: animationName.StandToCrawl,
@@ -1413,19 +1550,19 @@ export let getPhase = (): phaseData<animationName> => {
 				}
 			]
 		},
-		{
-			name: animationName.BreastPress,
-			value: [
-				{
-					frameIndexRange: [0, 60],
-					phase: breastPressPhase.Down
-				},
-				{
-					frameIndexRange: [61, 80],
-					phase: breastPressPhase.Up
-				}
-			]
-		},
+		// {
+		// 	name: animationName.BreastPress,
+		// 	value: [
+		// 		{
+		// 			frameIndexRange: [0, 60],
+		// 			phase: breastPressPhase.Down
+		// 		},
+		// 		{
+		// 			frameIndexRange: [61, 80],
+		// 			phase: breastPressPhase.Up
+		// 		}
+		// 	]
+		// },
 
 		{
 			name: animationName.CrawlMove,
@@ -1464,8 +1601,13 @@ export let getPhase = (): phaseData<animationName> => {
 			name: animationName.Pinch,
 			value: [
 				{
-					frameIndexRange: [0, getAnimationFrameCountWithoutState(animationName.Pinch)],
-					phase: pinchPhase.Pinch
+					// frameIndexRange: [0, getAnimationFrameCountWithoutState(animationName.Pinch)], getAnimationFrameCount
+					frameIndexRange: [0, 10],
+					phase: pinchPhase.FirstPinch
+				},
+				{
+					frameIndexRange: [11, 40],
+					phase: pinchPhase.SecondPinch
 				}
 			]
 		},
@@ -1477,31 +1619,35 @@ export let getPhase = (): phaseData<animationName> => {
 					phase: eatPhase.BeforeEat
 				},
 				{
-					frameIndexRange: [getEatWorkFrameIndex(), getAnimationFrameCountWithoutState(animationName.Eat)],
+					frameIndexRange: [getEatWorkFrameIndex(), getAnimationFrameCountWithoutState(state, getAnimationFrameCount, animationName.Eat)],
 					phase: eatPhase.Eat
 				}
 			]
 		},
-	]
+	] as any)
+		.concat(
+			getPhaseMod(state)
+		)
 }
 
-export let getSkillStressingFactor = (): skillStressingFactor => {
-	let lowValue = 0.2
-	let middleValue = 0.3
-	let highValue = 0.4
+export let getSkillStressingFactor = (state: state): skillStressingFactor => {
+	let zeroValue = skillStressingValue.Zero
+	let lowValue = skillStressingValue.Low
+	let middleValue = skillStressingValue.Middle
+	let highValue = skillStressingValue.High
 
 	return [
-		{
-			name: animationName.Stomp,
-			value: lowValue
-		},
-		{
-			name: animationName.BreastPress,
-			value: highValue
-		},
+		// {
+		// 	name: animationName.Stomp,
+		// 	value: lowValue
+		// },
+		// {
+		// 	name: animationName.BreastPress,
+		// 	value: highValue
+		// },
 		{
 			name: animationName.Eat,
-			value: middleValue
+			value: zeroValue
 		},
 		{
 			name: animationName.Pickup,
@@ -1509,13 +1655,13 @@ export let getSkillStressingFactor = (): skillStressingFactor => {
 		},
 		{
 			name: animationName.Pickdown,
-			value: middleValue
+			value: lowValue
 		},
 		{
 			name: animationName.Pinch,
-			value: middleValue
+			value: lowValue
 		},
-	]
+	].concat(getSkillStressingFactorMod(state) as any)
 }
 
 export let getArticluatedAnimationData = (): Array<articluatedAnimationData<articluatedAnimationName>> => {
@@ -1644,5 +1790,156 @@ export let getArticluatedAnimationData = (): Array<articluatedAnimationData<arti
 			},
 			repeatCount: 1,
 		},
+
+		// {
+		// 	name: articluatedAnimationName.Light_Stressing_Giantess_Move,
+		// 	initial: (state, getValueFunc) => {
+		// 		let origin = getValueFunc(state)
+
+		// 		return { x: origin.x, y: origin.y, z: origin.z }
+		// 	},
+		// 	tweens: (state, getParamFunc) => {
+		// 		// let [position, amplitude, timeScalar] = getParamFunc(state)
+		// 		let [amplitude, timeScalar] = getParamFunc(state)
+
+		// 		// let isXDirection = Math.random() > 0.5
+
+		// 		let t1, t2
+		// 		// let t3 = position
+		// 		let t3 = _v3.set(0, 0, 0)
+		// 		// if (isXDirection) {
+		// 		// t1 = _v1.set(position.x - amplitude, position.y, position.z)
+		// 		// t2 = _v2.set(position.x + amplitude, position.y, position.z)
+		// 		t1 = _v1.set(- amplitude, 0, 0)
+		// 		t2 = _v2.set(+ amplitude, 0, 0)
+
+		// 		// }
+		// 		// else {
+		// 		// 	t1 = _v1.set(position.x, position.y, position.z - amplitude)
+		// 		// 	t2 = _v2.set(position.x, position.y, position.z + amplitude)
+		// 		// }
+
+
+		// 		return [
+		// 			[{ x: t1.x, y: t1.y, z: t1.z }, 33 * timeScalar],
+		// 			[{ x: t2.x, y: t2.y, z: t2.z }, 66 * timeScalar],
+		// 			[{ x: t3.x, y: t3.y, z: t3.z }, 33 * timeScalar],
+		// 		]
+
+		// 	},
+		// 	repeatCount: 2,
+		// },
+		{
+			name: articluatedAnimationName.Light_Stressing_Giantess_Move,
+			initial: (state, getValueFunc) => {
+				return getValueFunc(state)
+			},
+			tweens: (state, getParamFunc) => {
+				let [initialValue, amplitude, timeScalar] = getParamFunc(state)
+
+
+				let t1, t2
+				let t3 = initialValue
+				t1 = { x: - amplitude }
+				t2 = { x: + amplitude }
+
+
+				return [
+					[t1, 33 * timeScalar],
+					[t2, 66 * timeScalar],
+					[t3, 33 * timeScalar],
+				]
+
+			},
+			repeatCount: 2,
+		},
+		{
+			name: articluatedAnimationName.Light_Stressing_Giantess_Rotate,
+			initial: (state, getValueFunc) => {
+				return { euler: 0 }
+			},
+			tweens: (state, getParamFunc) => {
+				let [amplitude, timeScalar] = getParamFunc(state)
+
+				return [
+					[{ euler: -amplitude }, 33 * timeScalar],
+					[{ euler: amplitude }, 66 * timeScalar],
+					[{ euler: 0 }, 33 * timeScalar],
+				]
+			},
+			repeatCount: 2,
+		},
+
+		{
+			name: articluatedAnimationName.Light_Stressing_Army_Move,
+			initial: (state, getValueFunc) => {
+				let origin = getValueFunc(state)
+
+				return { x: origin.x, y: origin.y, z: origin.z }
+			},
+			tweens: (state, getParamFunc) => {
+				let [position, amplitude, timeScalar] = getParamFunc(state)
+
+				// let isXDirection = Math.random() > 0.5
+
+				let t1, t2
+				let t3 = position
+				// if (isXDirection) {
+				t1 = _v1.set(position.x - amplitude, position.y, position.z)
+				t2 = _v2.set(position.x + amplitude, position.y, position.z)
+				// }
+				// else {
+				// 	t1 = _v1.set(position.x, position.y, position.z - amplitude)
+				// 	t2 = _v2.set(position.x, position.y, position.z + amplitude)
+				// }
+
+
+				return [
+					[{ x: t1.x, y: t1.y, z: t1.z }, 33 * timeScalar],
+					[{ x: t2.x, y: t2.y, z: t2.z }, 66 * timeScalar],
+					[{ x: t3.x, y: t3.y, z: t3.z }, 33 * timeScalar],
+				]
+
+			},
+			repeatCount: 2,
+		},
 	]
+}
+
+export let getAnimationData = (state: state): Partial<Record<animationName, animationData>> => {
+	return MutableRecordUtils.concat(
+		{
+			[animationName.Walk]: {
+				experienceFactor: experienceFactor.Middle
+			},
+			[animationName.Run]: {
+				experienceFactor: experienceFactor.Middle2
+			},
+			[animationName.CrawlMove]: {
+				experienceFactor: experienceFactor.Middle
+			},
+
+			// [animationName.Stomp]: {
+			// 	experienceFactor: experienceFactor.Middle3
+			// },
+
+			// [animationName.BreastPress]: {
+			// 	experienceFactor: experienceFactor.VeryHigh
+			// },
+			[animationName.StandToCrawl]: {
+				experienceFactor: experienceFactor.Middle
+			},
+			[animationName.CrawlToStand]: {
+				experienceFactor: experienceFactor.Low
+			},
+
+			[animationName.Pinch]: {
+				experienceFactor: experienceFactor.High
+			},
+			[animationName.Eat]: {
+				experienceFactor: experienceFactor.VeryHigh
+			},
+		},
+		getAnimationDataMod(state)
+	)
 }

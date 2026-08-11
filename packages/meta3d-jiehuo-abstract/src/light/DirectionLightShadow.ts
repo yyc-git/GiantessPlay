@@ -1,13 +1,13 @@
 import { DirectionalLight, PCFShadowMap, WebGLRenderer, CameraHelper, Object3D, PCFSoftShadowMap, VSMShadowMap } from "three";
 import { ShadowMapViewer } from "three/examples/jsm/utils/ShadowMapViewer";
-import { shadowLevel, state } from "../type/StateType";
+import { state } from "../type/StateType";
 import { getLightState, setLightState } from "../state/State";
 import { getExn, isNullable, return_ } from "../utils/NullableUtils";
 import { getRenderer } from "../Render";
-import { getRenderSetting } from "../setting/RenderSetting";
+import { shadowLevel } from "setting-default/src/Type";
 
 // export let enableShadow = (state: state, light: DirectionalLight, renderer: WebGLRenderer, isDebug): [state, DirectionalLight, WebGLRenderer] => {
-export let enableShadow = (state: state, scene, light: DirectionalLight, renderer: WebGLRenderer, isDebug): [Object3D, DirectionalLight, WebGLRenderer] => {
+export let enableShadow = (state: state, scene, light: DirectionalLight, renderer: WebGLRenderer, isDebug, shadow:shadowLevel): [Object3D, DirectionalLight, WebGLRenderer] => {
     light.castShadow = true
     // let size = 600
     // let size = 100
@@ -42,7 +42,7 @@ export let enableShadow = (state: state, scene, light: DirectionalLight, rendere
     // light.shadow.bias = -0.01
 
     let SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT
-    switch (getRenderSetting(state).shadow) {
+    switch (shadow) {
         case shadowLevel.Low:
             SHADOW_MAP_WIDTH = 512
             SHADOW_MAP_HEIGHT = 512

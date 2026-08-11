@@ -20,43 +20,53 @@ export let getData = (): data<eventName> => {
 	return [
 		{
 			eventName: eventName.Begin,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.Begin)
+			scenarioName: scenarioName.Begin,
+			getCommandFunc:getCommand,
+			// func: (state: state) => {
+			// 	state = execute(state, getCommand, scenarioName.Begin)
 
-				return Promise.resolve(state)
-			},
+			// 	return Promise.resolve(state)
+			// },
 		},
 		{
 			eventName: eventName.Stressing,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.Stressing)
+			scenarioName: scenarioName.Stressing,
+			getCommandFunc:getCommand,
+			// func: (state: state) => {
+			// 	state = execute(state, getCommand, scenarioName.Stressing)
 
-				return Promise.resolve(state)
-			},
+			// 	return Promise.resolve(state)
+			// },
 		},
 		{
 			eventName: eventName.PickdownArmy_Normal,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.PickdownArmy_Normal)
+			scenarioName: scenarioName.PickdownArmy_Normal,
+			getCommandFunc:getCommand,
+			// func: (state: state) => {
+			// 	state = execute(state, getCommand, scenarioName.PickdownArmy_Normal)
 
-				return Promise.resolve(state)
-			},
+			// 	return Promise.resolve(state)
+			// },
 		},
 		{
 			eventName: eventName.PickdownArmy_Hard,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.PickdownArmy_Hard)
+			scenarioName: scenarioName.PickdownArmy_Hard,
+			getCommandFunc:getCommand,
+			// func: (state: state) => {
+			// 	state = execute(state, getCommand, scenarioName.PickdownArmy_Hard)
 
-				return Promise.resolve(state)
-			},
+			// 	return Promise.resolve(state)
+			// },
 		},
 		{
 			eventName: eventName.Hard,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.Hard)
+			scenarioName: scenarioName.Hard,
+			getCommandFunc:getCommand,
+			// func: (state: state) => {
+			// 	state = execute(state, getCommand, scenarioName.Hard)
 
-				return Promise.resolve(state)
-			},
+			// 	return Promise.resolve(state)
+			// },
 		},
 	]
 }

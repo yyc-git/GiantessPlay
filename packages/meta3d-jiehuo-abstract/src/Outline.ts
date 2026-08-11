@@ -4,10 +4,11 @@ import { getPickState, getRenderState, setPickState } from "./state/State";
 import { pick, state } from "./type/StateType";
 import { isInstanceSourceObject } from './instance/Instance';
 import { markAllMeshesNotVisible, markAllMeshesVisible } from './utils/Object3DUtils';
+import { Object3D } from 'three';
 // import { getCurrentScene } from './scene/Scene';
 // import { isEqualByName } from './utils/Object3DUtils';
 
-export let setSelectedObjects = (state: state, selectedObjects) => {
+export let setSelectedObjects = (state: state, selectedObjects: Array<Object3D>) => {
     let { outlinePass } = getRenderState(state)
 
     outlinePass.selectedObjects = selectedObjects;
@@ -15,39 +16,31 @@ export let setSelectedObjects = (state: state, selectedObjects) => {
     return state
 }
 
-export let init = (state: state) => {
-    // state = on(state, getPickEventName(), (specficState, { userData }) => {
-    //     let state = getAbstractStateFunc(specficState)
+export let initWhenImportScene = (state: state) => {
+    // let outlinePass = getRenderState(state).outlinePass as any
 
-    //     state = _setSelectedObjects(state, getExn(userData).topTarget)
-
-    //     return Promise.resolve(setAbstractStateFunc(specficState, state))
-    // })
-
-    let outlinePass = getRenderState(state).outlinePass as any
-
-    outlinePass.preRenderHandlers.push(
-        pass => {
-            if (pass instanceof OutlinePass) {
-                pass.selectedObjects.forEach(object => {
-                    if (isInstanceSourceObject(object.id, state)) {
-                        markAllMeshesVisible(object)
-                    }
-                })
-            }
-        }
-    )
-    outlinePass.postRenderHandlers.push(
-        pass => {
-            if (pass instanceof OutlinePass) {
-                pass.selectedObjects.forEach(object => {
-                    if (isInstanceSourceObject(object.id, state)) {
-                        markAllMeshesNotVisible(object)
-                    }
-                })
-            }
-        }
-    )
+    // outlinePass.preRenderHandlers.push(
+    //     pass => {
+    //         if (pass instanceof OutlinePass) {
+    //             pass.selectedObjects.forEach(object => {
+    //                 if (isInstanceSourceObject(object.id, state)) {
+    //                     markAllMeshesVisible(object)
+    //                 }
+    //             })
+    //         }
+    //     }
+    // )
+    // outlinePass.postRenderHandlers.push(
+    //     pass => {
+    //         if (pass instanceof OutlinePass) {
+    //             pass.selectedObjects.forEach(object => {
+    //                 if (isInstanceSourceObject(object.id, state)) {
+    //                     markAllMeshesNotVisible(object)
+    //                 }
+    //             })
+    //         }
+    //     }
+    // )
 
     return Promise.resolve(state)
 }

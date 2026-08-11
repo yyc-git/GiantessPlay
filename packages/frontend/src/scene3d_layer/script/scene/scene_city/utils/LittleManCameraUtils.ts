@@ -2,16 +2,22 @@ import { Camera } from "meta3d-jiehuo-abstract"
 import { getAbstractState, setAbstractState } from "../../../../state/State"
 import { state } from "../../../../type/StateType"
 import { ThirdPersonControls } from "meta3d-jiehuo-abstract"
-import { getIsDebug } from "../../Scene"
+import { getIsDebug, getIsProduction } from "../../Scene"
 import { getBoxSizeForCompute } from "../little_man/LittleMan"
 
-export let getCameraNear = (state: state) => {
-    return Camera.getCurrentCamera(getAbstractState(state)).near
-}
+// export let getCameraNear = (state: state) => {
+//     return Camera.getCurrentCamera(getAbstractState(state)).near
+// }
 
-export let getCameraFar = (state: state) => {
-    return Camera.getCurrentCamera(getAbstractState(state)).far
-}
+// export let getCameraFar = (state: state) => {
+//     return Camera.getCurrentCamera(getAbstractState(state)).far
+// }
+
+// export let setCameraFar = (state: state, far) => {
+//     Camera.getCurrentCamera(getAbstractState(state)).far = far
+
+//     return state
+// }
 
 
 export let updateThirdPersonControlsByCameraData = (state: state, near, far, cameraPosition, controlsTarget) => {
@@ -38,16 +44,17 @@ export let updateThirdPersonControlsByCameraData = (state: state, near, far, cam
 }
 
 export let getMinDistance = (state) => {
-    if (getIsDebug(state)) {
-        return 0
-    }
+    // if (getIsDebug(state)) {
+    //     return 0
+    // }
 
     return getBoxSizeForCompute(state) * 2
 }
 
 export let getMaxDistance = (state: state) => {
     if (getIsDebug(state)) {
-        return +Infinity
+        // return getBoxSizeForCompute(state, usedGirl) * 100
+        return getBoxSizeForCompute(state) * 600
     }
 
     // return getCapsuleRadiusForCompute(capsule) * 16

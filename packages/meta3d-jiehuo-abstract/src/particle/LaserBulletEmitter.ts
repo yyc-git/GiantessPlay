@@ -27,6 +27,9 @@ let _setState = (state: state, laserBulletEmitterState: laserBulletEmitter) => {
 
 export let createState = BulletEmitter.createState
 
+export let getImagePath = () => {
+	return "meta3d-jiehuo-abstract/particle/laserBullet.png"
+}
 
 export let init = (state: state, scene) => {
 	return EmitterUtils.initWithoutRotation(state, (state, geometry) => {
@@ -34,7 +37,7 @@ export let init = (state: state, scene) => {
 			..._getState(state),
 			geometry: return_(geometry)
 		})
-	}, scene, "meta3d-jiehuo-abstract/particle/laserBullet.png", "#ffffff")
+	}, scene, getImagePath(), "#ffffff")
 }
 
 export let buildParticle = BulletEmitter.buildParticle
@@ -42,19 +45,23 @@ export let buildParticle = BulletEmitter.buildParticle
 export let emit = (state: state, {
 	// rotation,
 	fromName,
+	camp,
 	speed,
 	life,
 	size,
 	position,
-	direction
+	direction,
+	getDirectionFunc
 }: laserBulletEmitterParam) => {
 	let particles = push(_getState(state).particles,
 		buildParticle(state, {
 			// rotation,
 			fromName,
+			camp,
 			speed, life, size,
 			position,
-			direction
+			direction,
+			getDirectionFunc
 		}),
 	)
 
@@ -71,15 +78,18 @@ export let getAllParticles = (state: state) => {
 export let updateParticle = BulletEmitter.updateParticle
 
 
-export let update = (state: state) => {
-	return EmitterUtils.update(state, [
-		getAllParticles,
-		(state, particles) => {
-			return _setState(state, {
-				..._getState(state),
-				particles
-			})
-		},
-		updateParticle
-	], getExn(_getState(state).geometry))
+// export let update = (state: state) => {
+// 	return EmitterUtils.update(state, [
+// 		getAllParticles,
+// 		(state, particles) => {
+// 			return _setState(state, {
+// 				..._getState(state),
+// 				particles
+// 			})
+// 		},
+// 		updateParticle
+// 	], getExn(_getState(state).geometry))
+// }
+export let update = <specificState>(state, specificState: specificState) => {
+	return BulletEmitter.updateUtils(state, [getAllParticles, _getState, _setState], specificState)
 }

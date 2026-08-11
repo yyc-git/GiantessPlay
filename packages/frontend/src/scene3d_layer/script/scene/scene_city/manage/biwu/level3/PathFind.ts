@@ -4,14 +4,16 @@ import { state } from "../../../../../../type/StateType"
 import { createGrid, setGrid } from "../../city1/PathFind"
 import { PathFind } from "meta3d-jiehuo-abstract"
 import { getLevelData } from "../../../data/biwu/level3/LevelData"
+import { getUsedGirl } from "../Utils"
 
 export let initWhenImportScene = (state: state) => {
+    let usedGirl = getUsedGirl()
     let {
         minX,
         maxX,
         minZ,
         maxZ,
-    } = getLevelData(state).torsorRange
+    } = getLevelData(state, usedGirl).torsorRange
 
     let step = 1
     let range = {
@@ -21,7 +23,8 @@ export let initWhenImportScene = (state: state) => {
 
     state = setAbstractState(state, PathFind.setStep(getAbstractState(state), step))
 
-    state = setGrid(state, createGrid(state, range, step))
+    // state = setGrid(state, createGrid(state, range, step))
+    state = setGrid(state, range, step)
 
     return Promise.resolve(state)
 

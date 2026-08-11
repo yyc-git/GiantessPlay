@@ -1,0 +1,32 @@
+@use "../../../../../../../Main.scss" as *;
+
+.weapon-main {
+    .image {
+        position: fixed;
+        z-index: 2;
+
+        opacity: 1.0;
+
+        width: 4rem;
+        height: 2rem;
+
+        bottom: 11rem;
+        right: 1rem;
+    }
+
+    .bullet-count {
+        position: fixed;
+        z-index: 2;
+
+        opacity: 1.0;
+
+        width: 4rem;
+        height: 2rem;
+
+        bottom: 12rem;
+        right: 1rem;
+
+        @include font-size-level2;
+        color: rgb(127, 255, 0) !important;
+    }
+}

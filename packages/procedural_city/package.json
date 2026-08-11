@@ -1,0 +1,19 @@
+{
+    "name": "procedural_city",
+    "version": "0.0.1",
+    "main": "lib/js/src/Main.bs.js",
+    "types": "src/Main.d.ts",
+    "license": "",
+    "scripts": {
+        "watch": "rescript clean && rescript build -w",
+        "buildAll:ci": "rescript clean && rescript build",
+        "test:watch": "jest --watch --config jest.json",
+        "test:ci": "yarn buildAll:ci && jest --maxWorkers=4 --config jest_coverage.json"
+    },
+    "keywords": [],
+    "dependencies": {
+        "meta3d-commonlib": "^1.3.0",
+        "meta3d-commonlib-type": "^1.3.0",
+        "rescript": "^10.0.0"
+    }
+}

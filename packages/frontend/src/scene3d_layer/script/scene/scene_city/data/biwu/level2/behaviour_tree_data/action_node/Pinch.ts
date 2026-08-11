@@ -1,38 +1,50 @@
 import { Vector3, Bone, Object3D, LinearTransfer } from "three";
-import { actionNodeFunc, attackRange, behaviourTreeNodeExecuteResult, collisionPart, damageType,  result } from "../../../../../type/StateType";
+import { actionNodeFunc, attackRange, behaviourTreeNodeExecuteResult, collisionPart, damageType, result } from "../../../../../type/StateType";
 import { Console } from "meta3d-jiehuo-abstract";
 // import { triggerAction } from "../../../../../behaviour_tree/action_node/Utils";
 import { actionName, animationName, articluatedAnimationName } from "../../DataType";
 import { lookatTarget } from "../../../../../behaviour_tree/action_node/Stomp";
-import { judgeAttackRangeAndTriggerActionWithCompleteFunc, triggerAction, triggerActionWithCompleteFunc } from "../../../../../behaviour_tree/action_node/Utils";
+import { triggerAction, triggerActionWithCompleteFunc } from "../../../../../behaviour_tree/action_node/Utils";
 import * as Girl from "../../../../../manage/biwu/Girl";
 import { isExcitementEnough, isZeroExcitement, subExcitement } from "../../../../../girl/Excitement";
 import { excitement } from "../../../../DataType";
-import { hasPickData } from "../../../../../girl/PickPose";
+import { hasPickData } from "../../../../../girl/PickPoseUtils";
 import { markFinish } from "../../../../../behaviour_tree/BehaviourTreeManager";
 import { getIsHit } from "./utils/QTEUtils";
 import { TupleUtils } from "meta3d-jiehuo-abstract";
 import { NumberUtils } from "meta3d-jiehuo-abstract";
+import { handleHandFall } from "../../../../../girl/PickPose";
+import { isTriggerAction } from "../../../../../girl/Girl";
 
-let _trigger = (state, id, actionName_, count) => {
+let _trigger = (state, usedGirl, id, actionName_, count) => {
     return triggerActionWithCompleteFunc(state, [
         Girl.triggerAction,
         state => {
-            if (getIsHit(state) || count <= 0) {
-                return markFinish(state, id, behaviourTreeNodeExecuteResult.Success)
+            if (getIsHit(state)
+                || count <= 0
+                || !isTriggerAction(state, usedGirl, actionName.Pinch)
+            ) {
+                return markFinish(state, usedGirl, id, behaviourTreeNodeExecuteResult.Success).then(state => {
+                    return handleHandFall(state, usedGirl)
+                })
             }
 
-            return _trigger(state, id, actionName_, count - 1)
+            return _trigger(state, usedGirl, id, actionName_, count - 1)
         }
-    ], actionName_, id).then(TupleUtils.getTuple2First)
+    ], usedGirl, actionName_, id).then(TupleUtils.getTuple2First)
 }
 
-export let pinch: actionNodeFunc = (state, id) => {
+export let pinch: actionNodeFunc = (state, usedGirl, id) => {
     Console.log("pinch")
+
+    if (!hasPickData(state, usedGirl)) {
+        return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    }
+
 
     let actionName_
     actionName_ = actionName.Pinch
-    // switch (getCurrentPose(state)) {
+    // switch (getCurrentPose(state, usedGirl)) {
     //     case pose.Stand:
     //     case pose.Crawl:
     //         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
@@ -41,7 +53,7 @@ export let pinch: actionNodeFunc = (state, id) => {
     //         break
     // }
 
-    return _trigger(state, id, actionName_, NumberUtils.getRandomInteger(2, 4)).then(state => {
+    return _trigger(state, usedGirl, id, actionName_, NumberUtils.getRandomInteger(2, 4)).then(state => {
         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
     })
 }

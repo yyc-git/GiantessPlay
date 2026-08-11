@@ -4,8 +4,9 @@ import { return_ } from "../utils/NullableUtils";
 import { getDelta, isMobile } from "../Device";
 import { getResource, isResourceLoaded } from "../Loader";
 import { load } from "./LoadParticlTextureUtils";
-import { hasId } from "./ParticleUtils";
+import { hasId, removeBulletParticle } from "./ParticleUtils";
 import { addReallocateIds } from "./IDUtils";
+import { initGeometryAttributes, initGeometryAttributesForColor, initGeometryAttributesForRotation, updateGeometryAttribute } from "./GeometryUtils";
 
 export let initWithoutRotation = (state: state, setGeometryFunc, scene, texturePath, color) => {
 	let promise = load(state, texturePath, false)
@@ -13,10 +14,12 @@ export let initWithoutRotation = (state: state, setGeometryFunc, scene, textureP
 	return promise.then(([state, map]) => {
 		// 先创建一个空的缓冲几何体
 		const geometry = new BufferGeometry();
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
-		geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
-		geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
-		// geometry.setAttribute('a_scale', new BufferAttribute(new Float32Array([]), 1)); // 点的放大量，用1个浮点数表示
+		// geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
+		// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
+		// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
+		// // geometry.setAttribute('a_scale', new BufferAttribute(new Float32Array([]), 1)); // 点的放大量，用1个浮点数表示
+
+		let _ = initGeometryAttributes(geometry, 1000)
 
 
 		// 创建材质
@@ -108,11 +111,13 @@ export let initWithRotation = (state: state, setGeometryFunc, scene, texturePath
 	}).then(map => {
 		// 先创建一个空的缓冲几何体
 		const geometry = new BufferGeometry();
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
-		geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
-		geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
-		geometry.setAttribute('a_rotation', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
-		// geometry.setAttribute('a_scale', new BufferAttribute(new Float32Array([]), 1)); // 点的放大量，用1个浮点数表示
+		// geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
+		// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
+		// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
+		// geometry.setAttribute('a_rotation', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
+		// // geometry.setAttribute('a_scale', new BufferAttribute(new Float32Array([]), 1)); // 点的放大量，用1个浮点数表示
+
+		let _ = initGeometryAttributesForRotation(geometry, 1000)
 
 
 		// 创建材质
@@ -234,10 +239,12 @@ export let initWithRotation = (state: state, setGeometryFunc, scene, texturePath
 export let initByChangeColor = (state: state, setGeometryFunc, scene) => {
 	// 先创建一个空的缓冲几何体
 	const geometry = new BufferGeometry();
-	geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
-	geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
-	geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
-	geometry.setAttribute('a_color', new BufferAttribute(new Float32Array([]), 3));
+	// geometry.setAttribute('position', new BufferAttribute(new Float32Array([]), 3)); // 一个顶点由3个坐标构成
+	// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array([]), 1)); // 点的透明度，用1个浮点数表示
+	// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array([]), 1)); // 点的初始大小，用1个浮点数表示
+	// geometry.setAttribute('a_color', new BufferAttribute(new Float32Array([]), 3));
+
+	let _ = initGeometryAttributesForColor(geometry, 1000)
 
 
 	// 创建材质
@@ -338,23 +345,25 @@ export let updatePosition = (position, index, speed, time, isAdd) => {
 
 export let update = (state: state, [getParticlesFunc, setParticlesFunc, updateFunc,
 	updateGeometryAttributeFunc = (filteredParticles, geometry) => {
-		// 遍历粒子,收集属性
-		let [positionList, opacityList, sizeList] = filteredParticles.reduce(([positionList, opacityList, sizeList], particle,) => {
-			// positionList = positionList.concat(particle.position)
-			positionList.push(particle.position[0], particle.position[1], particle.position[2])
-			opacityList.push(particle.opacity)
-			sizeList.push(particle.size)
+		// // 遍历粒子,收集属性
+		// let [positionList, opacityList, sizeList] = filteredParticles.reduce(([positionList, opacityList, sizeList], particle,) => {
+		// 	// positionList = positionList.concat(particle.position)
+		// 	positionList.push(particle.position[0], particle.position[1], particle.position[2])
+		// 	opacityList.push(particle.opacity)
+		// 	sizeList.push(particle.size)
 
-			return [positionList, opacityList, sizeList]
-		}, [[], [], []])
+		// 	return [positionList, opacityList, sizeList]
+		// }, [[], [], []])
 
-		// 粒子属性写入
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
-		geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
-		geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
+		// // 粒子属性写入
+		// geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionList), 3));
+		// geometry.setAttribute('a_opacity', new BufferAttribute(new Float32Array(opacityList), 1));
+		// geometry.setAttribute('a_size', new BufferAttribute(new Float32Array(sizeList), 1));
+
+		let _ = updateGeometryAttribute(geometry, filteredParticles)
 	},
 	removeParticlesFunc = (state, removedParticles) => {
-		return state
+		return removedParticles.reduce(removeBulletParticle, state)
 	},
 ], geometry) => {
 	let now = Date.now()

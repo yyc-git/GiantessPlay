@@ -1,0 +1,38 @@
+@use "../../../../../../Main.scss" as *;
+
+$width: 30rem;
+$halfWith: 15rem;
+
+
+.game-event-tip-main {
+	@include background-unset;
+
+	// .adm-mask {
+	// 	margin-top: 20%;
+
+	// 	// width: 30%;
+	// 	// height: 30%;
+	// 	// margin-left: 35%;
+	// 	width: 30%;
+	// 	// height: 20%;
+	// 	height: 5%;
+	// 	margin-left: 5%;
+	// }
+
+	.title {
+		@include font-size;
+
+		position: fixed;
+		top: 8rem;
+		left: 50%;
+		z-index: 3;
+
+		margin-left: - $halfWith;
+		width: $width;
+
+		text-align: center;
+
+		// color: yellow !important;
+		color: red !important;
+	}
+}

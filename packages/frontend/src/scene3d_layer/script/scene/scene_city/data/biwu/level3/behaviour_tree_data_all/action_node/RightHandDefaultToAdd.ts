@@ -12,15 +12,15 @@ import { markFinish } from "../../../../../behaviour_tree/BehaviourTreeManager"
 import * as BehaviourTreeDataLeftHand from "../../behaviour_tree_data_left_hand/BehaviourTreeData"
 import * as BehaviourTreeDataRightHand from "../../behaviour_tree_data_right_hand/BehaviourTreeData"
 
-export let rightHandDefaultToAdd: actionNodeFunc = (state, id) => {
+export let rightHandDefaultToAdd: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("rightHandDefaultToAdd")
 
     return triggerActionWithCompleteFunc(state, [
         Girl.triggerAction,
         (state, id) => {
-            state = setAttackType(state, handType.RightHandAdd, attackType.None, attackType.Add)
+            state = setAttackType(state, usedGirl, handType.RightHandAdd, attackType.None, attackType.Add)
 
-            return markFinish(state, id, behaviourTreeNodeExecuteResult.Success, getKey())
+            return markFinish(state, usedGirl,  id, behaviourTreeNodeExecuteResult.Success, getKey())
         }
-    ], actionName.RightHandDefaultToAdd as any, id, getKey())
+    ], usedGirl, actionName.RightHandDefaultToAdd as any, id, getKey())
 }

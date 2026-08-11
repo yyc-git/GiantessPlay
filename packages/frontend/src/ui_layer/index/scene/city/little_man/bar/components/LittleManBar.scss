@@ -1,17 +1,26 @@
-@import "../../../../../../../Main.scss";
+@use "../../../../../../../Main.scss" as *;
 
-$littleManWidth: 10rem;
+// $width: 10rem;
+// $halfWidth: 5rem;
+$width: 8rem;
+$halfWidth: 4rem;
 
-.bar-main {
+.little-man-bar-main {
 	@include background-unset;
 
 
 	position: fixed;
-	top: 0.5rem;
+    z-index: 2;
+	// bottom: 1rem;
 
+	// // left: 0.5rem;
+	// left: 50%;
+	// margin-left: - $halfWidth;
+
+	top: 0.5rem;
 	left: 0.5rem;
 
-	width: $littleManWidth ;
+	width: $width ;
 
 	.row {
 		height: 100%;
@@ -28,7 +37,7 @@ $littleManWidth: 10rem;
 			}
 
 			.bar_hp_background {
-				width: $littleManWidth;
+				width: $width;
 				height: 1rem;
 			}
 
@@ -73,6 +82,17 @@ $littleManWidth: 10rem;
 		.row_hp_number {
 			top: 0.2rem !important;
 			right: 0;
+		}
+
+
+		.row_life_count {
+			// left: 10.5rem;
+			left: 8.5rem;
+			width: 2rem;
+
+			.life_count_text {
+				@include font-size-level3;
+			}
 		}
 	}
 }

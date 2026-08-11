@@ -11,61 +11,43 @@ const _v2 = new Vector3();
 export enum eventName {
 	Begin = "Begin",
 	PickdownArmy1 = "PickdownArmy1",
-	PickdownArmy2_1 = "PickdownArmy2_1",
-	PickdownArmy2_2 = "PickdownArmy2_2",
-	PickdownArmy3 = "PickdownArmy3",
-	StompLittleMan = "StompLittleMan",
+	// PickdownArmy2_1 = "PickdownArmy2_1",
+	// PickdownArmy2_2 = "PickdownArmy2_2",
+	// PickdownArmy3 = "PickdownArmy3",
+	// StompLittleMan = "StompLittleMan",
 }
 
 export let getData = (): data<eventName> => {
 	return [
 		{
 			eventName: eventName.Begin,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.Begin)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.Begin,
+			getCommandFunc:getCommand,
 		},
 		{
 			eventName: eventName.PickdownArmy1,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.PickdownArmy1)
-
-				return Promise.resolve(state)
-			},
+			scenarioName: scenarioName.PickdownArmy1,
+			getCommandFunc:getCommand,
 		},
-		{
-			eventName: eventName.PickdownArmy2_1,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.PickdownArmy2_1)
-
-				return Promise.resolve(state)
-			},
-		},
-		{
-			eventName: eventName.PickdownArmy2_2,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.PickdownArmy2_2)
-
-				return Promise.resolve(state)
-			},
-		},
-		{
-			eventName: eventName.PickdownArmy3,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.PickdownArmy3)
-
-				return Promise.resolve(state)
-			},
-		},
-		{
-			eventName: eventName.StompLittleMan,
-			func: (state: state) => {
-				state = execute(state, getCommand, scenarioName.StompLittleMan)
-
-				return Promise.resolve(state)
-			},
-		},
+		// {
+		// 	eventName: eventName.PickdownArmy2_1,
+		// 	scenarioName: scenarioName.PickdownArmy2_1,
+		// 	getCommandFunc:getCommand,
+		// },
+		// // {
+		// // 	eventName: eventName.PickdownArmy2_2,
+		// // 	scenarioName: scenarioName.PickdownArmy2_2,
+		// // 	getCommandFunc:getCommand,
+		// // },
+		// {
+		// 	eventName: eventName.PickdownArmy3,
+		// 	scenarioName: scenarioName.PickdownArmy3,
+		// 	getCommandFunc:getCommand,
+		// },
+		// {
+		// 	eventName: eventName.StompLittleMan,
+		// 	scenarioName: scenarioName.StompLittleMan,
+		// 	getCommandFunc:getCommand,
+		// },
 	]
 }

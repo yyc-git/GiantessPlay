@@ -1,6 +1,5 @@
 import { isMobile } from "../../Device"
-import { road, state } from "../../type/StateType"
-import { getDirectionDataFromState } from "../utils/CameraControlsUtils"
+import { characterType, state } from "../../type/StateType"
 
 export let judgeIsMoveInMobile = (state: state) => {
     return isMobile()

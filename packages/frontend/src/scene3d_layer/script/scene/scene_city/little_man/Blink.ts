@@ -2,7 +2,7 @@ import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { Quaternion, Matrix4, Vector3, Vector2, AxesHelper, Box3, Object3D, SkinnedMesh, Mesh, MeshPhongMaterial, LoopRepeat, Euler } from "three";
 import { state } from "../../../../type/StateType";
 import { computeTransformForCamera } from "../Camera";
-import { road } from "meta3d-jiehuo-abstract/src/type/StateType";
+import { characterType } from "meta3d-jiehuo-abstract/src/type/StateType";
 import { computeTranslate, translate, updateMoveCollision } from "./Move";
 import { Device } from "meta3d-jiehuo-abstract";
 import { getAbstractState, setAbstractState } from "../../../../state/State";
@@ -11,7 +11,7 @@ import { TransformUtils } from "meta3d-jiehuo-abstract";
 import { Console } from "meta3d-jiehuo-abstract";
 import { getTriggeredActionTime, resetIsTriggerAction, setTriggeredActionTime } from "./Action";
 import { ThirdPersonControls } from "meta3d-jiehuo-abstract";
-import { updateCamera } from "../LittleManCamera";
+import { getCameraType, updateCamera } from "../LittleManCamera";
 import { updateAimHud } from "./Shoot";
 import { ParticleManager } from "meta3d-jiehuo-abstract";
 import { Flow } from "meta3d-jiehuo-abstract";
@@ -20,14 +20,16 @@ import { SoundManager } from "meta3d-jiehuo-abstract";
 import { getBlinkSoundResourceId } from "../little_man_data/Const";
 import { getIsDebug } from "../../Scene";
 import { getLittleManVolume } from "../utils/SoundUtils";
-import { getConfigData } from "../CityScene";
+import { getConfigData, isNeedClimbLevel } from "../CityScene";
 import { getCurrentData } from "../little_man_data/SkillData";
 import { getBox, getStateMachine } from "./LittleMan";
 import { StateMachine } from "meta3d-jiehuo-abstract";
-import { objectStateName } from "../type/StateType";
+import { objectStateName, usedGirlEnum } from "../type/StateType";
 import { computeVelocityForBlink, correctBoxCenterForBlink } from "./climb/ClimbManager";
 import { getPositionY } from "../manage/city1/Army";
 import { getGirlPositionYKey } from "../manage/biwu/level3/ArmyManager";
+import { getNow } from "../Time";
+import { getNearestUsedGirl } from "../utils/CollisionUtils";
 
 const _q = new Quaternion();
 const _e = new Euler();
@@ -45,9 +47,10 @@ let _computeVelocity = (state, forward, side, delta, controlRotationAngle) => {
         let newForward = forward * factor
         let newSide = side * factor
 
-        let velocity, isJudgeGirl
+        let velocity, isJudgeGirl = isNeedClimbLevel(state)
         if (StateMachine.isState(getStateMachine(state), objectStateName.Climb)) {
-            velocity = computeVelocityForBlink(state, delta, newForward, newSide, controlRotationAngle)
+            let usedGirl = getNearestUsedGirl(state, getPosition(state))
+            velocity = computeVelocityForBlink(state, usedGirl, delta, newForward, newSide, controlRotationAngle)
 
             if (velocity.equals(_v1.set(0, 0, 0))) {
                 return _func(factor / 2)
@@ -57,7 +60,7 @@ let _computeVelocity = (state, forward, side, delta, controlRotationAngle) => {
             // * 
             // */
             // littleManCollisionBox = getBox(state).clone().translate(_v1.set(0, 1, 0))
-            isJudgeGirl = false
+            // isJudgeGirl = false
         }
         else {
             velocity = computeTranslate(state, delta, newForward, newSide, controlRotationAngle)
@@ -65,13 +68,13 @@ let _computeVelocity = (state, forward, side, delta, controlRotationAngle) => {
             velocity.setY(0)
 
             // littleManCollisionBox = getBox(state)
-            isJudgeGirl = true
+            // isJudgeGirl = true
         }
 
 
         if (!state.config.isNotMoveCollision) {
             // velocity = updateMoveCollision(velocity, littleManCollisionBox, state, true, false)
-            velocity = updateMoveCollision(velocity, state, isJudgeGirl)
+            velocity = updateMoveCollision(velocity, state, isJudgeGirl, true)
 
             if (velocity.equals(_v1.set(0, 0, 0))) {
                 return _func(factor / 2)
@@ -89,7 +92,7 @@ let _computeVelocity = (state, forward, side, delta, controlRotationAngle) => {
 export let handleBlinkAction = (state: state) => {
     state = resetIsTriggerAction(state)
 
-    let now = performance.now()
+    let now = getNow(state)
 
     let coolingTime = NullableUtils.getExn(getCurrentData(state, actionName.Blink).coolingTime)
 
@@ -100,7 +103,7 @@ export let handleBlinkAction = (state: state) => {
 
     let delta = Device.getDelta(getAbstractState(state))
 
-    let [controlRotationAngle, forward, side] = computeTransformForCamera(state, road.LittleMan)
+    let [controlRotationAngle, forward, side] = computeTransformForCamera(state, usedGirlEnum.None, characterType.LittleMan, getCameraType(state))
 
     if (forward == 0 && side == 0) {
         // return state
@@ -119,7 +122,8 @@ export let handleBlinkAction = (state: state) => {
 
 
     if (StateMachine.isState(getStateMachine(state), objectStateName.Climb)) {
-        state = correctBoxCenterForBlink(state)
+        let usedGirl = getNearestUsedGirl(state, getPosition(state))
+        state = correctBoxCenterForBlink(state, usedGirl)
     }
 
 

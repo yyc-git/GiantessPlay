@@ -10,6 +10,7 @@ import { Vector3 } from "three"
 import { tween } from "meta3d-jiehuo-abstract/src/type/StateType"
 import * as BeatAttackUtils from "../../BeatAttackUtils"
 import { collisionPart } from "../../CollisionShapeData"
+import { getUsedGirl } from "../../../../../manage/biwu/Utils"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 
@@ -20,8 +21,8 @@ let _setCurrentTweens = (state: state, tweens: Array<tween>) => {
     })
 }
 
-let _getHandIKBone = (state: state) => {
-    return getBone(state, Girl.getGirl(state), "左腕ＩＫ")
+let _getHandIKBone = (state: state, usedGirl) => {
+    return getBone(state, usedGirl, Girl.getGirl(state, usedGirl), "左腕ＩＫ")
 }
 
 let _isHandIKBone = (bone) => {
@@ -47,13 +48,14 @@ export let beatAttack: actionNodeFunc = BeatAttackUtils.attack(
         }),
         _setCurrentTweens
     ],
+    getUsedGirl(),
     collisionPart.LeftHand,
     actionName.LeftHandBeatAttack,
     getKey()
 )
 
-export let dispose = (state: state) => {
-    state = BeatAttackUtils.dispose(state, actionName.LeftHandBeatAttack)
+export let dispose = (state: state, usedGirl) => {
+    state = BeatAttackUtils.dispose(state, usedGirl, actionName.LeftHandBeatAttack)
 
     return state
 }

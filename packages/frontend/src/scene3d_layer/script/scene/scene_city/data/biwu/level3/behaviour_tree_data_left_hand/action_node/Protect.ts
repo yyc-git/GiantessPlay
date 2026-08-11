@@ -10,8 +10,8 @@ import { getAbstractState, readState, setAbstractState, writeState } from "../..
 import { Flow } from "meta3d-jiehuo-abstract"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import * as LittleManTransform from "../../../../../little_man/Transform";
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
-import { getMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
+import { getMMDAnimationHelper, hasMMDAnimationHelper } from "meta3d-jiehuo-abstract/src/mmd/MMD"
 import { actionName, articluatedAnimationName } from "../../DataType"
 import * as BehaviourTreeDataAll from "../../behaviour_tree_data_all/BehaviourTreeData"
 import { getBone } from "../../../../../utils/MMDUtils"
@@ -21,6 +21,7 @@ import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { findArticluatedAnimationData, playArticluatedAnimation } from "../../../../DataUtils"
 import * as DamageUtils from "../../../../../utils/DamageUtils";
 import { tween } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { addTweens } from "../../../../../TweenManager"
 
 const _v1 = /*@__PURE__*/ new Vector3();
 // const _b1 = /*@__PURE__*/ new Box3();
@@ -50,7 +51,7 @@ type data = {
 
 let _getData = (state: state): data => {
     // let factor, hangFactor
-    // if (isHard(state)) {
+    // if (isHard(state, usedGirl)) {
     //     factor = 2
     //     hangFactor = 1.5
     // }
@@ -104,7 +105,7 @@ let _setCurrentTweens = (state: state, tweens: Array<tween>) => {
 }
 
 
-let _move = (state,
+let _move = (state, usedGirl,
     // [_getHandIKBone, _isHandIKBone,
     //     getOriginBoneLocalPositionFunc,
     //     markIsNotActionFunc,
@@ -120,14 +121,14 @@ let _move = (state,
     // let boneLocalPosition = bone.position.clone()
     let boneLocalPosition = NullableUtils.getExn(getCustomData(state).originBoneLocalPosition)
 
-    let helper = getMMDAnimationHelper(getAbstractState(state))
+    let helper = getMMDAnimationHelper(getAbstractState(state), usedGirl)
 
     let articluatedAnimationData = findArticluatedAnimationData(state, articluatedAnimationName.MoveLeftHandProtect)
 
     let tweens = playArticluatedAnimation(state,
         [
             object => {
-                MutableMapUtils.set(helper.ikBoneCustomData, actionName.LeftHandProtect, (bone) => {
+                MutableRecordUtils.set(helper.ikBoneCustomData, actionName.LeftHandProtect, (bone) => {
                     if (_isHandIKBone(bone)) {
                         bone.position.setX(object.x)
                     }
@@ -147,7 +148,7 @@ let _move = (state,
                 DamageUtils.handleTweenRepeatComplete3(
                     [
                         state => {
-                            // state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+                            // state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl))))
 
                             // return _computeRubDamage(state, boxBefore)
                             return Promise.resolve(state)
@@ -162,10 +163,10 @@ let _move = (state,
                             })
 
 
-                            state = _clearIKBoneCustomData(state, actionName.LeftHandProtect)
+                            state = _clearIKBoneCustomData(state, usedGirl, actionName.LeftHandProtect)
 
 
-                            return markFinish(state, getIdExn(state, actionName.LeftHandProtect), behaviourTreeNodeExecuteResult.Success, getKey()).then(writeState)
+                            return markFinish(state, usedGirl, getIdExn(state, usedGirl, actionName.LeftHandProtect), behaviourTreeNodeExecuteResult.Success, getKey()).then(writeState)
                         },
                     ],
                     allTweens,
@@ -176,27 +177,30 @@ let _move = (state,
                     articluatedAnimationData.repeatCount
                 )
             },
-            () => {
-                // let state = readState()
+            // () => {
+            //     // let state = readState()
 
-                // state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state))))
+            //     // state = setAbstractState(state, SoundManager.addNeedToPlaySound(getAbstractState(state), SoundManager.buildNeedToPlaySoundData(getRubSoundResourceId(), getIsDebug(state), getGirlVolume(state, usedGirl))))
 
-                // return _computeRubDamage(state, boxBefore).then(state => {
-                //     let _ = writeState(state)
-                // })
-                return Promise.resolve()
-            }
+            //     // return _computeRubDamage(state, boxBefore).then(state => {
+            //     //     let _ = writeState(state)
+            //     // })
+            //     return Promise.resolve()
+            // }
+            NullableUtils.getEmpty()
         ],
         articluatedAnimationData
     )
 
     state = _setCurrentTweens(state, tweens)
 
+    state = addTweens(state, tweens)
+
     return state
 }
 
-let _getHandIKBone = (state: state) => {
-    return getBone(state, Girl.getGirl(state), "左腕ＩＫ")
+let _getHandIKBone = (state: state, usedGirl) => {
+    return getBone(state, usedGirl, Girl.getGirl(state, usedGirl), "左腕ＩＫ")
 }
 
 let _isHandIKBone = (bone) => {
@@ -204,7 +208,7 @@ let _isHandIKBone = (bone) => {
 }
 
 
-export let protect: actionNodeFunc = (state, id) => {
+export let protect: actionNodeFunc = (state, usedGirl, id) => {
     Console.log("protect")
 
     state = BehaviourTreeDataAll.setCustomData(state, {
@@ -212,11 +216,11 @@ export let protect: actionNodeFunc = (state, id) => {
         isLeftHandAction: true
     })
 
-    state = markIsRunning(state, true, getKey())
+    state = markIsRunning(state, usedGirl, true, getKey())
 
-    state = setId(state, actionName.LeftHandProtect, id)
+    state = setId(state, usedGirl, actionName.LeftHandProtect, id)
 
-    let d = _getHandIKBone(state)
+    let d = _getHandIKBone(state, usedGirl)
 
     state = d[0]
     let bone = d[1]
@@ -227,7 +231,7 @@ export let protect: actionNodeFunc = (state, id) => {
     })
     // state = setOriginBoneLocalPositionFunc(state, bone.position.clone())
 
-    state = _move(state,
+    state = _move(state, usedGirl,
         // [_getHandIKBone, _isHandIKBone,
         //     getOriginBoneLocalPositionFunc,
         //     markIsNotActionFunc,
@@ -240,14 +244,16 @@ export let protect: actionNodeFunc = (state, id) => {
     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
 }
 
-let _clearIKBoneCustomData = (state: state, actionName) => {
-    MutableMapUtils.remove(getMMDAnimationHelper(getAbstractState(state)).ikBoneCustomData, actionName)
+let _clearIKBoneCustomData = (state: state, usedGirl, actionName_) => {
+    if (hasMMDAnimationHelper(getAbstractState(state), usedGirl)) {
+        MutableRecordUtils.remove(getMMDAnimationHelper(getAbstractState(state), usedGirl).ikBoneCustomData, actionName_)
+    }
 
     return state
 }
 
-export let dispose = (state: state) => {
-    state = _clearIKBoneCustomData(state, actionName.LeftHandProtect)
+export let dispose = (state: state, usedGirl) => {
+    state = _clearIKBoneCustomData(state, usedGirl, actionName.LeftHandProtect)
 
     return state
 }

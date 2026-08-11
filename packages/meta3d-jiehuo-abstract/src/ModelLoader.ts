@@ -9,16 +9,18 @@ import { getRenderer } from "./Render"
 import { getLoaderState, setLoaderState } from "./state/State"
 import { NullableUtils } from "./Main"
 
-export let init = (state: state) => {
+export let init = (state: state, renderer) => {
     let dracoLoader = new DRACOLoader()
     dracoLoader.setDecoderPath("./resource/three/draco/gltf/")
 
     let ktx2Loader = new KTX2Loader()
         .setTranscoderPath("./resource/three/basis/")
-        .detectSupport(getRenderer(state))
+        .detectSupport(renderer)
+
 
     return Promise.resolve(setLoaderState(state, {
         ...getLoaderState(state),
+        fbxLoader: NullableUtils.return_(new FBXLoader()),
         dracoLoader: NullableUtils.return_(dracoLoader),
         ktx2Loader: NullableUtils.return_(ktx2Loader)
     }))
@@ -58,7 +60,28 @@ export let parseGlb = (state: state, glb: ArrayBuffer, renderer): Promise<GLTF> 
 }
 
 export let parseFbx = (state: state, fbx: ArrayBuffer, path: string): Promise<Object3D> => {
+    // return new Promise((resolve, reject) => {
+    //     resolve(new FBXLoader().parse(fbx, path))
+    // })
+
+    let { fbxLoader } = getLoaderState(state)
+
     return new Promise((resolve, reject) => {
-        resolve(new FBXLoader().parse(fbx, path))
+        // resolve(new FBXLoader().parse(fbx, path))
+        resolve(NullableUtils.getExn(fbxLoader).parse(fbx, path))
+    }).then((obj: any) => {
+        obj.traverse(obj => {
+            if (obj.isSkinnedMesh) {
+                obj.geometry.FBX_Deformer = null
+            }
+        })
+
+        return obj
     })
 }
+
+/*! need dipose fbxLoader->sceneGraph:
+    animations,
+    children->animations
+* 
+*/

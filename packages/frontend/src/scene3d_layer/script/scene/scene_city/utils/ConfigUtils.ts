@@ -2,6 +2,7 @@ import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { NewThreeInstance } from "meta3d-jiehuo-abstract"
 import * as CollisionUtils from "meta3d-jiehuo-abstract/src/utils/CollisionUtils"
 import { Box3, Box3Helper, Color, Vector3 } from "three"
+import { getConfigData, setConfigData } from "../CityScene"
 
 export let addBox3Helper = CollisionUtils.addBox3Helper
 

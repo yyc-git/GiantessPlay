@@ -23,6 +23,12 @@
 		],
 		"strict": false
 	},
+	"exclude": [
+		"node_modules",
+		"mine",
+		"dist",
+		"build"
+	],
 	"include": [
 		"src"
 	]

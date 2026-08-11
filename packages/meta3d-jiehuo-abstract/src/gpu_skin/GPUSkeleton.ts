@@ -4,8 +4,9 @@ import { push } from "../utils/ArrayUtils";
 import { patchShader } from "./GPUSkinnedMeshMaterialPatcher";
 import { getGPUSkinState, setGPUSkinState } from "../state/State";
 import { getExn } from "../utils/NullableUtils";
+import { Flow } from "../Main";
 
-export let registerAnimation = (state: state, material, skeleton: Skeleton, root: Object3D, animations: Array<AnimationClip>, [maxDuration, fps]): [state, Array<number>, Array<number>] => {
+export let registerAnimation = (state: state, material, skeleton: Skeleton, root: Object3D, animations: Array<AnimationClip>, maxDuration): [state, Array<number>, Array<number>] => {
 	let mixer = new AnimationMixer(root)
 
 	let allAnimationData = animations.reduce((allAnimationData, clip) => {
@@ -19,8 +20,10 @@ export let registerAnimation = (state: state, material, skeleton: Skeleton, root
 
 	root.updateWorldMatrix(true, true);
 
+	let maxFPS = Flow.getMaxFPS(state)
+
 	// const maxDuration = 2
-	let maxSteps = Math.ceil(maxDuration * fps)
+	let maxSteps = Math.ceil(maxDuration * maxFPS)
 
 	const _offsetMatrix = new Matrix4();
 	// const _identityMatrix = /*@__PURE__*/ new Matrix4();
@@ -43,14 +46,14 @@ export let registerAnimation = (state: state, material, skeleton: Skeleton, root
 
 		//=frameCount
 		// let steps = Math.ceil(duration * fps);
-		let steps = Math.floor(duration * fps);
+		let steps = Math.floor(duration * maxFPS);
 
 		allClipDurations.push(duration)
 		allClipSteps.push(steps)
 
 
 		//one frame's time
-		let stepDuration = 1 / fps;
+		let stepDuration = 1 / maxFPS;
 		mixer.update(0);
 
 		for (let s = 0; s < steps; s++) {

@@ -15,7 +15,7 @@ import { CullingDynamic, CullingStatic, InstancedMesh2 } from "./InstancedMesh2"
 import { InstanceSourceLOD, getAllLevelMeshes, getUniqueId } from "../lod/InstanceSourceLOD"
 import * as InstancedMesh2LOD from "../lod/InstancedMesh2LOD"
 import { requireCheck, test } from "../utils/Contract"
-import * as MutableMapUtils from "../utils/MutableMapUtils"
+import * as MutableRecordUtils from "../utils/MutableRecordUtils"
 import { group } from "../utils/Object3DUtils"
 import { Object3DUtils } from "../Main"
 import { removeAndDispose } from "../scene/utils/DisposeUtils"
@@ -159,8 +159,8 @@ export let getDefaultInstanceColor = () => new Color(1, 1, 1)
 
 
 //             return [
-//                 indexMap.MutableMapUtils.set(clonedOne.id, i),
-//                 instancedMesh2OneMap.MutableMapUtils.set(clonedOne.id, mesh)
+//                 indexMap.MutableRecordUtils.set(clonedOne.id, i),
+//                 instancedMesh2OneMap.MutableRecordUtils.set(clonedOne.id, mesh)
 //             ]
 //         }, [Map<instancedMesh2LODId, instanceIndex>(), Map<instancedMesh2LODId, InstancedMesh2LOD.InstancedMesh2LOD>()])
 
@@ -168,7 +168,7 @@ export let getDefaultInstanceColor = () => new Color(1, 1, 1)
 //             ...getInstanceState(state),
 //             indexMap: indexMap,
 //             instancedMesh2OneMap: instancedMesh2OneMap as any,
-//             sourcesMap: getInstanceState(state).sourcesMap.MutableMapUtils.set(mesh.id, clonedOnes)
+//             sourcesMap: getInstanceState(state).sourcesMap.MutableRecordUtils.set(mesh.id, clonedOnes)
 //         })
 
 //         // state = InstancedMesh2LOD.build(state, mesh)
@@ -215,8 +215,8 @@ let _addInstanceMeshLODs = (state, allInstanceSourceLODs, scene) => {
 
     let [indexMap, instancedMesh2OneMap] = allInstanceSourceLODs.reduce(([indexMap, instancedMesh2OneMap], clonedOne, i) => {
         return [
-            MutableMapUtils.set(indexMap, clonedOne.id, i),
-            MutableMapUtils.set(instancedMesh2OneMap, clonedOne.id, mesh),
+            MutableRecordUtils.set(indexMap, clonedOne.id, i),
+            MutableRecordUtils.set(instancedMesh2OneMap, clonedOne.id, mesh),
         ]
     }, [getInstanceState(state).indexMap, getInstanceState(state).instancedMesh2OneMap])
 
@@ -225,7 +225,7 @@ let _addInstanceMeshLODs = (state, allInstanceSourceLODs, scene) => {
         indexMap: indexMap,
         instancedMesh2OneMap: instancedMesh2OneMap as any,
         sourcesMap:
-            MutableMapUtils.set(
+            MutableRecordUtils.set(
                 getInstanceState(state).sourcesMap,
                 mesh.id,
                 allInstanceSourceLODs
@@ -259,7 +259,7 @@ let _updateBoundingBox = (state: state, instanceSource: InstanceSourceLOD | Obje
     return setInstanceState(state, {
         ...getInstanceState(state),
         sourceWorldBoundingBoxMap:
-            MutableMapUtils.set(
+            MutableRecordUtils.set(
                 getInstanceState(state).sourceWorldBoundingBoxMap,
                 instanceSource.id,
                 boundingBox.clone().applyMatrix4(instanceSource.matrixWorld)
@@ -269,7 +269,7 @@ let _updateBoundingBox = (state: state, instanceSource: InstanceSourceLOD | Obje
 
 export let getWorldBoundingBox = (state: state, instanceSource: InstanceSourceLOD | Object3D) => {
     return getExn(
-        MutableMapUtils.get(
+        MutableRecordUtils.get(
             getInstanceState(state).sourceWorldBoundingBoxMap,
             instanceSource.id
         )
@@ -300,7 +300,7 @@ let _markIsInstanceSource = (state: state, instanceSource: InstanceSourceLOD | O
     return setInstanceState(state, {
         ...getInstanceState(state),
         isInstancedSourceMap:
-            MutableMapUtils.set(
+            MutableRecordUtils.set(
                 getInstanceState(state).isInstancedSourceMap,
                 instanceSource.id, true
             )
@@ -309,7 +309,7 @@ let _markIsInstanceSource = (state: state, instanceSource: InstanceSourceLOD | O
 
 export let isInstanceSource = (state: state, instanceSource: instancedSource) => {
     return getWithDefault(
-        MutableMapUtils.get(
+        MutableRecordUtils.get(
             getInstanceState(state).isInstancedSourceMap,
             instanceSource.id
         )
@@ -387,11 +387,11 @@ let _addInstanceMeshes = (state: state, scene, invertedStructure: invertedStruct
 
         let [indexMap, instancedMesh2OneMap] = clonedOnes.reduce(([indexMap, instancedMesh2OneMap], clonedOne, i) => {
             return [
-                MutableMapUtils.set(
+                MutableRecordUtils.set(
                     indexMap,
                     clonedOne.id, i
                 ),
-                MutableMapUtils.set(
+                MutableRecordUtils.set(
                     instancedMesh2OneMap,
                     clonedOne.id, mesh
                 )
@@ -404,7 +404,7 @@ let _addInstanceMeshes = (state: state, scene, invertedStructure: invertedStruct
             indexMap: indexMap,
             instancedMesh2OneMap: instancedMesh2OneMap as any,
             sourcesMap:
-                MutableMapUtils.set(
+                MutableRecordUtils.set(
                     getInstanceState(state).sourcesMap,
                     mesh.id, clonedOnes as Array<Mesh>
                 )
@@ -453,7 +453,7 @@ export let isInstanceSourceObject = (id: number, state: state) => {
 
     let { instancedMesh2OneMap } = getInstanceState(state)
 
-    return MutableMapUtils.has(instancedMesh2OneMap, id)
+    return MutableRecordUtils.has(instancedMesh2OneMap, id)
 }
 
 export let getInstanceId = (name) => {
@@ -498,7 +498,7 @@ let _isLODSourceMatrixWorldNeedsUpdate = (source: InstanceSourceLOD) => {
 export let markNeedUpdateColor = (state: state, id: number, color: Color) => {
     return setInstanceState(state, {
         ...getInstanceState(state),
-        needUpdateColorMap: MutableMapUtils.set(getInstanceState(state).needUpdateColorMap, id, color)
+        needUpdateColorMap: MutableRecordUtils.set(getInstanceState(state).needUpdateColorMap, id, color)
     })
 }
 
@@ -516,7 +516,7 @@ export let markNeedUpdateColor = (state: state, id: number, color: Color) => {
 
 export let findAllSources = <T extends instancedSource>(state: state, id) => {
     return (getExn(
-        MutableMapUtils.get(
+        MutableRecordUtils.get(
             getInstanceState(state).sourcesMap,
             id
         )
@@ -544,7 +544,7 @@ export let findAllSources = <T extends instancedSource>(state: state, id) => {
 
 export let getIndex = (state: state, sourceObject: Object3D) => {
     return getExn(
-        MutableMapUtils.get(
+        MutableRecordUtils.get(
             getInstanceState(state).indexMap,
             sourceObject.id
         )
@@ -604,12 +604,12 @@ export let updateAllInstances = (state: state) => {
                 sourceLOD = _markLODSourceMatrixNotUpdate(sourceLOD, isDebug)
             }
 
-            if (MutableMapUtils.has(needUpdateColorMap, sourceLOD.id)
+            if (MutableRecordUtils.has(needUpdateColorMap, sourceLOD.id)
             ) {
                 let index = getIndex(state, sourceLOD)
 
                 InstancedMesh2LOD.setColor(state, instancedMesh2LOD, index, getExn(
-                    MutableMapUtils.get(
+                    MutableRecordUtils.get(
                         needUpdateColorMap,
                         sourceLOD.id
                     )
@@ -641,11 +641,11 @@ export let updateAllInstances = (state: state) => {
                 source = _markNotLODSourceMatrixNotUpdate(source, state)
             }
 
-            if (MutableMapUtils.has(needUpdateColorMap, source.id)) {
+            if (MutableRecordUtils.has(needUpdateColorMap, source.id)) {
                 let index = getIndex(state, source)
 
                 instancedMesh2.setColor(index, getExn(
-                    MutableMapUtils.get(
+                    MutableRecordUtils.get(
                         needUpdateColorMap,
                         source.id
                     )
@@ -662,7 +662,7 @@ export let updateAllInstances = (state: state) => {
 
     state = setInstanceState(state, {
         ...getInstanceState(state),
-        needUpdateColorMap: MutableMapUtils.create()
+        needUpdateColorMap: MutableRecordUtils.create()
     })
 
     return state
@@ -670,14 +670,14 @@ export let updateAllInstances = (state: state) => {
 
 export let createState = (): instance => {
     return {
-        isInstancedSourceMap: MutableMapUtils.create(),
-        indexMap: MutableMapUtils.create(),
-        instancedMesh2OneMap: MutableMapUtils.create(),
-        sourcesMap: MutableMapUtils.create(),
-        sourceWorldBoundingBoxMap: MutableMapUtils.create(),
-        // sourceOriginScaleMap: MutableMapUtils.create(),
-        needUpdateColorMap: MutableMapUtils.create(),
-        visibleMap: MutableMapUtils.create()
+        isInstancedSourceMap: MutableRecordUtils.create(),
+        indexMap: MutableRecordUtils.create(),
+        instancedMesh2OneMap: MutableRecordUtils.create(),
+        sourcesMap: MutableRecordUtils.create(),
+        sourceWorldBoundingBoxMap: MutableRecordUtils.create(),
+        // sourceOriginScaleMap: MutableRecordUtils.create(),
+        needUpdateColorMap: MutableRecordUtils.create(),
+        visibleMap: MutableRecordUtils.create()
     }
 }
 
@@ -695,10 +695,10 @@ export let createState = (): instance => {
 //     if (!visible) {
 //         state = setInstanceState(state, {
 //             ...getInstanceState(state),
-//             sourceOriginScaleMap: getInstanceState(state).sourceOriginScaleMap.MutableMapUtils.set(sourceObject.name, sourceObject.scale.clone())
+//             sourceOriginScaleMap: getInstanceState(state).sourceOriginScaleMap.MutableRecordUtils.set(sourceObject.name, sourceObject.scale.clone())
 //         })
 
-//         sourceObject.scale.MutableMapUtils.set(0, 0, 0)
+//         sourceObject.scale.MutableRecordUtils.set(0, 0, 0)
 //         sourceObject.matrixWorldNeedsUpdate = true
 //     }
 //     else {
@@ -728,19 +728,19 @@ export let setVisible = (state: state, sourceObject: Object3D, visible): state =
 
         newState = setInstanceState(newState, {
             ...getInstanceState(newState),
-            visibleMap: MutableMapUtils.set(getInstanceState(newState).visibleMap, obj.id, visible)
+            visibleMap: MutableRecordUtils.set(getInstanceState(newState).visibleMap, obj.id, visible)
         })
     })
     // if (!visible) {
     //     state = setInstanceState(state, {
     //         ...getInstanceState(state),
-    //         visibleMap: getInstanceState(state).visibleMap.MutableMapUtils.set(sourceObject.id, visible)
+    //         visibleMap: getInstanceState(state).visibleMap.MutableRecordUtils.set(sourceObject.id, visible)
     //     })
     // }
     // else {
     //     state = setInstanceState(state, {
     //         ...getInstanceState(state),
-    //         visibleMap: getInstanceState(state).visibleMap.MutableMapUtils.set(sourceObject.id, false)
+    //         visibleMap: getInstanceState(state).visibleMap.MutableRecordUtils.set(sourceObject.id, false)
     //     })
     // }
 
@@ -750,7 +750,7 @@ export let setVisible = (state: state, sourceObject: Object3D, visible): state =
 
 export let isVisible = (state: state, sourceObject: Object3D) => {
     return getWithDefault(
-        MutableMapUtils.get(
+        MutableRecordUtils.get(
             getInstanceState(state).visibleMap,
             sourceObject.id
         )
@@ -766,12 +766,12 @@ let _removeInstanceSource = (state: state, source: instancedSource, scene) => {
     removeAndDispose(scene, source)
 
 
-    MutableMapUtils.remove(getInstanceState(state).isInstancedSourceMap, sourceId)
-    MutableMapUtils.remove(getInstanceState(state).sourceWorldBoundingBoxMap, sourceId)
-    MutableMapUtils.remove(getInstanceState(state).indexMap, sourceId)
-    MutableMapUtils.remove(getInstanceState(state).instancedMesh2OneMap, sourceId)
-    MutableMapUtils.remove(getInstanceState(state).needUpdateColorMap, sourceId)
-    MutableMapUtils.remove(getInstanceState(state).visibleMap, sourceId)
+    MutableRecordUtils.remove(getInstanceState(state).isInstancedSourceMap, sourceId)
+    MutableRecordUtils.remove(getInstanceState(state).sourceWorldBoundingBoxMap, sourceId)
+    MutableRecordUtils.remove(getInstanceState(state).indexMap, sourceId)
+    MutableRecordUtils.remove(getInstanceState(state).instancedMesh2OneMap, sourceId)
+    MutableRecordUtils.remove(getInstanceState(state).needUpdateColorMap, sourceId)
+    MutableRecordUtils.remove(getInstanceState(state).visibleMap, sourceId)
 
     return state
 }
@@ -779,9 +779,9 @@ let _removeInstanceSource = (state: state, source: instancedSource, scene) => {
 export let removeInstanceSource = (state: state, source: instancedSource, scene) => {
     // let sourceId = source.id
 
-    // let instancedId = MutableMapUtils.get(getInstanceState(state).instancedMesh2OneMap, sourceId).id
+    // let instancedId = MutableRecordUtils.get(getInstanceState(state).instancedMesh2OneMap, sourceId).id
 
-    // MutableMapUtils.set(getInstanceState(state).sourcesMap, instancedId, MutableMapUtils.get(getInstanceState(state).sourcesMap, instancedId).filter(s => s.id != sourceId))
+    // MutableRecordUtils.set(getInstanceState(state).sourcesMap, instancedId, MutableRecordUtils.get(getInstanceState(state).sourcesMap, instancedId).filter(s => s.id != sourceId))
 
     // state = _removeInstanceSource(state, source, scene)
 
@@ -804,7 +804,7 @@ export let removeInstanceMesh2 = (state: state, instancedMesh2: InstancedMesh2, 
 
     let sources = findAllSources(state, instancedMesh2.id)
 
-    MutableMapUtils.remove(getInstanceState(state).sourcesMap, id)
+    MutableRecordUtils.remove(getInstanceState(state).sourcesMap, id)
 
     return sources.reduce((state, source) => {
         return _removeInstanceSource(state, source, scene)

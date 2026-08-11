@@ -1,10 +1,11 @@
 import { state } from "../../../../../type/StateType"
 import { getState, setState, getScene } from "../../CityScene"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
-import { mountain } from "../../type/StateType"
+import { camp, mountain } from "../../type/StateType"
 import { push } from "meta3d-jiehuo-abstract/src/utils/ArrayUtils"
 import { getAbstractState, setAbstractState } from "../../../../../state/State"
 import { Collision } from "meta3d-jiehuo-abstract"
+import { setCamp } from "./Army"
 
 let _getState = (state: state) => {
 	return NullableUtils.getExn(getState(state).mountain)
@@ -45,7 +46,7 @@ export let addStaticLODContainerData = (state: state,
 export let initWhenImportScene = (state: state) => {
 	let abstractState = getAbstractState(state)
 
-	// abstractState = Collision.setPlayerCollisionableContainers(abstractState, Collision.getPlayerCollisionableContainers(abstractState).concat(_getState(state).mountains.map(data => data[0])))
+	// abstractState = Collision.setPlayerMoveCollisionableContainers(abstractState, Collision.getPlayerMoveCollisionableContainers(abstractState).concat(_getState(state).mountains.map(data => data[0])))
 
 	state = setAbstractState(state, abstractState)
 
@@ -59,6 +60,8 @@ export let createState = (): mountain => {
 }
 
 export let initialAttributes = (state, name) => {
+	state = setCamp(state, name, camp.None)
+
 	return state
 }
 

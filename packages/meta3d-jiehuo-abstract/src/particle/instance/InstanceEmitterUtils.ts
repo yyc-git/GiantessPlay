@@ -3,7 +3,7 @@ import { getEmpty, getExn, return_ } from "../../utils/NullableUtils";
 import * as EmitterUtils from "../EmitterUtils";
 import { getIsDebug, getParticleState } from "../../state/State";
 import { List } from "immutable";
-import { Box3, Matrix4, Mesh, Object3D, Vector3 } from "three";
+import { Box3, Color, Matrix4, Mesh, Object3D, Vector3 } from "three";
 import { buildInstanceParticleId, buildParticleId } from "../IDUtils";
 import { push } from "../../utils/ArrayUtils";
 import { getDelta, getDeltaFactor } from "../../Device";
@@ -13,9 +13,7 @@ import { changeTransformToDefault } from "../../utils/Object3DUtils";
 import { changeToPhongMaterial } from "../../utils/MaterialUtils";
 import { LODQueue } from "../../lod/lod2/LODQueue";
 import { InstancedLOD2, add } from "../../lod/lod2/InstancedLOD2";
-import { MutableNumberMapUtils, NullableUtils, TransformUtils } from "../../Main";
-import { setStatusForLODQueue } from "../../lod/LOD";
-import * as BulletEmitter from "../BulletEmitter"
+import { MutableMapUtils, NullableUtils, TransformUtils } from "../../Main";
 import { addBox3Helper } from "../../utils/CollisionUtils";
 import { getCurrentScene, getScene } from "../../scene/Scene";
 import { markParticleRemove } from "../ParticleManager";
@@ -25,18 +23,20 @@ const _v2 = new Vector3();
 const _v3 = new Vector3();
 const _v4 = new Vector3();
 const _v5 = new Vector3();
+const _c1 = new Color(1, 1, 1)
 
 export let createState = (): missileVehicleMissileEmitter => {
     return {
         particles: [],
         queue: getEmpty(),
-        queueIndexMap: MutableNumberMapUtils.create(),
+        queueIndexMap: MutableMapUtils.create(),
     }
 }
 
 
 export let init = (state: state, scene: Object3D, missileVehicleMissile: Mesh): [state, LODQueue] => {
-    const distance = 1000
+    // const distance = 1000
+    const getDistanceFunc = state => 3000
 
     let camera = getCurrentCamera(state)
 
@@ -60,7 +60,7 @@ export let init = (state: state, scene: Object3D, missileVehicleMissile: Mesh): 
         {
             group: group_,
             level: "l0",
-            distance,
+            getDistanceFunc,
         },
     ]
 
@@ -79,7 +79,7 @@ export let init = (state: state, scene: Object3D, missileVehicleMissile: Mesh): 
 
     instancedlod.setContainer(queue);
     instancedlod.setLevels(details, getIsDebug(state));
-    instancedlod.setPopulation();
+    state = instancedlod.setPopulation(state);
 
 
     state = add(state, instancedlod)
@@ -89,7 +89,7 @@ export let init = (state: state, scene: Object3D, missileVehicleMissile: Mesh): 
 
 let _buildParticle = (state,
     queueIndexMap,
-    { fromName, speed, life, position, direction }): [state, missileVehicleMissileParticle, boolean] => {
+    { fromName, camp, speed, life, position, direction }): [state, missileVehicleMissileParticle, boolean] => {
     let d = buildInstanceParticleId(state,
         (id) => {
             return _isFromReallocate(queueIndexMap, id)
@@ -102,6 +102,7 @@ let _buildParticle = (state,
     return [state, {
         id,
         fromName,
+        camp,
 
 
         // opacity: 1,
@@ -120,7 +121,7 @@ let _getNameInQueue = (particleId) => {
 }
 
 let _isFromReallocate = (queueIndexMap, id) => {
-    return MutableNumberMapUtils.has(
+    return MutableMapUtils.has(
         queueIndexMap,
         id
     )
@@ -132,7 +133,8 @@ let _updateTransformAndBuildBox = (matrix: Matrix4, box: Box3, {
     direction
 }: missileVehicleMissileEmitterParam): [Matrix4, Box3] => {
     let transform = matrix.compose(
-        _v1.set(0, 0, 0),
+        // _v1.set(0, 0, 0),
+        _v1.fromArray(position),
         TransformUtils.getLookatQuaternion(
             _v2.fromArray(position),
             _v3.fromArray(position).add(_v4.fromArray(direction))
@@ -170,23 +172,21 @@ export let emit = ([getStateFunc, setStateFunc]) => {
 
         let name = _getNameInQueue(particle.id)
 
+        let index: lodQueueIndex
+
         if (isFromReallocate) {
-            let index: lodQueueIndex = MutableNumberMapUtils.getExn(
-                getStateFunc(state).queueIndexMap,
-                particle.id
-            )
+            index = _getQueueIndex(state, getStateFunc, particle.id)
 
-            let [_, box] = _updateTransformAndBuildBox(queue.transforms[index], queue.originBox, missileVehicleMissileEmitterParam)
+            let [_, box] = _updateTransformAndBuildBox(queue.getTransform(index), queue.originBox, missileVehicleMissileEmitterParam)
 
-            queue.boxes[index].copy(
+            queue.getBox(index).copy(
                 box
             )
 
-            state = setStateFunc(state, {
-                ...getStateFunc(state),
-                queueIndexMap: MutableNumberMapUtils.set(getStateFunc(state).queueIndexMap, particle.id, index)
-            })
-
+            // state = setStateFunc(state, {
+            //     ...getStateFunc(state),
+            //     queueIndexMap: MutableMapUtils.set(getStateFunc(state).queueIndexMap, particle.id, index)
+            // })
         }
         else {
             let [newTransform, newBox] = _updateTransformAndBuildBox(new Matrix4(), queue.originBox, missileVehicleMissileEmitterParam)
@@ -197,29 +197,40 @@ export let emit = ([getStateFunc, setStateFunc]) => {
             }
 
 
-            _getQueue(state, getStateFunc).insert(newTransform, newBox, newName)
+            /*! perf: because all colors will not change, so use shared one
+            * 
+            */
+            queue.insert(newTransform, newBox, newName, {
+                isCollisionable: false,
+                isPickable: false,
+                isVisible: true
+            }, _c1)
 
-            let index = queue.getLastIndex()
+            index = queue.getLastIndex()
 
             state = setStateFunc(state, {
                 ...getStateFunc(state),
-                queueIndexMap: MutableNumberMapUtils.set(getStateFunc(state).queueIndexMap, particle.id, index)
+                queueIndexMap: MutableMapUtils.set(getStateFunc(state).queueIndexMap, particle.id, index)
             })
         }
 
-        state = setStatusForLODQueue(state, name, {
+        // state = setStatusForLODQueue(state, name, {
+        //     isCollisionable: false,
+        //     isPickable: false,
+        //     isVisible: true
+        // })
+        queue.setStatus(index, {
             isCollisionable: false,
             isPickable: false,
             isVisible: true
         })
-
 
         return state
     }
 }
 
 let _getQueueIndex = (state: state, getStateFunc, id: id) => {
-    return MutableNumberMapUtils.getExn(getStateFunc(state).queueIndexMap, id)
+    return MutableMapUtils.getExn(getStateFunc(state).queueIndexMap, id)
 }
 
 export let getAllParticles = (getStateFunc) => {
@@ -228,7 +239,14 @@ export let getAllParticles = (getStateFunc) => {
     }
 }
 
-export let updateParticle = BulletEmitter.updateParticle
+// export let updateParticle = BulletEmitter.updateParticle
+let _updateParticle = (particle, delta, i, now) => {
+    let speed = particle.speed * delta * getDeltaFactor()
+
+    particle.position = _v1.fromArray(particle.position).add(_v2.fromArray(NullableUtils.getExn(particle.direction)).multiplyScalar(speed)).toArray()
+
+    return particle
+}
 
 export let update = ([getStateFunc, setStateFunc]) => {
     return (state: state) => {
@@ -240,7 +258,7 @@ export let update = ([getStateFunc, setStateFunc]) => {
                     particles
                 })
             },
-            updateParticle,
+            _updateParticle,
             (filteredParticles, queue) => {
                 filteredParticles.forEach(particle => {
                     queue.updateTransform(transform => {
@@ -258,7 +276,7 @@ export let update = ([getStateFunc, setStateFunc]) => {
             },
             (state, removedParticles) => {
                 return removedParticles.reduce((state, particle) => {
-                    return remove(state, particle)
+                    return remove(getStateFunc)(state, particle)
                 }, state)
             },
         ], _getQueue(state, getStateFunc))
@@ -267,19 +285,21 @@ export let update = ([getStateFunc, setStateFunc]) => {
 
 export let getBox = (getStateFunc) => {
     return (state: state, id: id) => {
-        return _getQueue(state, getStateFunc).boxes[
-            MutableNumberMapUtils.getExn(
-                getStateFunc(state).queueIndexMap,
-                id
-            ) as lodQueueIndex
-        ]
+        return _getQueue(state, getStateFunc).getBox(
+            _getQueueIndex(state, getStateFunc, id) as lodQueueIndex
+        )
     }
 }
 
-export let remove = (state: state, particle: missileVehicleMissileParticle) => {
+export let remove = (getStateFunc) => (state: state, particle: missileVehicleMissileParticle) => {
     markParticleRemove(particle)
 
-    state = setStatusForLODQueue(state, _getNameInQueue(particle.id), {
+    // state = setStatusForLODQueueByName(state, _getNameInQueue(particle.id), {
+    //     isCollisionable: false,
+    //     isPickable: false,
+    //     isVisible: false
+    // })
+    _getQueue(state, getStateFunc).setStatusByName(_getNameInQueue(particle.id), {
         isCollisionable: false,
         isPickable: false,
         isVisible: false

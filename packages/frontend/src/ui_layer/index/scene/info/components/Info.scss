@@ -1,10 +1,11 @@
-@import "../../../../../Main.scss";
+@use "../../../../../Main.scss" as *;
 
 .info-main {
 	@include loading-background;
 
+	height: 100%;
+
 	.div {
 		height: 100%;
-
 	}
 }

@@ -26,6 +26,7 @@ import * as LOD_ from "./lod/LOD"
 import * as Layer_ from "./Layer"
 import * as Merge_ from "./Merge"
 import * as Flow_ from "./Flow"
+import * as Optimize_ from "./Optimize"
 import * as NewThreeInstance_ from "./NewThreeInstance"
 import * as Billboard_ from "./ui_2d/Billboard"
 import * as LabelManager_ from "./ui_2d/LabelManager"
@@ -41,7 +42,15 @@ import * as AmbientLight_ from "./light/AmbientLight"
 import * as CSM_ from "./light/CSM"
 import * as Shadow_ from "./light/Shadow"
 import * as Environment_ from "./environment/Environment"
+import * as Clipboard_ from "./Clipboard"
 import * as Storage_ from "./storage/Storage"
+import * as CustomizeTree_ from "./procedural/tree/CustomizeTree"
+import * as TreeBuilder_ from "./procedural/tree/TreeBuilder"
+import * as LeafGeometry_ from "./procedural/tree/leaf_flower_fruit/LeafGeometry"
+import * as GrassInstance_ from "./procedural/grass/instance/GrassInstance"
+import * as GrassMap_ from "./procedural/grass/map/GrassMap"
+import * as Flower1_ from "./procedural/flower/flower1/Flower1"
+import * as Flower2_ from "./procedural/flower/flower2/Flower2"
 import * as SkyBox_ from "./sky/SkyBox"
 import * as Terrain_ from "./terrain/Terrain"
 
@@ -49,11 +58,11 @@ import * as Console_ from "./log/Console"
 
 import * as PathFind_ from "./ai/PathFind"
 
+import * as RenderSetting_ from "./setting/RenderSetting"
+
 import * as GPUSkin_ from "./gpu_skin/GPUSkin"
 
 import * as Version_ from "./version/Version"
-
-import * as RenderSetting_ from "./setting/RenderSetting"
 
 import * as Decal_ from "./decal/Decal"
 
@@ -69,11 +78,13 @@ import * as MMD_ from "./mmd/MMD"
 
 import * as  NullableUtils_ from "./utils/NullableUtils"
 import * as  ArrayUtils_ from "./utils/ArrayUtils"
+import * as  QueueUtils_ from "./utils/QueueUtils"
 import * as  Contract_ from "./utils/Contract"
 import * as  Object3DUtils_ from "./utils/Object3DUtils"
 import * as  ScreenUtils_ from "./utils/ScreenUtils"
 // import * as  nullable_ from "./utils/nullable"
 import * as  MutableMapUtils_ from "./utils/MutableMapUtils"
+import * as  MutableRecordUtils_ from "./utils/MutableRecordUtils"
 import * as  MutableNumberMapUtils_ from "./utils/MutableNumberMapUtils"
 import * as  NumberUtils_ from "./utils/NumberUtils"
 import * as  TransformUtils_ from "./utils/TransformUtils"
@@ -133,8 +144,17 @@ export let LOD = LOD_
 export let Layer = Layer_
 export let Merge = Merge_
 export let Flow = Flow_
+export let Optimize = Optimize_
 export let NewThreeInstance = NewThreeInstance_
+export let Clipboard = Clipboard_
 export let Storage = Storage_
+export let CustomizeTree = CustomizeTree_
+export let TreeBuilder = TreeBuilder_
+export let LeafGeometry = LeafGeometry_
+export let GrassInstance = GrassInstance_
+export let GrassMap = GrassMap_
+export let Flower1 = Flower1_
+export let Flower2 = Flower2_
 export let SkyBox = SkyBox_
 export let Terrain = Terrain_
 
@@ -142,11 +162,11 @@ export let Console = Console_
 
 export let PathFind = PathFind_
 
+export let RenderSetting = RenderSetting_
+
 export let GPUSkin = GPUSkin_
 
 export let Version = Version_
-
-export let RenderSetting = RenderSetting_
 
 export let Decal = Decal_
 
@@ -162,11 +182,13 @@ export let MMD = MMD_
 
 export let NullableUtils = NullableUtils_
 export let ArrayUtils = ArrayUtils_
+export let QueueUtils = QueueUtils_
 export let Contract = Contract_
 export let Object3DUtils = Object3DUtils_
 export let ScreenUtils = ScreenUtils_
 // export let nullable = nullable_
 export let MutableMapUtils = MutableMapUtils_
+export let MutableRecordUtils = MutableRecordUtils_
 export let MutableNumberMapUtils = MutableNumberMapUtils_
 export let NumberUtils = NumberUtils_
 export let TransformUtils = TransformUtils_

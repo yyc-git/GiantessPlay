@@ -1,7 +1,7 @@
 import { state } from "../../../../type/StateType";
-import { behaviourTreeData as behaviourTreeDataFromState, actionNode as actionNodeFromState, controlNode as controlNodeFromState, behaviourTree, behaviourTreeNodeExecuteResult, behaviourTreeNodeResult, actionNodeFunc, targetData, targetType, giantessStrength, biggerFrequency, behaviourTreeKey } from "../type/StateType";
-import { actionNode, getKey as getKeyBehaviourTreeData } from "../data/behaviour_tree_data/BehaviourTreeData";
-import { getConfigData, getLittleManSetting, getScene, getState, isGiantessRoad, isLittleRoad, setState } from "../CityScene";
+import { behaviourTreeData as behaviourTreeDataFromState, actionNode as actionNodeFromState, controlNode as controlNodeFromState, behaviourTree, behaviourTreeNodeExecuteResult, behaviourTreeNodeResult, actionNodeFunc, targetData, targetType, giantessStrength, biggerFrequency, behaviourTreeKey, autoDifficulty, attackAction, personality, usedGirl, singleBehaviourTreeData } from "../type/StateType";
+import { getKey as getKeyBehaviourTreeData } from "../data/behaviour_tree_data/utils/BehaviourTreeDataUtils";
+import { getConfigData, getScene, getState, isGiantessCharacterType, isLittleCharacterType, setState } from "../CityScene";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
 import { parrel, selector, sequence } from "./ControlNode";
 import { getIsDebug } from "../../Scene";
@@ -12,22 +12,11 @@ import { generateId } from "meta3d-jiehuo-abstract/src/particle/IDUtils";
 import { id } from "meta3d-jiehuo-abstract/src/type/StateType";
 import { rest } from "./action_node/Rest";
 import { stomp } from "./action_node/Stomp";
-import { walkToTarget } from "./action_node/WalkToTarget";
-import { selectTarget, getAllAliveSoldierData, visibleData, getAllAliveMilltaryVehicleData, getAllAliveMilltaryBuildingData } from "./action_node/SelectTarget";
-import { breastPress } from "./action_node/BreastPress";
-import { pickup } from "./action_node/Pickup";
-import { pickdown } from "./action_node/Pickdown";
-import { pinch } from "./action_node/Pinch";
-import { eat } from "./action_node/Eat";
-// import { isDestoryRelatedStates, isStressingState } from "../utils/FSMStateUtils";
-// import { getStateMachine } from "../girl/FSMState";
-import { getPickObjectName, hasPickData } from "../girl/PickPose";
-import { bigger } from "./action_node/Bigger";
-import * as ClearTarget from "./action_node/ClearTarget";
-import { changePose } from "./action_node/ChangePose";
+import * as WalkToTarget from "./action_node/WalkToTarget";
+import { getAllAliveSoldierData, visibleData, getAllAliveMilltaryVehicleData, getAllAliveMilltaryBuildingData, getAllAliveEliteGiantessData } from "./action_node/utils/GiantessSelectTargetUtils";
 import { Box3 } from "three";
 import { getPivotWorldPosition } from "../girl/Utils";
-import { isNearGirl } from "../utils/CollisionUtils";
+import { isNearGirl, isVeryNearGirl } from "../utils/CollisionUtils";
 import { behaviourTreeData, controlNode } from "../data/behaviour_tree_data/BehaviourTreeDataType";
 import { Map } from "immutable";
 import { Event } from "meta3d-jiehuo-abstract";
@@ -35,17 +24,41 @@ import { getAbeResourceId } from "../little_man_data/Const";
 import { getAbstractState } from "../../../../state/State";
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable";
 import { getBehaviourTreeState, setBehaviourTreeState } from "../utils/BehaviourManagerUtils";
+import { getAutoDifficulty } from "../difficulty/Difficulty";
+import * as StompRub from "./action_node/StompRub";
+import * as Stomp from "./action_node/Stomp";
+import * as LeftStomp from "./action_node/LeftStomp";
+import * as BreastPress from "./action_node/BreastPress";
+import * as BreastPressRub from "./action_node/BreastPressRub";
+import { getAllAliveArmyData, getAllFlattenAliveArmyData } from "../utils/ArmyUtils";
+import { getNow } from "../Time";
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract";
+import { getCurrentUsedGirls } from "../girl/Girl";
 
-export let isRunning = (state: state, key) => {
-    // return NullableUtils.getExn(getBehaviourTreeState(state).isRunningMap.get(key))
-    return NullableUtils.getWithDefault(getBehaviourTreeState(state).isRunningMap.get(key), false)
+export let getUsedGirlData = (state: state, usedGirl: usedGirl) => {
+    return MutableRecordUtils.getExn(getBehaviourTreeState(state).data, usedGirl)
 }
 
-export let markFinish = (state: state, id: id, result: behaviourTreeNodeExecuteResult, key = getKey()) => {
-    state = setBehaviourTreeState(state, {
+export let setUsedGirlData = (state: state, usedGirl, data: singleBehaviourTreeData) => {
+    return setBehaviourTreeState(state, {
         ...getBehaviourTreeState(state),
-        isRunningMap: getBehaviourTreeState(state).isRunningMap.set(key, false),
-        finishedDataMap: getBehaviourTreeState(state).finishedDataMap.set(key, [id, result]),
+        data: MutableRecordUtils.set(getBehaviourTreeState(state).data, usedGirl, data)
+    })
+}
+
+export let initUsedGirlData = (state, usedGirl) => {
+    return setUsedGirlData(state, usedGirl, _createUsedGirlData())
+}
+
+export let isRunning = (state: state, usedGirl: usedGirl, key) => {
+    return NullableUtils.getWithDefault(getUsedGirlData(state, usedGirl).isRunningMap.get(key), false)
+}
+
+export let markFinish = (state: state, usedGirl: usedGirl, id: id, result: behaviourTreeNodeExecuteResult, key = getKey()) => {
+    state = setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        isRunningMap: getUsedGirlData(state, usedGirl).isRunningMap.set(key, false),
+        finishedDataMap: getUsedGirlData(state, usedGirl).finishedDataMap.set(key, [id, result]),
     })
 
     // return Event.trigger(state, getAbstractState, getActioNodeFinishEventName(), buildActionNodeFinishEventNameEventData(id, result))
@@ -53,72 +66,78 @@ export let markFinish = (state: state, id: id, result: behaviourTreeNodeExecuteR
 }
 
 // export let getFinishedId = (state: state) => {
-//     return NullableUtils.getExn(getBehaviourTreeState(state).finishedData)
+//     return NullableUtils.getExn(getUsedGirlData(state ,usedGirl).finishedData)
 // }
 
-export let isNeedJumpToFinishedNode = (state: state, key) => {
-    return getBehaviourTreeState(state).finishedDataMap.has(key)
+export let isNeedJumpToFinishedNode = (state: state, usedGirl: usedGirl, key) => {
+    return getUsedGirlData(state, usedGirl).finishedDataMap.has(key)
 }
 
-export let isFinishedId = (state: state, key, id) => {
+export let isFinishedId = (state: state, usedGirl: usedGirl, key, id) => {
     return NullableUtils.getWithDefault(
         NullableUtils.map(finishedData => {
             return finishedData[0] == id
-        }, getBehaviourTreeState(state).finishedDataMap.get(key)),
+        }, getUsedGirlData(state, usedGirl).finishedDataMap.get(key)),
         false)
 }
 
-export let getFinishedResult = (state: state, key) => {
-    return NullableUtils.getExn(getBehaviourTreeState(state).finishedDataMap.get(key))[1]
+export let getFinishedResult = (state: state, usedGirl: usedGirl, key) => {
+    return NullableUtils.getExn(getUsedGirlData(state, usedGirl).finishedDataMap.get(key))[1]
 }
 
-export let resetFinish = (state: state, key) => {
-    return setBehaviourTreeState(state, {
-        ...getBehaviourTreeState(state),
-        isRunningMap: getBehaviourTreeState(state).isRunningMap.set(key, false),
-        finishedDataMap: getBehaviourTreeState(state).finishedDataMap.remove(key)
+export let resetFinish = (state: state, usedGirl: usedGirl, key) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        isRunningMap: getUsedGirlData(state, usedGirl).isRunningMap.set(key, false),
+        finishedDataMap: getUsedGirlData(state, usedGirl).finishedDataMap.remove(key)
     })
 }
 
-export let markWhetherNotExecuteGiantessAI = (state: state, value: boolean) => {
-    return setBehaviourTreeState(state, {
-        ...getBehaviourTreeState(state),
+export let resetAllFinish = (state: state, usedGirl: usedGirl) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        isRunningMap: getUsedGirlData(state, usedGirl).isRunningMap.map(value => false),
+        finishedDataMap: Map()
+    })
+}
+
+export let markWhetherNotExecuteGiantessAI = (state: state, usedGirl: usedGirl, value: boolean, key = getKey()) => {
+    if (value) {
+        state = resetFinish(state, usedGirl, key)
+    }
+
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
         isNotExecuteGiantessAI: value
     })
 }
 
-let _execute = (state: state, key): Promise<state> => {
+let _execute = (state: state, usedGirl: usedGirl, key): Promise<state> => {
     if (
-        getBehaviourTreeState(state).isNotExecuteGiantessAI
+        getUsedGirlData(state, usedGirl).isNotExecuteGiantessAI
         ||
         state.config.littleManConfig.isNotExecuteGiantessAI
         ||
         (
-            isGiantessRoad(state)
-            || isRunning(state, key)
+            // isGiantessCharacterType(state)
+            // || 
+            isRunning(state, usedGirl, key)
             // || isDestoryRelatedStates(getStateMachine(state))
         )
-        // || isStressingState(getStateMachine(state))
+        // || isControlledState(state, getStateMachine(state))
+
+        || !getUsedGirlData(state, usedGirl).dataMap.has(key)
     ) {
         return Promise.resolve(state)
     }
 
 
-    state = NullableUtils.getWithDefault(
-        NullableUtils.map(({ isAliveFunc }) => {
-            if (!isAliveFunc(state)) {
-                state = clearTarget(state)
-            }
 
-            return state
-        }, getBehaviourTreeState(state).targetData), state)
-
-
-    let data = NullableUtils.getExn(getBehaviourTreeState(state).dataMap.get(key))
+    let data = NullableUtils.getExn(getUsedGirlData(state, usedGirl).dataMap.get(key))
 
     if (
-        !data.returnSuccessCondition(state)
-        || !data.returnFailCondition(state)
+        !data.conditionReturnSuccess(state)
+        || !data.conditionReturnFail(state)
     ) {
         return Promise.resolve(state)
     }
@@ -143,111 +162,20 @@ export let getActionNodeFunc = (node: actionNodeFromState) => {
     return node.func
 }
 
-export let buildActionNode = (node: actionNode): nullable<actionNodeFromState> => {
-    switch (node) {
-        // case actionNode.SelectLittleMan:
-        //     return NullableUtils.return_(
-        //         wrapActionNode(selectLittleMan, generateId())
-        //     )
-        // case actionNode.SelectNearestBuilding:
-        //     return NullableUtils.return_(
-        //         wrapActionNode(selectNearestBuilding, generateId())
-        //     )
-        // case actionNode.SelectNearestCityzen:
-        //     return NullableUtils.return_(
-        //         wrapActionNode(selectNearestCityzen, generateId())
-        //     )
-        // case actionNode.SelectNearestSoldier:
-        //     return NullableUtils.return_(
-        //         wrapActionNode(selectNearestSoldier, generateId())
-        //     )
-        // case actionNode.SelectNearestTank:
-        //     return NullableUtils.return_(
-        //         wrapActionNode(selectNearestTank, generateId())
-        //     )
-        case actionNode.SelectTarget:
-            return NullableUtils.return_(
-                wrapActionNode(selectTarget, generateId())
-            )
-        case actionNode.WalkToTarget:
-            return NullableUtils.return_(
-                wrapActionNode(walkToTarget, generateId())
-            )
-        case actionNode.Rest:
-            return NullableUtils.return_(
-                wrapActionNode(rest, generateId())
-            )
-        case actionNode.Stomp:
-            return NullableUtils.return_(
-                wrapActionNode(stomp, generateId())
-            )
-        case actionNode.BreastPress:
-            return NullableUtils.return_(
-                wrapActionNode(breastPress, generateId())
-            )
-
-
-        case actionNode.Pickup:
-            return NullableUtils.return_(
-                wrapActionNode(pickup, generateId())
-            )
-        case actionNode.Pickdown:
-            return NullableUtils.return_(
-                wrapActionNode(pickdown, generateId())
-            )
-
-        case actionNode.Pinch:
-            return NullableUtils.return_(
-                wrapActionNode(pinch, generateId())
-            )
-
-        case actionNode.Eat:
-            return NullableUtils.return_(
-                wrapActionNode(eat, generateId())
-            )
-
-        case actionNode.Pickup:
-            return NullableUtils.return_(
-                wrapActionNode(pickup, generateId())
-            )
-
-
-        case actionNode.ChangePose:
-            return NullableUtils.return_(
-                wrapActionNode(changePose, generateId())
-            )
-
-
-        case actionNode.Bigger:
-            return NullableUtils.return_(
-                wrapActionNode(bigger, generateId())
-            )
-
-
-        case actionNode.ClearTarget:
-            return NullableUtils.return_(
-                wrapActionNode(ClearTarget.clearTarget, generateId())
-            )
-
-        default:
-            return NullableUtils.getEmpty()
-    }
-}
-
-let _buildControlNode = (node: controlNode): nullable<controlNodeFromState> => {
+let _buildControlNode = (usedGirl, node: controlNode): nullable<controlNodeFromState> => {
     switch (node) {
         case controlNode.Selector:
             return NullableUtils.return_(
                 // wrapActionNode(selector, generateId())
-                selector
+                selector(usedGirl)
             )
         case controlNode.Sequence:
             return NullableUtils.return_(
-                sequence
+                sequence(usedGirl)
             )
         case controlNode.Parrel:
             return NullableUtils.return_(
-                parrel
+                parrel(usedGirl)
             )
         default:
             return NullableUtils.getEmpty()
@@ -261,64 +189,122 @@ let _buildCondition = (condition) => {
     )
 }
 
-let _build = (buildActionNodeFunc, data: behaviourTreeData<any>) => {
+let _build = (buildActionNodeFunc, usedGirl, data: behaviourTreeData<any>) => {
     return {
         name: data.name,
         config: data.config,
-        returnSuccessCondition: _buildCondition(data.returnSuccessCondition),
-        returnFailCondition: _buildCondition(data.returnFailCondition),
-        actionNode: buildActionNodeFunc(data.node as actionNode),
-        controlNode: _buildControlNode(data.node as controlNode),
+        conditionReturnSuccess: _buildCondition(data.conditionReturnSuccess),
+        conditionReturnFail: _buildCondition(data.conditionReturnFail),
+        actionNode: buildActionNodeFunc(data.node as any),
+        controlNode: _buildControlNode(usedGirl, data.node as controlNode),
         children: data.children.map(child => {
-            return _build(buildActionNodeFunc, child)
+            return _build(buildActionNodeFunc, usedGirl, child)
         })
     }
 }
 
 export let getKey = getKeyBehaviourTreeData
 
-export let buildTree = (state: state, key: behaviourTreeKey, buildActionNodeFunc): state => {
+export let buildTree = (state: state, usedGirl: usedGirl, key: behaviourTreeKey, buildActionNodeFunc): state => {
     let data = NullableUtils.getExn(getConfigData(state).behaviourTreeDataMap.get(key))
 
-    let result: behaviourTreeDataFromState = _build(buildActionNodeFunc, data)
+    let result: behaviourTreeDataFromState = _build(buildActionNodeFunc, usedGirl, data)
 
-    return setBehaviourTreeState(state, {
-        ...getBehaviourTreeState(state),
-        dataMap: getBehaviourTreeState(state).dataMap.set(key, result)
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        dataMap: getUsedGirlData(state, usedGirl).dataMap.set(key, result)
     })
 }
 
-export let initWhenImportScene = (state: state) => {
-    if (isGiantessRoad(state)) {
-        return Promise.resolve(state)
-    }
-
-    state = buildTree(state, getKey(), buildActionNode)
-
-    return Promise.resolve(state)
+export let removeTree = (state: state, usedGirl: usedGirl, key: behaviourTreeKey): state => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        dataMap: getUsedGirlData(state, usedGirl).dataMap.remove(key)
+    })
 }
 
-export let update = (state: state, key: behaviourTreeKey = getKey()) => {
-    return _execute(state, key)
-}
-
-export let createState = (): behaviourTree => {
+let _createUsedGirlData = (): singleBehaviourTreeData => {
     return {
         dataMap: Map(),
         isRunningMap: Map(),
         finishedDataMap: Map(),
 
         targetData: NullableUtils.getEmpty(),
+        attackAction: NullableUtils.getEmpty(),
+        lastChangePoseTime: NullableUtils.getEmpty(),
+        lastSetTargetTime: NullableUtils.getEmpty(),
+        // lastHardTime: NullableUtils.getEmpty(),
 
         // lastGirlPosition: NullableUtils.getEmpty(),
         idMap: Map(),
         // customDataMap: Map(),
         isNotExecuteGiantessAI: false,
+
+        personality: personality.Strategic,
     }
 }
 
+export let initWhenImportScene = (state: state) => {
+    state = StompRub.initWhenImportScene(state)
+    state = Stomp.initWhenImportScene(state)
+    state = LeftStomp.initWhenImportScene(state)
+    state = BreastPress.initWhenImportScene(state)
+    state = BreastPressRub.initWhenImportScene(state)
+
+    return Promise.resolve(state)
+}
+
+export let update = (state: state, key: behaviourTreeKey = getKey()) => {
+    return ArrayUtils.reducePromise(getCurrentUsedGirls(state), (state, usedGirl) => {
+        state = NullableUtils.getWithDefault(
+            NullableUtils.map(({ isAliveFunc }) => {
+                if (!isAliveFunc(state)) {
+                    state = clearTarget(state, usedGirl)
+                }
+
+                return state
+            }, getUsedGirlData(state, usedGirl).targetData), state)
+
+        return _execute(state, usedGirl, key)
+    }, state)
+}
+
+export let createState = (): behaviourTree => {
+    return {
+        data: MutableRecordUtils.create()
+    }
+}
+
+export let stop = (state: state, usedGirl: usedGirl) => {
+    state = markWhetherNotExecuteGiantessAI(state, usedGirl, true)
+
+    return Promise.resolve(state)
+}
+
+export let remove = (state: state, usedGirl: usedGirl) => {
+    state = setUsedGirlData(state, usedGirl, _createUsedGirlData())
+
+    state = WalkToTarget.remove(state, usedGirl)
+
+    return Promise.resolve(state)
+}
+
 export let dispose = (state: state) => {
-    state = setBehaviourTreeState(state, createState())
+    // state = setUsedGirlData(state, usedGirl, createState())
+    state = setBehaviourTreeState(state, {
+        ...getBehaviourTreeState(state),
+        data: MutableRecordUtils.map(getBehaviourTreeState(state).data, (data, usedGirl) => {
+            return _createUsedGirlData()
+        })
+    })
+
+    state = WalkToTarget.dispose(state)
+
+    state = StompRub.dispose(state)
+    state = Stomp.dispose(state)
+    state = LeftStomp.dispose(state)
+    state = BreastPress.dispose(state)
+    state = BreastPressRub.dispose(state)
 
     return Promise.resolve(state)
 }
@@ -326,60 +312,100 @@ export let dispose = (state: state) => {
 // export let isPickTarget = (state: state) => {
 //     return NullableUtils.getWithDefault(
 //         NullableUtils.map(({ name }) => {
-//             return hasPickData(state) && name == getPickObjectName(state)
-//         }, getBehaviourTreeState(state).targetData),
+//             return hasPickData(state, usedGirl) && name == getPickObjectName(state)
+//         }, getUsedGirlData(state ,usedGirl).targetData),
 //         false
 //     )
 // }
 
-export let hasTarget = (state: state) => {
-    return !NullableUtils.isNullable(getBehaviourTreeState(state).targetData)
+export let hasTarget = (state: state, usedGirl: usedGirl) => {
+    // return !NullableUtils.isNullable(getUsedGirlData(state ,usedGirl).targetData)
+    return NullableUtils.getWithDefault(
+        NullableUtils.map(targetData => {
+            return targetData.isAliveFunc(state)
+        }, getTarget(state, usedGirl)),
+        false
+    )
 }
 
-export let clearTarget = (state: state) => {
-    return setBehaviourTreeState(state, {
-        ...getBehaviourTreeState(state),
+export let clearTarget = (state: state, usedGirl: usedGirl) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
         targetData: NullableUtils.getEmpty()
     })
 }
 
-export let setTarget = (state: state, target: targetData, box: Box3) => {
+export let setTarget = (state: state, usedGirl: usedGirl, target: targetData, box: Box3) => {
     // if (getIsDebug(state)) {
     //     addCubeHelper(state, getScene(state), box.clone(), 0xfff000)
     //     // addBox3Helper(getAbstractState(state), getScene(state), box.clone().expandByScalar(10), 0x1fff00)
     // }
 
+    state = setLastSetTargetTime(state, usedGirl, getNow(state))
 
-    return setBehaviourTreeState(state, {
-        ...getBehaviourTreeState(state),
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
         targetData: NullableUtils.return_(
             target
         )
     })
 }
 
-export let getTarget = (state: state) => {
-    return getBehaviourTreeState(state).targetData
+export let getTarget = (state: state, usedGirl: usedGirl) => {
+    return getUsedGirlData(state, usedGirl).targetData
 }
 
-export let getNearestTargetCount = (state: state, type: targetType) => {
+export let isBuildingTarget = (state: state, usedGirl: usedGirl) => {
+    return NullableUtils.getWithDefault(
+        NullableUtils.map(
+            targetData => {
+                return targetData.type == targetType.Building
+            }, getTarget(state, usedGirl)
+        ),
+        false
+    )
+}
+
+export let isLittleManTarget = (state: state, usedGirl: usedGirl) => {
+    return NullableUtils.getWithDefault(
+        NullableUtils.map(
+            targetData => {
+                return targetData.type == targetType.LittleMan
+            }, getTarget(state, usedGirl)
+        ),
+        false
+    )
+}
+
+export let getNearTargets = (state: state, position, distance) => {
+    let squar = distance * distance
+
+    return getAllFlattenAliveArmyData(state).filter(data => {
+        return data.position.distanceToSquared(position) < squar
+    })
+}
+
+export let getVeryNearestTargetCount = (state: state, [allAliveSoldierData, allAliveMilltaryVehicleData, allAliveMilltaryBuildingData, allAliveEliteGiantessData], type: targetType) => {
     let data: Array<visibleData>
     switch (type) {
         case targetType.Soldier:
-            data = getAllAliveSoldierData(state)
+            data = allAliveSoldierData
             break
         case targetType.MilltaryVehicle:
-            data = getAllAliveMilltaryVehicleData(state)
+            data = allAliveMilltaryVehicleData
             break
         case targetType.MilltaryBuilding:
-            data = getAllAliveMilltaryBuildingData(state)
+            data = allAliveMilltaryBuildingData
+            break
+        case targetType.EliteGiantess:
+            data = allAliveEliteGiantessData
             break
         default:
             throw new Error("err")
     }
 
     return data.reduce((result, d) => {
-        if (isNearGirl(state, d.position)) {
+        if (isVeryNearGirl(state, d.position)) {
             return result + 1
         }
 
@@ -387,33 +413,54 @@ export let getNearestTargetCount = (state: state, type: targetType) => {
     }, 0)
 }
 
-export let getSettingFactorAffectRate = (state: state) => {
-    switch (getLittleManSetting(state).biggerFrequency) {
-        case biggerFrequency.Low:
+export let getSettingFactorAffectBiggerRate = (state: state) => {
+    switch (getAutoDifficulty(state)) {
+        case autoDifficulty.VeryEasy:
             return 1
-        case biggerFrequency.Middle:
+        case autoDifficulty.Easy:
+            return 1.5
+        case autoDifficulty.Middle:
             return 2
-        case biggerFrequency.High:
+        case autoDifficulty.Hard:
+        case autoDifficulty.VeryHard:
+            return 2.5
+        case autoDifficulty.VeryHard1:
+        case autoDifficulty.VeryHard2:
             return 3
-        default:
-            throw new Error("err")
+        case autoDifficulty.VeryHard3:
+        case autoDifficulty.VeryHard4:
+            return 3.5
+        case autoDifficulty.VeryHard5:
+            return 4
     }
 }
 
-export let getIdExn = (state: state, key) => {
-    return NullableUtils.getExn(getBehaviourTreeState(state).idMap.get(key))
+export let getId = (state: state, usedGirl: usedGirl, key) => {
+    return getUsedGirlData(state, usedGirl).idMap.get(key)
 }
 
-export let setId = (state: state, key, value) => {
-    return setBehaviourTreeState(state, {
-        ...getBehaviourTreeState(state),
-        idMap: getBehaviourTreeState(state).idMap.set(key, value)
+
+export let getIdExn = (state: state, usedGirl: usedGirl, key) => {
+    return NullableUtils.getExn(getId(state, usedGirl, key))
+}
+
+export let setId = (state: state, usedGirl: usedGirl, key, value) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        idMap: getUsedGirlData(state, usedGirl).idMap.set(key, value)
+    })
+}
+
+export let removeId = (state: state, usedGirl: usedGirl, key) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        idMap: getUsedGirlData(state, usedGirl).idMap.remove(key)
     })
 }
 
 
 // export let getCustomData = <Data>(state: state, key): nullable<Data> => {
-//     return getBehaviourTreeState(state).customDataMap.get(key)
+//     return getUsedGirlData(state ,usedGirl).customDataMap.get(key)
 // }
 
 // export let getCustomDataExn = <Data>(state: state, key): Data => {
@@ -421,15 +468,87 @@ export let setId = (state: state, key, value) => {
 // }
 
 // export let setCustomData = (state: state, key, value) => {
-//     return setBehaviourTreeState(state, {
-//         ...getBehaviourTreeState(state),
-//         customDataMap: getBehaviourTreeState(state).customDataMap.set(key, value)
+//     return setUsedGirlData(state, usedGirl, {
+//         ...getUsedGirlData(state, usedGirl),
+//         customDataMap: getUsedGirlData(state ,usedGirl).customDataMap.set(key, value)
 //     })
 // }
 
 // export let removeCustomData = (state: state, key) => {
-//     return setBehaviourTreeState(state, {
-//         ...getBehaviourTreeState(state),
-//         customDataMap: getBehaviourTreeState(state).customDataMap.remove(key)
+//     return setUsedGirlData(state, usedGirl, {
+//         ...getUsedGirlData(state, usedGirl),
+//         customDataMap: getUsedGirlData(state ,usedGirl).customDataMap.remove(key)
 //     })
 // }
+
+
+export let setAttackAction = (state: state, usedGirl: usedGirl, action: attackAction) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        attackAction: NullableUtils.return_(
+            action
+        )
+    })
+}
+
+export let getAttackAction = (state: state, usedGirl: usedGirl) => {
+    return getUsedGirlData(state, usedGirl).attackAction
+}
+
+export let getLastChangePoseTime = (state: state, usedGirl: usedGirl) => {
+    return getUsedGirlData(state, usedGirl).lastChangePoseTime
+}
+
+export let setLastChangePoseTime = (state: state, usedGirl: usedGirl, value) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        lastChangePoseTime: NullableUtils.return_(
+            value
+        )
+    })
+}
+
+export let getLastSetTargetTime = (state: state, usedGirl: usedGirl) => {
+    return getUsedGirlData(state, usedGirl).lastSetTargetTime
+}
+
+export let setLastSetTargetTime = (state: state, usedGirl: usedGirl, value) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        lastSetTargetTime: NullableUtils.return_(
+            value
+        )
+    })
+}
+
+
+// export let setLastHardTime = (state: state, value) => {
+//     return setUsedGirlData(state, usedGirl, {
+//         ...getUsedGirlData(state, usedGirl),
+//         lastHardTime: NullableUtils.return_(
+//             value
+//         )
+//     })
+// }
+
+// export let getLastHardTime = (state: state) => {
+//     return getUsedGirlData(state ,usedGirl).lastHardTime
+// }
+
+export let getPersonality = (state: state, usedGirl: usedGirl) => {
+    return getUsedGirlData(state, usedGirl).personality
+}
+
+export let setPersonality = (state: state, usedGirl: usedGirl, value) => {
+    return setUsedGirlData(state, usedGirl, {
+        ...getUsedGirlData(state, usedGirl),
+        personality: value
+    })
+}
+
+export let getAllPersonalities = () => [
+    personality.Strategic,
+    personality.Aggressive,
+    personality.Defensive,
+    personality.Playful,
+]

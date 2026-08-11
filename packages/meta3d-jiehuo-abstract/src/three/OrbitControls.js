@@ -789,12 +789,19 @@ class OrbitControls extends EventDispatcher {
 			dollyOut(0.96);
 			scope.update();
 		}
-		this.setZoom = (zoom) => {
-			scale = zoom
-			scope.update();
-		}
+		// this.setZoom = (zoom) => {
+		// 	// scale = zoom
+		// 	// scope.update();
+		// 	this.object.zoom = zoom
+		// 	scope.update();
+		// }
+		// this.setZoomScale = (scale_) => {
+		// 	scale = scale_
+		// 	scope.update();
+		// }
 		this.getZoom = () => {
-			return scale
+			// return scale
+			return this.object.zoom
 		}
 
 

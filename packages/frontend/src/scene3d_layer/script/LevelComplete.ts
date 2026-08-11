@@ -1,7 +1,7 @@
 import { createInstance, getItem, setItem } from "localforage"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { scene } from "../../ui_layer/global/store/GlobalStoreType"
-import { MutableMapUtils } from "meta3d-jiehuo-abstract"
+import { MutableRecordUtils } from "meta3d-jiehuo-abstract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 
 type levelCompleteData = Record<scene, number>
@@ -14,16 +14,16 @@ export let setData = (sceneChapter: scene, levelNumber: number) => {
     return store.getItem<levelCompleteData>(_getCacheKey()).then(data => {
         let map = NullableUtils.getWithDefault(
             data,
-            MutableMapUtils.create()
+            MutableRecordUtils.create()
         )
         if (NullableUtils.getWithDefault(
-            MutableMapUtils.get(map, sceneChapter),
+            MutableRecordUtils.get(map, sceneChapter),
             1
         ) > levelNumber) {
             return
         }
 
-        return store.setItem(_getCacheKey(), MutableMapUtils.set(map, sceneChapter, levelNumber)
+        return store.setItem(_getCacheKey(), MutableRecordUtils.set(map, sceneChapter, levelNumber)
         )
     })
 }
@@ -33,19 +33,21 @@ export let getData = () => {
 }
 
 export let isValid = (data: nullable<levelCompleteData>, sceneChapter: scene, levelNumber: number) => {
-    if (levelNumber == 1) {
-        return true
-    }
+    // if (levelNumber == 1) {
+    //     return true
+    // }
 
-    if (NullableUtils.isNullable(data)) {
-        return false
-    }
+    // if (NullableUtils.isNullable(data)) {
+    //     return false
+    // }
 
-    return NullableUtils.getWithDefault(
-        NullableUtils.map(l => {
-            // return levelNumber >= l
-            return l + 1 >= levelNumber
-        }, MutableMapUtils.get(NullableUtils.getExn(data), sceneChapter)),
-        false
-    )
+    // return NullableUtils.getWithDefault(
+    //     NullableUtils.map(l => {
+    //         // return levelNumber >= l
+    //         return l + 1 >= levelNumber
+    //     }, MutableRecordUtils.get(NullableUtils.getExn(data), sceneChapter)),
+    //     false
+    // )
+
+    return true
 }

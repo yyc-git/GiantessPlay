@@ -12,18 +12,17 @@ import { updateAimHud } from "../../little_man/Shoot"
 import { updateAnimationCollision } from "../../little_man/Collision"
 import { Device } from "meta3d-jiehuo-abstract"
 import { computeTransformForCamera } from "../../Camera"
-import { road } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { characterType } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { computeSpeed, computeTranslate, directMove, rotate, translate } from "../../little_man/Move"
 import { getPosition, getWorldPosition, setRotation } from "../../little_man/Transform"
-import { getCollisionPartOBB, queryAllOBBShapesCollisionWithBox } from "../../girl/Collision"
-import { climb, climbDirection, climbPlane, collisionPart, xzRange } from "../../type/StateType"
+import { getCollisionPartOBB, queryOBBShapeCollisionWithBox } from "../../girl/Collision"
+import { climb, climbDirection, climbPlane, collisionPart, usedGirlEnum, xzRange } from "../../type/StateType"
 import { actionName, animationName } from "../../little_man_data/DataType"
 import { degToRad } from "three/src/math/MathUtils"
 import { getState, setState, useCamera, useNoCameraControl } from "../../CityScene"
 import { TransformUtils } from "meta3d-jiehuo-abstract"
 import { requireCheck, test } from "meta3d-jiehuo-abstract/src/utils/Contract"
 import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
-import { getGirlState } from "../../girl/Girl"
 import { Vector3Utils } from "meta3d-jiehuo-abstract"
 import { StateMachine } from "meta3d-jiehuo-abstract"
 import { createClimbState, createInitialState } from "../FSMState"
@@ -43,6 +42,7 @@ import { getClimbToDownSoundResourceId, getClimbToTopSoundResourceId } from "../
 import { getLittleManVolume } from "../../utils/SoundUtils"
 // import { getPositionY } from "../../manage/city1/Army"
 import { getGirlPositionYKey } from "../../manage/biwu/level3/ArmyManager"
+import { getUsedGirlData } from "../../girl/Girl"
 
 const _q = new Quaternion();
 const _v1 = new Vector3();
@@ -171,10 +171,10 @@ let _isCanClimb = (collisionNormal) => {
 //     return [state, velocityOnPlane]
 // }
 
-let _findNearestOBBData = (state: state, box, downRay, boxCenter): [nullable<OBB>, nullable<collisionPart>, nullable<[Vector3, Vector3]>] => {
+let _findNearestOBBData = (state: state, usedGirl, box, downRay, boxCenter): [nullable<OBB>, nullable<collisionPart>, nullable<[Vector3, Vector3]>] => {
     let downRayDetectDistance = box.getSize(_v1).length()
 
-    let [downOBB, intersectedCollisionPart_, collisionData] = getAllCollisionShapeOBBData(state).reduce<[nullable<OBB>, nullable<collisionPart>, nullable<[Vector3, Vector3]>]>(([downOBB, intersectedCollisionPart_, collisionData], [collisionPart_, obb]) => {
+    let [downOBB, intersectedCollisionPart_, collisionData] = getAllCollisionShapeOBBData(state, usedGirl).reduce<[nullable<OBB>, nullable<collisionPart>, nullable<[Vector3, Vector3]>]>(([downOBB, intersectedCollisionPart_, collisionData], [collisionPart_, obb]) => {
         // if (obb.intersectsBox3(box)) {
         //     let d = intersect(obb, downRay)
 
@@ -336,21 +336,21 @@ let _buildDownRay = (state: state, startPoint, collisionNormal = getClimbState(s
     return new Ray(startPoint, collisionNormal.clone().negate())
 }
 
-export let getAllCollisionShapeOBBs = (state: state) => {
-    let { collisionShapeMap } = getGirlState(state)
+export let getAllCollisionShapeOBBs = (state: state, usedGirl) => {
+    let { collisionShapeMap } = getUsedGirlData(state, usedGirl)
 
     return Array.from(collisionShapeMap.values())
     // return globalThis[0,0,0]
 }
 
-export let getAllCollisionShapeOBBData = (state: state) => {
-    let { collisionShapeMap } = getGirlState(state)
+export let getAllCollisionShapeOBBData = (state: state, usedGirl): Array<[collisionPart, OBB]> => {
+    let { collisionShapeMap } = getUsedGirlData(state, usedGirl)
 
     return Array.from(collisionShapeMap.entries())
 }
 
 
-let _handleDownRayIntersectWithShortHeightVerticalPlaneCase = (state, box, expandedBox, forwardVelocity, [intersectedOBB, intersectedCollisionPart_, collisionData]) => {
+let _handleDownRayIntersectWithShortHeightVerticalPlaneCase = (state, usedGirl, box, expandedBox, forwardVelocity, [intersectedOBB, intersectedCollisionPart_, collisionData]) => {
     if (_getClimbPlane(getClimbState(state).currentCollisionNormal) == climbPlane.Horrizon) {
         if (!NullableUtils.isNullable(collisionData)) {
             let [_, collisionNormal] = NullableUtils.getExn(collisionData)
@@ -363,7 +363,7 @@ let _handleDownRayIntersectWithShortHeightVerticalPlaneCase = (state, box, expan
 
                 let downRay = _buildDownRay(state, nextPoint)
 
-                return _findNearestOBBData(state, expandedBox, downRay, nextPoint)
+                return _findNearestOBBData(state, usedGirl, expandedBox, downRay, nextPoint)
             }
         }
     }
@@ -371,7 +371,7 @@ let _handleDownRayIntersectWithShortHeightVerticalPlaneCase = (state, box, expan
     return [intersectedOBB, intersectedCollisionPart_, collisionData]
 }
 
-let _computeNextCollisionData = (state, box, forwardVelocity): [nullable<[Vector3, Vector3, boolean]>, nullable<OBB>, nullable<collisionPart>] => {
+let _computeNextCollisionData = (state, usedGirl, box, forwardVelocity): [nullable<[Vector3, Vector3, boolean]>, nullable<OBB>, nullable<collisionPart>] => {
     // let rayStartPoint = _getRayStartPoint(box)
     // let nextPoint = _getRayStartPoint(box).clone().add(getClimbState(state).lastVelocity)
 
@@ -459,9 +459,9 @@ let _computeNextCollisionData = (state, box, forwardVelocity): [nullable<[Vector
     //     return [collisionData, isFind]
     // }, [NullableUtils.getEmpty(), false])
 
-    let expandedBox = _expandBox(box.clone())
+    let expandedBox = _expandBox(box.clone(), state)
 
-    let [collisionData, intersectedOBB, intersectedCollisionPart_] = getAllCollisionShapeOBBData(state).reduce<[nullable<[Vector3, Vector3]>, nullable<OBB>, nullable<collisionPart>]>(([collisionData, intersectedOBB, intersectedCollisionPart_], [collisionPart_, obb]) => {
+    let [collisionData, intersectedOBB, intersectedCollisionPart_] = getAllCollisionShapeOBBData(state, usedGirl).reduce<[nullable<[Vector3, Vector3]>, nullable<OBB>, nullable<collisionPart>]>(([collisionData, intersectedOBB, intersectedCollisionPart_], [collisionPart_, obb]) => {
         if (!NullableUtils.isNullable(collisionData)) {
             return [collisionData, intersectedOBB, intersectedCollisionPart_]
         }
@@ -494,7 +494,7 @@ let _computeNextCollisionData = (state, box, forwardVelocity): [nullable<[Vector
     }
 
 
-    let [intersectedOBB2, intersectedCollisionPart2_, collisionData2] = _handleDownRayIntersectWithShortHeightVerticalPlaneCase(state, box, expandedBox, forwardVelocity, _findNearestOBBData(state, expandedBox, downRay, nextPoint))
+    let [intersectedOBB2, intersectedCollisionPart2_, collisionData2] = _handleDownRayIntersectWithShortHeightVerticalPlaneCase(state, usedGirl, box, expandedBox, forwardVelocity, _findNearestOBBData(state, usedGirl, expandedBox, downRay, nextPoint))
 
     // if (!NullableUtils.isNullable(intersectedOBB2)) {
     //     state = setClimbState(state, {
@@ -995,7 +995,7 @@ let _handleClimbVerticalOutsideAngle = (state, forwardVelocity, box: Box3, forwa
 
 }
 
-let _handleNoneClimbDownToHorrizonPlane = (state: state, forwardVelocity, box): [state, boolean] => {
+let _handleNoneClimbDownToHorrizonPlane = (state: state, usedGirl, forwardVelocity, box): [state, boolean] => {
     /*! move alone forwardVelocity a little
     * 
     */
@@ -1006,7 +1006,7 @@ let _handleNoneClimbDownToHorrizonPlane = (state: state, forwardVelocity, box): 
 
     let downRayDetectDistance = box.getSize(_v1).y / 2
 
-    let collisionData = getAllCollisionShapeOBBs(state).reduce<nullable<[Vector3, Vector3]>>((collisionData, obb) => {
+    let collisionData = getAllCollisionShapeOBBs(state, usedGirl).reduce<nullable<[Vector3, Vector3]>>((collisionData, obb) => {
         if (!NullableUtils.isNullable(collisionData)) {
             return collisionData
         }
@@ -1052,14 +1052,14 @@ let _handleNoneClimbDownToHorrizonPlane = (state: state, forwardVelocity, box): 
     return [state, false]
 }
 
-let _handleNoneClimbDownOutsideAngle = (state, climbDirection_, forwardVelocity, box): Promise<[state, Vector3]> => {
+let _handleNoneClimbDownOutsideAngle = (state, usedGirl, climbDirection_, forwardVelocity, box): Promise<[state, Vector3]> => {
     requireCheck(() => {
         test("climbDirection should be climbDirection.None", () => {
             return climbDirection_ == climbDirection.None
         })
     }, getIsDebug(state))
 
-    let d = _handleNoneClimbDownToHorrizonPlane(state, forwardVelocity, box)
+    let d = _handleNoneClimbDownToHorrizonPlane(state, usedGirl, forwardVelocity, box)
     state = d[0]
     let isToHorrizonPlane = d[1]
 
@@ -1104,7 +1104,7 @@ let _handleNoneClimbDownOutsideAngle = (state, climbDirection_, forwardVelocity,
     })
 }
 
-let _restoreCamera = (state: state) => {
+let _restoreCamera = (state: state, isExit = false) => {
     // if (NullableUtils.isNullable(
     //     getClimbState(state).beforeCameraType
     // )) {
@@ -1125,6 +1125,9 @@ let _restoreCamera = (state: state) => {
     //     return state
     // }
 
+    if (isExit) {
+        state = lookat(state, getClimbState(state).currentCollisionNormal.clone().negate())
+    }
     state = useCamera(state, beforeCameraType)
 
     return state
@@ -1199,9 +1202,9 @@ let _handleBeginClimbVertical = (state: state, box, [nextCollisionPosition, next
 }
 
 
-let _expandBox = (box: Box3) => {
+let _expandBox = (box: Box3, state) => {
     let scalar
-    if (Device.isMobile()) {
+    if (Device.isMobileByState(getAbstractState(state))) {
         scalar = 3
     }
     else {
@@ -1265,7 +1268,9 @@ let _handleExitClimb = (state: state, box: Box3, velocity) => {
         })
     }, getIsDebug(state))
 
-    state = _restoreCamera(state)
+    if (!NullableUtils.isNullable(getClimbState(state).beforeCameraType)) {
+        state = _restoreCamera(state, true)
+    }
 
     /*! make box on the ground
     * 
@@ -1290,7 +1295,7 @@ let _handleExitClimb = (state: state, box: Box3, velocity) => {
     return _handleNotClimb(state, velocity)
 }
 
-let _handleClimbOnCurrentOBB = (state, climbDirection_, forwardVelocity, box, forward, side) => {
+let _handleClimbOnCurrentOBB = (state, usedGirl, climbDirection_, forwardVelocity, box, forward, side) => {
     requireCheck(() => {
         test("currentClimbedOBB should exist", () => {
             return !NullableUtils.isNullable(getClimbState(state).currentClimbedOBB)
@@ -1303,7 +1308,7 @@ let _handleClimbOnCurrentOBB = (state, climbDirection_, forwardVelocity, box, fo
         case climbDirection.Verticle:
             return _handleClimbVerticalOutsideAngle(state, forwardVelocity, box, forward, side)
         case climbDirection.None:
-            return _handleNoneClimbDownOutsideAngle(state, climbDirection_, forwardVelocity, box)
+            return _handleNoneClimbDownOutsideAngle(state, usedGirl, climbDirection_, forwardVelocity, box)
     }
 }
 
@@ -1318,7 +1323,7 @@ let _handleClimbOnCurrentOBB = (state, climbDirection_, forwardVelocity, box, fo
 //     }
 // }
 
-export let move = (state: state): Promise<[state, Vector3]> => {
+export let move = (state: state, usedGirl): Promise<[state, Vector3]> => {
     if (getClimbState(state).isPlayingAnimation) {
         return Promise.resolve([state, new Vector3(0, 0, 0)])
     }
@@ -1331,7 +1336,8 @@ export let move = (state: state): Promise<[state, Vector3]> => {
 
 
 
-    let [controlRotationAngle, forward, side] = computeTransformForCamera(state, road.LittleMan)
+    // let [controlRotationAngle, forward, side] = computeTransformForCamera(state, usedGirl, characterType.LittleMan, getCameraType(state))
+    let [controlRotationAngle, forward, side] = computeTransformForCamera(state, usedGirlEnum.None, characterType.LittleMan, getCameraType(state))
 
     if (forward == 0 && side == 0) {
         return Promise.resolve([state, new Vector3(0, 0, 0)])
@@ -1350,7 +1356,7 @@ export let move = (state: state): Promise<[state, Vector3]> => {
     }
 
 
-    let [nextCollisionData, intersectedOBB, intersectedCollisionPart_] = _computeNextCollisionData(state, box, forwardVelocity)
+    let [nextCollisionData, intersectedOBB, intersectedCollisionPart_] = _computeNextCollisionData(state, usedGirl, box, forwardVelocity)
 
     // console.log(
     //     "move: ",
@@ -1369,7 +1375,7 @@ export let move = (state: state): Promise<[state, Vector3]> => {
             return _handleNotClimb(state, velocity)
         }
 
-        return _handleClimbOnCurrentOBB(state, climbDirection_, forwardVelocity, box, forward, side)
+        return _handleClimbOnCurrentOBB(state, usedGirl, climbDirection_, forwardVelocity, box, forward, side)
     }
 
     intersectedOBB = NullableUtils.getExn(intersectedOBB)
@@ -1487,7 +1493,7 @@ export let isCanAction = (state: state) => {
     return !getClimbState(state).isPlayingAnimation && getClimbState(state).climbPlane == climbPlane.Horrizon
 }
 
-export let computeVelocityForBlink = (state, delta, forward, side, controlRotationAngle) => {
+export let computeClimbMovableVelocity = (state, usedGirl, forwardVelocity, box, climbDirection_ = climbDirection.Horrizon) => {
     requireCheck(() => {
         test("climbPlane is Horrizon", () => {
             return getClimbState(state).climbPlane == climbPlane.Horrizon
@@ -1495,14 +1501,10 @@ export let computeVelocityForBlink = (state, delta, forward, side, controlRotati
     }, getIsDebug(state))
 
 
-    let [velocity, climbDirection_, forwardVelocity] = _computeCurrentDataBasedOnLastStatusAndCurrentInput(state, delta, forward, side, controlRotationAngle)
+    // let box = getBox(state)
 
 
-
-    let box = getBox(state)
-
-
-    let [nextCollisionData, intersectedOBB, intersectedCollisionPart_] = _computeNextCollisionData(state, box, forwardVelocity)
+    let [nextCollisionData, intersectedOBB, intersectedCollisionPart_] = _computeNextCollisionData(state, usedGirl, box, forwardVelocity)
 
     if (NullableUtils.isNullable(nextCollisionData)
         ||
@@ -1518,6 +1520,22 @@ export let computeVelocityForBlink = (state, delta, forward, side, controlRotati
     let [nextCollisionPosition, nextCollisionNormal, isFromForwardRay] = NullableUtils.getExn(nextCollisionData)
 
     return _getProjectOnPlane(state, forwardVelocity, nextCollisionNormal, climbDirection_, getClimbState(state).climbPlane)
+}
+
+export let computeVelocityForBlink = (state, usedGirl, delta, forward, side, controlRotationAngle) => {
+    requireCheck(() => {
+        test("climbPlane is Horrizon", () => {
+            return getClimbState(state).climbPlane == climbPlane.Horrizon
+        })
+    }, getIsDebug(state))
+
+
+    let [velocity, climbDirection_, forwardVelocity] = _computeCurrentDataBasedOnLastStatusAndCurrentInput(state, delta, forward, side, controlRotationAngle)
+
+
+    let box = getBox(state)
+
+    return computeClimbMovableVelocity(state, usedGirl, forwardVelocity, box, climbDirection_)
 }
 
 export let isClimbing = (state: state) => {
@@ -1565,11 +1583,11 @@ export let getPositionY = (state: state, canOnCollisionPartFunc, girlOBBData: Ar
     }, new Vector3(x, 0, z)).y
 }
 
-export let correctBoxCenterForBlink = (state: state) => {
+export let correctBoxCenterForBlink = (state: state, usedGirl) => {
     let box = getBox(state)
     let boxBottomPoint = _getBoxBottomPoint(box)
 
-    let girlOBBData = getAllCollisionShapeOBBData(state).filter(([_, obb]) => {
+    let girlOBBData = getAllCollisionShapeOBBData(state, usedGirl).filter(([_, obb]) => {
         return obb.intersectsBox3(box)
     })
 

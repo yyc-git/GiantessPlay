@@ -7,23 +7,24 @@ import { Vector3 } from "three";
 import { buildParticleId } from "./IDUtils";
 import { push } from "../utils/ArrayUtils";
 import { getDelta, getDeltaFactor } from "../Device";
+import { NullableUtils } from "../Main";
 
 const _v1 = new Vector3();
 const _v2 = new Vector3();
 
-let _getState = (state: state): bulletEmitter => {
-	return getExn(getParticleState(state).bulletEmitter)
-}
+// let _getState = (state: state): bulletEmitter => {
+// 	return getExn(getParticleState(state).bulletEmitter)
+// }
 
-let _setState = (state: state, bulletEmitterState: bulletEmitter) => {
-	return {
-		...state,
-		particle: {
-			...getParticleState(state),
-			bulletEmitter: return_(bulletEmitterState)
-		}
-	}
-}
+// let _setState = (state: state, bulletEmitterState: bulletEmitter) => {
+// 	return {
+// 		...state,
+// 		particle: {
+// 			...getParticleState(state),
+// 			bulletEmitter: return_(bulletEmitterState)
+// 		}
+// 	}
+// }
 
 export let createState = (): bulletEmitter => {
 	return {
@@ -161,21 +162,23 @@ export let createState = (): bulletEmitter => {
 // 	})
 // }
 
-export let init = (state: state, scene) => {
-	return EmitterUtils.initWithoutRotation(state, (state, geometry) => {
-		return _setState(state, {
-			..._getState(state),
-			geometry: return_(geometry)
-		})
-	}, scene, "meta3d-jiehuo-abstract/particle/bullet.png", "#ffffff")
-}
+// export let init = (state: state, scene) => {
+// 	return EmitterUtils.initWithoutRotation(state, (state, geometry) => {
+// 		return _setState(state, {
+// 			..._getState(state),
+// 			geometry: return_(geometry)
+// 		})
+// 	}, scene, "meta3d-jiehuo-abstract/particle/bullet.png", "#ffffff")
+// }
 
-export let buildParticle = (state, { fromName, speed, life, size, position, direction }): bulletParticle => {
+export let buildParticle = (state, { fromName, camp, speed, life, size, position, direction, getDirectionFunc }: bulletEmitterParam): bulletParticle => {
 	return {
 		// rotation,
 		id: buildParticleId(state),
 		fromName,
+		camp,
 
+		fromPosition: position,
 
 		opacity: 1,
 		life,
@@ -185,55 +188,71 @@ export let buildParticle = (state, { fromName, speed, life, size, position, dire
 		speed,
 		position,
 		direction,
+		getDirectionFunc,
 	}
 }
 
-export let emit = (state: state, {
-	// rotation,
-	fromName,
-	speed,
-	life,
-	size,
-	position,
-	direction
-}: bulletEmitterParam) => {
-	let particles = push(_getState(state).particles,
-		buildParticle(state, {
-			// rotation,
-			fromName,
-			speed, life, size,
-			position,
-			direction
-		}),
-	)
+// export let emit = (state: state, {
+// 	// rotation,
+// 	fromName,
+// 	camp,
+// 	speed,
+// 	life,
+// 	size,
+// 	position,
+// 	direction,
+// 	getDirectionFunc
+// }: bulletEmitterParam) => {
+// 	let particles = push(_getState(state).particles,
+// 		buildParticle(state, {
+// 			// rotation,
+// 			fromName,
+// 			camp,
+// 			speed, life, size,
+// 			position,
+// 			direction,
+// 			getDirectionFunc,
+// 		}),
+// 	)
 
-	return _setState(state, {
-		..._getState(state),
-		particles
-	})
-}
+// 	return _setState(state, {
+// 		..._getState(state),
+// 		particles
+// 	})
+// }
 
-export let getAllParticles = (state: state) => {
-	return _getState(state).particles
-}
+// export let getAllParticles = (state: state) => {
+// 	return _getState(state).particles
+// }
 
-export let updateParticle = (particle, delta, i, now) => {
+export let updateParticle = (specificState, particle, delta, i, now) => {
 	let speed = particle.speed * delta * getDeltaFactor()
 
-	particle.position = _v1.fromArray(particle.position).add(_v2.fromArray(particle.direction).multiplyScalar(speed)).toArray()
+	if (!NullableUtils.isNullable(particle.direction)) {
+		particle.position = _v1.fromArray(particle.position).add(_v2.fromArray(NullableUtils.getExn(particle.direction)).multiplyScalar(speed)).toArray()
+	}
+	else {
+		particle.position = _v1.fromArray(particle.position).add(_v2.fromArray(NullableUtils.getExn(particle.getDirectionFunc)(specificState, particle.position)).multiplyScalar(speed)).toArray()
+	}
 
 	return particle
 }
 
-export let update = (state: state) => {
+export let updateUtils = <specificState>(state, [getAllParticlesFunc, getStateFunc, setStateFunc], specificState: specificState,) => {
 	return EmitterUtils.update(state, [
-		getAllParticles,
+		getAllParticlesFunc,
 		(state, particles) => {
-			return _setState(state, {
-				..._getState(state),
+			return setStateFunc(state, {
+				...getStateFunc(state),
 				particles
 			})
 		},
-		updateParticle
-	], getExn(_getState(state).geometry))
+		(particle, delta, i, now) => {
+			return updateParticle(specificState, particle, delta, i, now)
+		}
+	], getExn(getStateFunc(state).geometry))
 }
+
+// export let update = <specificState>(state, specificState: specificState) => {
+// 	return updateUtils(state, [getAllParticles, _getState, _setState], specificState)
+// }

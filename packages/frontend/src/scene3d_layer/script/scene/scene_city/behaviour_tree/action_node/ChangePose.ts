@@ -14,10 +14,9 @@ import { getGirlScale, setGirlPosition } from "../../CityScene"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { ThirdPersonControls } from "meta3d-jiehuo-abstract"
 import { Map } from "immutable"
-import { road, lodQueueIndex, name, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { characterType, lodQueueIndex, name, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Vector3Utils } from "meta3d-jiehuo-abstract"
 import { Vector2Utils } from "meta3d-jiehuo-abstract"
-
 import { isInGirlAttackRange } from "../../utils/CollisionUtils"
 import { TransformUtils } from "meta3d-jiehuo-abstract"
 import { LOD } from "meta3d-jiehuo-abstract"
@@ -26,29 +25,71 @@ import { actionName } from "../../data/DataType"
 import { getCurrentPose, isPose } from "../../girl/Pose"
 import { triggerAction } from "./Utils"
 import { Console } from "meta3d-jiehuo-abstract"
+// import { isCrawlToStand, isStandToCrawl } from "../../../../../mod/PropOtherMod"
+import { getNow } from "../../Time"
+import { setIsHit } from "../../data/biwu/level2/behaviour_tree_data/action_node/utils/QTEUtils"
+import { setLastChangePoseTime } from "../BehaviourTreeManager"
+import { handleHandFall } from "../../girl/PickPose"
 
-export let changePose: actionNodeFunc = (state, id) => {
-    Console.log("changePose")
+export let changePose: actionNodeFunc = (state, usedGirl, id, config) => {
+    Console.log(`changePose: ${config}`)
 
-    if (state.config.littleManConfig.isOnlyStomp) {
-        return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
-    }
+    // if (state.config.littleManConfig.isOnlyStomp || state.config.littleManConfig.isOnlyPickup) {
+    //     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // }
+
+    // let actionName_ = NullableUtils.getExn(config)
+
+    // if (actionName_ == actionName.None) {
+    //     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // }
 
     let actionName_
-    switch (getCurrentPose(state)) {
-        case pose.Stand:
-            actionName_ = actionName.StandToCrawl
+    switch (NullableUtils.getExn(config)) {
+        case actionName.None:
+            // return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+            return Promise.resolve([state, behaviourTreeNodeExecuteResult.Success])
+        case actionName.FallByQTE:
+            // actionName_ = actionName.Pickdown
+            state = setIsHit(state, false)
+
+            return handleHandFall(state, usedGirl).then(state => [state, behaviourTreeNodeExecuteResult.Fail])
+        case actionName.Fall:
+            return handleHandFall(state, usedGirl).then(state => [state, behaviourTreeNodeExecuteResult.Fail])
+        default:
+            actionName_ = NullableUtils.getExn(config)
             break
-        case pose.Pick:
-            actionName_ = actionName.Pickdown
-            break
-        case pose.Crawl:
-            actionName_ = actionName.CrawlToStand
-            break
-        // default:
-        //     return Promise.resolve([ state, behaviourTreeNodeExecuteResult.Fail ])
     }
 
+    state = setLastChangePoseTime(state, usedGirl, getNow(state))
 
-    return triggerAction(state, actionName_, id)
+    return triggerAction(state, usedGirl, actionName_, id)
+
+    // // let actionName_
+    // // switch (getCurrentPose(state, usedGirl)) {
+    // //     case pose.Stand:
+    // //         if (!isStandToCrawl(state)) {
+    // //             return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // //         }
+
+    // //         actionName_ = actionName.StandToCrawl
+    // //         break
+    // //     // case pose.Pick:
+    // //     //     actionName_ = actionName.Pickdown
+    // //     //     break
+    // //     case pose.Crawl:
+    // //         if (!isCrawlToStand(state)) {
+    // //             return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // //         }
+
+    // //         actionName_ = actionName.CrawlToStand
+    // //         break
+    // //     default:
+    // //         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // // }
+
+    // state = setLastChangePoseTime(state, getNow(state))
+
+
+    // return triggerAction(state, usedGirl, actionName_, id)
 }

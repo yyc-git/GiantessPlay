@@ -1,5 +1,5 @@
 import { getName as getSceneName } from "../../../CityScene"
-import { getName } from "../../../girl/Girl"
+import { getGirlNamePrefix } from "../../../girl/Girl"
 import { animationName } from "./DataType"
 
 export let getAnimationFrameCountMap = () => {
@@ -35,6 +35,8 @@ export let getAnimationFrameCountMap = () => {
 export let getAnimationFrameCountWithoutState = (animationName_) => {
 	return getAnimationFrameCountMap()[animationName_]
 }
+
+
 
 export let getKeepLieAnimationResourcePath = (name) => `./resource_girl/${name}/vmd/keep_lie.vmd`
 
@@ -96,7 +98,7 @@ export let getHeavyStressingLieAnimationResourcePath = (name) => `./resource_gir
 // export let getDownArrowResourcePath = (name) => `./resource/${name}/down_arrow.png`
 export let getDownArrowResourcePath = () => `./resource/ui/in_game/down_arrow.png`
 
-export let getDownArrowResourceId = () => `${getSceneName()}_${getName()}_${getDownArrowResourcePath()}`
+export let getDownArrowResourceId = () => `${getSceneName()}_${getGirlNamePrefix()}_${getDownArrowResourcePath()}`
 
 export let getHeavyStressingLieBeginMaxFrameIndex = () => 10
 

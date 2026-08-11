@@ -1,4 +1,6 @@
 import { Camera, AnimationClip, FileLoader, Loader, LoadingManager, SkinnedMesh } from 'three';
+import { nullable } from "../utils/nullable"
+
 
 export interface MMDLoaderAnimationObject {
 	animation: AnimationClip;
@@ -63,5 +65,11 @@ export class MMDLoader extends Loader<SkinnedMesh> {
 
 
 	/*!edit by meta3d */
-	loadWithAnimation2(url: string, allVMDData: Array<[string, string]>, onLoad: (object: MMDLoaderAnimationObject2) => void, onProgress?: (event: ProgressEvent) => void, onError?: (event: ErrorEvent) => void): void;
+	// loadWithAnimation2(url: string, allVMDData: Array<[string, string]>, onLoad: (object: MMDLoaderAnimationObject2) => void, onProgress?: (event: ProgressEvent) => void, onError?: (event: ErrorEvent) => void): void;
+	loadWithAnimation2([url, modelArrayBuffer]: [string, nullable<ArrayBuffer>],
+		setPMXCacheFunc: (modelArrayBuffer: ArrayBuffer) => Promise<ArrayBuffer>,
+		setVMDCacheFunc: (vmdUrl: string, vmdArrayBuffer: ArrayBuffer) => Promise<ArrayBuffer>,
+		markLoadedOneVMDFunc: () => void,
+		[allVMDData, allVMDBufferData]: [Array<[string, string]>, Array<[string, nullable<ArrayBuffer>]>],
+		onLoad: (object: MMDLoaderAnimationObject2) => void, onProgress?: (event: ProgressEvent) => void, onError?: (event: ErrorEvent) => void): void;
 }

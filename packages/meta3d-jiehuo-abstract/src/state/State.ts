@@ -1,7 +1,8 @@
-import { articluatedAnimation, pick, render, camera, scene, state, event, stats, loader, skinAnimation, device, instance, light, lod, config, flow, collision, mmd, particle, sound, label, renderSetting, version, gpuSkin, pathFind } from "../type/StateType"
+import { articluatedAnimation, pick, render, camera, scene, state, event, stats, loader, skinAnimation, device, instance, light, lod, config, flow, collision, mmd, particle, sound, label, version, gpuSkin, pathFind, renderSetting, optimize } from "../type/StateType"
 import { Map } from "immutable"
 import { createState as createArticluatedAnimationState } from "../animation/ArticluatedAnimation"
 import { createState as createSkinAnimationState } from "../animation/SkinAnimation"
+import { createState as createLoaderState } from "../Loader"
 import { createState as createEventState } from "../Event"
 import { createState as createDeviceState } from "../Device"
 import { createState as createSceneState } from "../scene/Scene"
@@ -16,10 +17,12 @@ import { createState as createParticleState } from "../particle/ParticleManager"
 import { createState as createRenderState } from "../Render"
 import { createState as createSoundState } from "../audio/SoundManager"
 import { createState as createLabelState } from "../ui_2d/LabelManager"
-import { createState as createRenderSettingState } from "../setting/RenderSetting"
+// import { createState as createRenderSettingState } from "../setting/RenderSetting"
 import { createState as createVersionState } from "../version/Version"
 import { createState as createGPUSkinState } from "../gpu_skin/GPUSkin"
 import { createState as createPathFindState } from "../ai/PathFind"
+import { createState as createRenderSettingState } from "../setting/RenderSetting"
+import { createState as createOptimizeState } from "../Optimize"
 import { getExn, return_ } from "../utils/NullableUtils"
 import { NullableUtils } from "../Main"
 
@@ -50,8 +53,9 @@ export let createState = (): state => {
             isNotTestPerf: true,
             isSkipScenario: false,
             isSkipGameEvent: false,
+            isShowDemo: false,
         },
-        renderSetting: createRenderSettingState(),
+        // renderSetting: createRenderSettingState(),
         device: createDeviceState(),
         render: createRenderState(),
         scene: createSceneState(),
@@ -60,11 +64,7 @@ export let createState = (): state => {
         skinAnimation: createSkinAnimationState(),
         event: createEventState(),
         stats: null,
-        loader: {
-            resourceData: Map(),
-            dracoLoader: NullableUtils.getEmpty(),
-            ktx2Loader: NullableUtils.getEmpty()
-        },
+        loader: createLoaderState(),
         instance: createInstanceState(),
         lod: createLODState(),
         light: createLightState(),
@@ -81,6 +81,10 @@ export let createState = (): state => {
         gpuSkin: createGPUSkinState(),
 
         pathFind: createPathFindState(),
+
+        renderSetting: createRenderSettingState(),
+
+        optimize: createOptimizeState(),
     }
 }
 
@@ -317,16 +321,16 @@ export let setLabelState = (state: state, labelState: label) => {
     }
 }
 
-export let getRenderSettingState = (state: state) => {
-    return getExn(state.renderSetting)
-}
+// export let getRenderSettingState = (state: state) => {
+//     return getExn(state.renderSetting)
+// }
 
-export let setRenderSettingState = (state: state, renderSettingState: renderSetting) => {
-    return {
-        ...state,
-        renderSetting: return_(renderSettingState)
-    }
-}
+// export let setRenderSettingState = (state: state, renderSettingState: renderSetting) => {
+//     return {
+//         ...state,
+//         renderSetting: return_(renderSettingState)
+//     }
+// }
 
 export let getVersionState = (state: state) => {
     return getExn(state.version)
@@ -361,8 +365,41 @@ export let setPathFindState = (state: state, pathFindState: pathFind) => {
     }
 }
 
+export let getRenderSettingState = (state: state) => {
+    return state.renderSetting
+}
+
+export let setRenderSettingState = (state: state, settingState: renderSetting) => {
+    return {
+        ...state,
+        renderSetting: settingState
+    }
+}
+
+export let getOptimizeState = (state: state) => {
+    return state.optimize
+}
+
+export let setOptimizeState = (state: state, optimizeState: optimize) => {
+    return {
+        ...state,
+        optimize: optimizeState
+    }
+}
+
+
+export let readSpecificState = <specficState>() => {
+    return NullableUtils.getExn(globalThis["meta3d_state"]) as specficState
+}
+
 export let readState = () => {
-    return NullableUtils.getExn(globalThis["meta3d_state"].abstract) as state
+    return readSpecificState<any>().abstract as state
+}
+
+export let writeSpecificState = <specficState>(specficState: specficState) => {
+    globalThis["meta3d_state"] = specficState
+
+    return specficState
 }
 
 export let writeState = (state: state) => {

@@ -8,16 +8,15 @@ import { nullable } from "meta3d-jiehuo-abstract/src/utils/nullable"
 import { NullableUtils } from "meta3d-jiehuo-abstract"
 import { TupleUtils } from "meta3d-jiehuo-abstract"
 import { PathFind } from "meta3d-jiehuo-abstract"
-import {  getStep } from "../../manage/city1/PathFind"
+import { getStep } from "../../manage/city1/PathFind"
 import { getIsDebug } from "../../../Scene"
 import { getGirlScale, setGirlPosition } from "../../CityScene"
 import { NumberUtils } from "meta3d-jiehuo-abstract"
 import { ThirdPersonControls } from "meta3d-jiehuo-abstract"
 import { Map } from "immutable"
-import { road, lodQueueIndex, name, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
+import { characterType, lodQueueIndex, name, staticLODContainerIndex } from "meta3d-jiehuo-abstract/src/type/StateType"
 import { Vector3Utils } from "meta3d-jiehuo-abstract"
 import { Vector2Utils } from "meta3d-jiehuo-abstract"
-
 import { isInGirlAttackRange } from "../../utils/CollisionUtils"
 import { TransformUtils } from "meta3d-jiehuo-abstract"
 import { LOD } from "meta3d-jiehuo-abstract"
@@ -26,19 +25,32 @@ import { actionName } from "../../data/DataType"
 import { getCurrentPose, isPose } from "../../girl/Pose"
 import { triggerAction } from "./Utils"
 import { Console } from "meta3d-jiehuo-abstract"
+import { hasPickData } from "../../girl/PickPoseUtils"
+// import { isCanPinch } from "../../../../../mod/PropOtherMod"
 
-export let pinch: actionNodeFunc = (state, id) => {
+export let pinch: actionNodeFunc = (state, usedGirl, id ) => {
     Console.log("pinch")
 
-    let actionName_
-    switch (getCurrentPose(state)) {
-        case pose.Stand:
-        case pose.Crawl:
-            return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
-        case pose.Pick:
-            actionName_ = actionName.Pinch
-            break
+    if (!hasPickData(state, usedGirl)) {
+        return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
     }
 
-    return triggerAction(state, actionName_, id)
+
+    // if (!isCanPinch(state)) {
+    //     return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    // }
+
+
+    // let actionName_
+    // switch (getCurrentPose(state, usedGirl)) {
+    //     case pose.Stand:
+    //     case pose.Crawl:
+    //         return Promise.resolve([state, behaviourTreeNodeExecuteResult.Fail])
+    //     case pose.Pick:
+    //         actionName_ = actionName.Pinch
+    //         break
+    // }
+    let actionName_ = actionName.Pinch
+
+    return triggerAction(state, usedGirl, actionName_, id)
 }

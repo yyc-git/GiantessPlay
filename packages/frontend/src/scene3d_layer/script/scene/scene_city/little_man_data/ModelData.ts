@@ -3,8 +3,9 @@ import { getName } from "../CityScene"
 import { getMouseyResourceId, getMouseyResourcePath, getNinjaResourceId, getNinjaResourcePath, getAbeResourceId, getAbeResourcePath, getElyResourceId, getElyResourcePath, getMariaResourceId, getMariaResourcePath, getMutantResourceId, getMutantResourcePath, getInfantryResourceId, getInfantryResourcePath } from "./Const"
 import * as LittleManConst from "./Const"
 import * as LittleManDataType from "./DataType"
-import { defenseFactor, forceSize, hp, lieKeepTime, speed } from "../data/DataType"
-import { weaponType } from "../data/ValueType"
+import { armorStrength, armorRatio, attackFactor, critRatioFactor, defenseFactor, emitSpeedFactor, speed, lieKeepTime, hp, emitterLifeFactor, stressingRateFactor, armorType } from "../data/DataType"
+import { language } from "../../../../type/StateType"
+
 
 export enum modelName {
     Infantry = "Infantry",
@@ -18,6 +19,31 @@ export enum modelName {
     Ely = "Ely",
     Maria = "Maria",
     Mutant = "Mutant",
+}
+
+export let getTextData = () => {
+    return {
+        [language.Chinese]: {
+            [modelName.Infantry]: "步兵",
+            [modelName.Mousey]: "卡通老鼠",
+            [modelName.Ninja]: "忍者",
+            [modelName.Abe]: "老者",
+            [modelName.Dreyar]: "德雷亚尔",
+            [modelName.Ely]: "伊利",
+            [modelName.Maria]: "玛丽亚",
+            [modelName.Mutant]: "突变体",
+        },
+        [language.English]: {
+            [modelName.Infantry]: modelName.Infantry,
+            [modelName.Mousey]: modelName.Mousey,
+            [modelName.Ninja]: modelName.Ninja,
+            [modelName.Abe]: modelName.Abe,
+            [modelName.Dreyar]: modelName.Dreyar,
+            [modelName.Ely]: modelName.Ely,
+            [modelName.Maria]: modelName.Maria,
+            [modelName.Mutant]: modelName.Mutant,
+        },
+    }
 }
 
 // export let getModelData = () => {
@@ -104,10 +130,18 @@ export type modelData = {
     resourceId: resourceId,
     resourcePath: string,
 
-    swipingForce: forceSize,
-    swipingWeaponType: weaponType,
+    // swipingForce: forceSize,
+    // swipingWeaponType: weaponType,
     hp: hp,
     defenseFactor: defenseFactor,
+    armorType: armorType, armorRatio: armorRatio,
+    armorStrength: armorStrength,
+    emitterLifeFactor: emitterLifeFactor,
+    stressingRateFactor: stressingRateFactor,
+    attackFactor: attackFactor,
+    emitSpeedFactor: emitSpeedFactor,
+    critRatioFactor: critRatioFactor,
+    //missRatio: missRatio,
     moveSpeed: speed,
     lieKeepTime: lieKeepTime,
 
@@ -123,10 +157,28 @@ export let getModelData = (): Array<modelData> => {
             resourceId: getInfantryResourceId(),
             resourcePath: getInfantryResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.Heavy,
-            hp: hp.VeryLow,
-            defenseFactor: defenseFactor.VeryLow,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.Heavy,
+            // hp: hp.VeryLow,
+            // hp: hp.Middle1,
+            hp: hp.Low,
+            // defenseFactor: defenseFactor.VeryLow,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            // armorRatio: armorRatio.None,
+            // armorStrength: armorStrength.Zero,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            // stressingRateFactor: stressingRateFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            // attackFactor: attackFactor.VeryLow2,
+            // attackFactor: attackFactor.VeryLow2,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+            //missRatio: missRatio.VeryLow,
+
             // moveSpeed: speed.VeryLow,
             moveSpeed: speed.Low,
             lieKeepTime: lieKeepTime.Middle,
@@ -135,23 +187,22 @@ export let getModelData = (): Array<modelData> => {
             gunScalar: 100,
             positionYOffset: 420 + _getPoisitionYOffsetIncrease(),
         },
-        // {
-        //     name: modelName.Ch09,
-        //     resourceId: LittleManConst.getCh09ResourceId(),
-        //     resourcePath: LittleManConst.getCh09ResourcePath(getName()),
-        //     scalar: 0.02,
-        //     gunScalar: 20,
-        //     positionYOffset: 18 + _getPoisitionYOffsetIncrease()
-        // },
         {
             name: modelName.Mousey,
             resourceId: getMouseyResourceId(),
             resourcePath: getMouseyResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.Heavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Low,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Low,
             lieKeepTime: lieKeepTime.Middle,
 
@@ -165,10 +216,19 @@ export let getModelData = (): Array<modelData> => {
             resourceId: getNinjaResourceId(),
             resourcePath: getNinjaResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.Heavy,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.Heavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Low,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Low,
             lieKeepTime: lieKeepTime.Middle,
 
@@ -190,10 +250,19 @@ export let getModelData = (): Array<modelData> => {
             resourceId: getAbeResourceId(),
             resourcePath: getAbeResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.Heavy,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.Heavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Low,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Low,
             lieKeepTime: lieKeepTime.Middle,
 
@@ -214,10 +283,19 @@ export let getModelData = (): Array<modelData> => {
             resourceId: LittleManConst.getDreyarResourceId(),
             resourcePath: LittleManConst.getDreyarResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.Heavy,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.Heavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Low,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Low,
             lieKeepTime: lieKeepTime.Middle,
 
@@ -231,10 +309,19 @@ export let getModelData = (): Array<modelData> => {
             resourceId: getMariaResourceId(),
             resourcePath: getMariaResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.Heavy,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.Heavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Low,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Low,
             lieKeepTime: lieKeepTime.Middle,
 
@@ -248,10 +335,19 @@ export let getModelData = (): Array<modelData> => {
             resourceId: getElyResourceId(),
             resourcePath: getElyResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.VeryHeavy,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.VeryHeavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Middle,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Middle,
             lieKeepTime: lieKeepTime.Short,
 
@@ -264,10 +360,19 @@ export let getModelData = (): Array<modelData> => {
             resourceId: getMutantResourceId(),
             resourcePath: getMutantResourcePath(getName()),
 
-            swipingForce: forceSize.Low,
-            swipingWeaponType: weaponType.VeryHeavy,
+            // swipingForce: forceSize.Low,
+            // swipingWeaponType: weaponType.VeryHeavy,
             hp: hp.Low,
-            defenseFactor: defenseFactor.Middle,
+            defenseFactor: defenseFactor.VeryLow2,
+            armorType: armorType.LittleMan,
+            armorRatio: armorRatio.Light5,
+            armorStrength: armorStrength.VeryLow3,
+            emitterLifeFactor: emitterLifeFactor.Middle,
+            stressingRateFactor: stressingRateFactor.High,
+            attackFactor: attackFactor.VeryLow,
+            emitSpeedFactor: emitSpeedFactor.Low,
+            critRatioFactor: critRatioFactor.VeryLow,
+
             moveSpeed: speed.Middle,
             lieKeepTime: lieKeepTime.Short,
 
@@ -582,18 +687,18 @@ export let getLoadData = () => {
             path: LittleManConst.getShootingAnimationResourcePath(getName()),
             type: resourceType.ArrayBuffer
         },
-        {
-            id: LittleManDataType.animationName.Swiping,
-            path: LittleManConst.getSwipingAnimationResourcePath(getName()),
-            type: resourceType.ArrayBuffer
-        },
+        // {
+        //     id: LittleManDataType.animationName.Swiping,
+        //     path: LittleManConst.getSwipingAnimationResourcePath(getName()),
+        //     type: resourceType.ArrayBuffer
+        // },
         // {
         //     id: LittleManDataType.animationName.VeryFastShoot,
         //     path: LittleManConst.getVeryFastShootingAnimationResourcePath(getName()),
         //     type: resourceType.ArrayBuffer
         // },
         {
-            id: LittleManDataType.animationName.Controlled,
+            id: LittleManDataType.animationName.PickedControlled,
             path: LittleManConst.getControlledAnimationResourcePath(getName()),
             type: resourceType.ArrayBuffer
         },
@@ -602,11 +707,11 @@ export let getLoadData = () => {
 
 
 
-        {
-            id: LittleManConst.getBasicGunResourceId(),
-            path: LittleManConst.getBasicGunResourcePath(getName()),
-            type: resourceType.ArrayBuffer
-        },
+        // {
+        //     id: LittleManConst.getBasicGunResourceId(),
+        //     path: LittleManConst.getBasicGunResourcePath(getName()),
+        //     type: resourceType.ArrayBuffer
+        // },
         {
             id: LittleManConst.getLaserGunResourceId(),
             path: LittleManConst.getLaserGunResourcePath(getName()),
@@ -617,19 +722,13 @@ export let getLoadData = () => {
             path: LittleManConst.getRocketGunResourcePath(getName()),
             type: resourceType.ArrayBuffer
         },
-        {
-            id: LittleManConst.getPropGunResourceId(),
-            path: LittleManConst.getPropGunResourcePath(getName()),
-            type: resourceType.ArrayBuffer
-        },
+        // {
+        //     id: LittleManConst.getPropGunResourceId(),
+        //     path: LittleManConst.getPropGunResourcePath(getName()),
+        //     type: resourceType.ArrayBuffer
+        // },
 
 
-
-        {
-            id: LittleManConst.getAimResourceId(),
-            path: LittleManConst.getAimResourcePath(getName()),
-            type: resourceType.Texture
-        },
 
     ].concat([
         {

@@ -10,6 +10,7 @@ import * as OneFingerAttack from "./action_node/OneFingerAttack"
 import * as BeatAttack from "./action_node/BeatAttack"
 import * as Protect from "./action_node/Protect"
 import { rest } from "./action_node/Rest"
+import { getUsedGirl } from "../../../../manage/biwu/Utils"
 
 export let buildActionNode = (node: BehaviourTreeData.actionNode): nullable<actionNodeFromState> => {
     switch (node) {
@@ -30,7 +31,8 @@ export let buildActionNode = (node: BehaviourTreeData.actionNode): nullable<acti
                 BehaviourTreeManager.wrapActionNode(rest, generateId())
             )
         default:
-            return BehaviourTreeManager.buildActionNode(node as any)
+            // return BehaviourTreeManager.buildActionNode(node as any)
+            return NullableUtils.getEmpty()
     }
 }
 
@@ -39,24 +41,26 @@ export let initWhenImportScene = (state: state) => {
 
     // state = OneFingerAttack.initWhenImportScene(state)
 
+    let usedGirl = getUsedGirl()
 
-    state = BehaviourTreeManager.buildTree(state, BehaviourTreeData.getKey(), buildActionNode)
+    state = BehaviourTreeManager.buildTree(state, usedGirl, BehaviourTreeData.getKey(), buildActionNode)
 
-    return Promise.resolve(state)
+    return BehaviourTreeManager.initWhenImportScene(state)
 }
 
-// export let getSettingFactorAffectRate = BehaviourTreeManager.getSettingFactorAffectRate
+// export let getSettingFactorAffectBiggerRate = BehaviourTreeManager.getSettingFactorAffectBiggerRate
 
 // export let hasTarget = BehaviourTreeManager.hasTarget
 
-// export let getNearestTargetCount = BehaviourTreeManager.getNearestTargetCount
+// export let getVeryNearestTargetCount = BehaviourTreeManager.getVeryNearestTargetCount
 
 export let update = state => BehaviourTreeManager.update(state, BehaviourTreeData.getKey())
 
 export let dispose = (state: state) => {
-    state = OneFingerAttack.dispose(state)
-    state = BeatAttack.dispose(state)
-    state = Protect.dispose(state)
+    let usedGirl = getUsedGirl()
+    state = OneFingerAttack.dispose(state, usedGirl)
+    state = BeatAttack.dispose(state, usedGirl)
+    state = Protect.dispose(state, usedGirl)
 
     return BehaviourTreeManager.dispose(state)
     // .then(state => {

@@ -1,23 +1,22 @@
 import { isMobile } from "../../Device"
-import { road, state } from "../../type/StateType"
-import { getDirectionDataFromKeyState, getDirectionDataFromState } from "../utils/CameraControlsUtils"
+import { characterType, state } from "../../type/StateType"
 
-export let judgeIsMoveInMobile = (state: state, road_: road) => {
+export let judgeIsMoveInMobile = (state: state, characterType_: characterType) => {
     return isMobile() && (
-        road_ == road.LittleMan
+        characterType_ == characterType.LittleMan
     )
 }
 
-// export let compute = (state: state, road_) => {
+// export let compute = (state: state, characterType_) => {
 //     let forward = 0
 //     let side = 0
-//     if (road_ == road.Giantess) {
+//     if (characterType_ == characterType.Giantess) {
 //         let data = getDirectionDataFromState(state)
 //         forward = data[0]
 //         side = data[1]
 //     }
-//     else if (road_ == road.LittleMan) {
-//         let data = getDirectionDataFromKeyState(state, road_)
+//     else if (characterType_ == characterType.LittleMan) {
+//         let data = getDirectionDataFromKeyState(state, characterType_)
 //         forward = data[0]
 //         side = data[1]
 //     }

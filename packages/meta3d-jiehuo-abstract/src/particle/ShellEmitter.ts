@@ -4,7 +4,7 @@ import * as EmitterUtils from "./EmitterUtils";
 import { getParticleState } from "../state/State";
 import { List } from "immutable";
 import { Vector3 } from "three";
-import { buildParticle, updateParticle } from "./BulletEmitter";
+import * as BulletEmitter from "./BulletEmitter";
 import { push } from "../utils/ArrayUtils";
 
 const _v1 = new Vector3();
@@ -58,7 +58,7 @@ export let init = (state: state, scene) => {
 
 export let emit = (state: state, shellEmitterParam: shellEmitterParam) => {
 	let particles = push(_getState(state).particles,
-		buildParticle(state, shellEmitterParam),
+		BulletEmitter.buildParticle(state, shellEmitterParam),
 	)
 
 	return _setState(state, {
@@ -71,15 +71,18 @@ export let getAllParticles = (state: state) => {
 	return _getState(state).particles
 }
 
-export let update = (state: state) => {
-	return EmitterUtils.update(state, [
-		getAllParticles,
-		(state, particles) => {
-			return _setState(state, {
-				..._getState(state),
-				particles
-			})
-		},
-		updateParticle
-	], getExn(_getState(state).geometry))
+// export let update = (state: state) => {
+// 	return EmitterUtils.update(state, [
+// 		getAllParticles,
+// 		(state, particles) => {
+// 			return _setState(state, {
+// 				..._getState(state),
+// 				particles
+// 			})
+// 		},
+// 		updateParticle
+// 	], getExn(_getState(state).geometry))
+// }
+export let update = <specificState>(state, specificState: specificState) => {
+	return BulletEmitter.updateUtils(state, [getAllParticles, _getState, _setState], specificState)
 }

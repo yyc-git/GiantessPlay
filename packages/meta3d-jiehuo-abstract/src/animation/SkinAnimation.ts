@@ -104,6 +104,59 @@ export let updateSkinAnimation = (state: state, targetName: skinTargetName, delt
     return state
 }
 
+export let disposeClipAndMixer = (clip: AnimationClip, mixer: AnimationMixer, target: Object3D) => {
+    // mixer.uncacheClip(clip)
+    // mixer.uncacheAction(clip, target)
+    // mixer.uncacheRoot(target)
+
+    // if (clip.tracks !== null) {
+    //     clip.tracks.forEach(track => {
+    //         track.createInterpolant = null
+    //         track.name = null
+    //         track.times = null
+    //         track.values = null
+    //     })
+    // }
+
+    // clip.tracks = null
+
+
+
+    // 1. 停止并移除关联动作
+    (mixer as any)._actions
+        .filter(action => action._clip === clip)
+        .forEach(action => {
+            action.stop();
+            mixer.uncacheAction(action);
+        });
+    mixer.uncacheAction(clip, target)
+    mixer.uncacheAction(clip)
+
+    // 2. 取消缓存剪辑和根对象
+    mixer.uncacheClip(clip);
+    // clip.tracks.forEach(track => {
+    //     if (track.target?.node) mixer.uncacheRoot(track.target.node);
+    // });
+    mixer.uncacheRoot(target)
+
+    // 3. 销毁内部数据
+    clip.tracks.forEach(track => {
+        track.createInterpolant = null
+        track.name = null
+        track.times = null
+        track.values = null
+    });
+    clip.tracks = [];
+    // clip.tracks = null
+    clip.duration = 0;
+    // clip.uuid = null;
+
+    // 4. 清除全局引用
+    const globalClips = (globalThis as any).animationClips || [];
+    const index = globalClips.indexOf(clip);
+    if (index > -1) globalClips.splice(index, 1);
+}
+
 export let disposeSkinAnimation = (state: state, target: Object3D, targetName: skinTargetName) => {
     let { animationClips, animationNames, mixerMap } = getSkinAnimationState(state)
 
@@ -121,9 +174,7 @@ export let disposeSkinAnimation = (state: state, target: Object3D, targetName: s
         skinAnimationNames.forEach(animationName => {
             let clip = getExn(animationClips.get(animationName))
 
-            mixer.uncacheClip(clip)
-            mixer.uncacheAction(clip, target)
-            mixer.uncacheRoot(target)
+            disposeClipAndMixer(clip, mixer, target)
         })
     }, mixerMap.get(targetName))
 
@@ -164,13 +215,13 @@ export let getFrameIndex = (action: AnimationAction, frameCount) => {
     return Math.round(animationTime / action.getClip().duration * frameCount)
 }
 
-// export let getFirstFrameIndex = () => {
+// export let getEarlyFrameIndex = () => {
 //     /*!in mobile, sometimes(when duration is small?) can't get first frameIndex!
 //     */
 //     return 0 + 1
 // }
 
-// export let getLastFrameIndex = (frameCount = 30) => {
+// export let getLateFrameIndex = (frameCount = 30) => {
 //     /*!in mobile, sometimes(when duration is small?) can't get last frameIndex!
 //     */
 //     return frameCount - 1

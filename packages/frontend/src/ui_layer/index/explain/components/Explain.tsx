@@ -18,8 +18,20 @@ import { getOrbitControls } from "meta3d-jiehuo-abstract/src/scene/Camera";
 import { getIsDebug } from "../../../../scene3d_layer/script/scene/Scene";
 import { Camera } from "meta3d-jiehuo-abstract";
 import { NullableUtils } from "meta3d-jiehuo-abstract";
+import { getLanguageTextData, languageKey } from "../../../../scene3d_layer/internation/Data";
+import { mmdCharacter } from "mmd-character-default/src/json/Type";
+import { getCurrentMMDCharacterName, getCurrentMMDCharacterNameByUsedGirl } from "../../../../scene3d_layer/script/scene/scene_city/girl/Girl";
+import { addPropCount, subPropCount } from "../../../../scene3d_layer/script/scene/scene_city/reward/Prop";
+import { getUseGiantessCharacterBlockService } from "../../../../scene3d_layer/mod/PropOtherMod";
+import { handleNetworkRequest } from "../../../utils/BackendUtils";
+import { updateRewardBackend } from "../../../../scene3d_layer/script/scene/scene_city/reward/RewardGenerator";
+import { removeCareerNeedTotalGem } from "../../../../scene3d_layer/script/scene/scene_city/build/Career";
+import { deferSwitchPageForGetNewestState } from "../../../utils/SwitchPageUtils";
+import { isNeedUseGiantessProp } from "../../../../scene3d_layer/script/scene/scene_city/User";
 
 let Explain: React.FC = () => {
+    let character = useSelector<AppState>((state) => state.global.character) as any
+
     let dispatch: AppDispatch = useDispatch()
 
     let _render = () => {
@@ -43,11 +55,12 @@ let Explain: React.FC = () => {
                     </Title>
                 </Row> */}
 
-                <Row justify="center" className="">
+                {/* <Row justify="center" className="">
                     <Title className="level1" >
                         左手控制移动，右手控制相机或者踩踏
                     </Title>
-                </Row>
+                </Row> */}
+
                 {/* {
                     renderImage("./resource/ui/not_in_game/mobile_explain.jpg", "mobile")
                 } */}
@@ -66,12 +79,12 @@ let Explain: React.FC = () => {
 
         const columns = [
             {
-                title: '按键',
+                title: getLanguageTextData(readState(), languageKey.KeyTitle),
                 dataIndex: 'keyboard',
                 key: 'keyboard',
             },
             {
-                title: '功能',
+                title: getLanguageTextData(readState(), languageKey.FunctionTitle),
                 dataIndex: 'function',
                 key: 'function',
             },
@@ -81,23 +94,13 @@ let Explain: React.FC = () => {
             {
                 key: '1',
                 keyboard: 'W、A、S、D',
-                function: '移动',
+                function: getLanguageTextData(readState(), languageKey.Key1Function),
             },
             {
                 key: '2',
                 keyboard: 'G',
-                function: '显示或者隐藏鼠标（显示鼠标是为了点击屏幕上按钮）',
+                function: getLanguageTextData(readState(), languageKey.Key2Function),
             },
-            // {
-            //     key: '3',
-            //     keyboard: 'E',
-            //     function: '踩踏',
-            // },
-            // {
-            //     key: '4',
-            //     keyboard: 'K、L',
-            //     function: '变大、缩小',
-            // },
         ];
 
 
@@ -117,7 +120,7 @@ let Explain: React.FC = () => {
 
     return <Layout className="explain-main"  >
         <Flex justify="center" align="center">
-            <Title className="title">操作说明</Title>
+            <Title className="title">{getLanguageTextData(readState(), languageKey.ExplainTitle)}</Title>
         </Flex>
 
         {
@@ -127,21 +130,42 @@ let Explain: React.FC = () => {
         <Row justify="center" className="button">
             {
                 renderButton(state => {
-                    dispatch(setPage(page.Scene))
+                    if (isNeedUseGiantessProp(state, character)) {
+                        state = subPropCount(state, getUseGiantessCharacterBlockService(state).getName(), 1)
+                    }
 
-                    // if (Camera.isCanLock(getAbstractState(state))) {
-                    //     getOrbitControls(getAbstractState(state)).lock()
-                    // }
+                    writeState(state)
 
-                    return Promise.resolve(state)
-                }, "enter", "进入游戏", "tab", getClickLargeSoundResourceId())
+                    return handleNetworkRequest(state => {
+                        return updateRewardBackend(state).then(writeState)
+                    }, (state) => {
+                        // dispatch(setPage(page.Scene))
+
+                        // if (Camera.isCanLock(getAbstractState(state))) {
+                        //     getOrbitControls(getAbstractState(state)).lock()
+                        // }
+
+                        // return Promise.resolve(state)
+                        // return removeCareerNeedTotalGem().then(_ => state)
+                        return removeCareerNeedTotalGem().then(_ => {
+                            deferSwitchPageForGetNewestState(dispatch, setPage(page.Scene))
+
+                            return state
+                        })
+                    }, state => {
+                        state = addPropCount(state, getUseGiantessCharacterBlockService(state).getName(), 1)
+
+                        return Promise.resolve(state)
+                    })
+
+                }, "enter", getLanguageTextData(readState(), languageKey.EnterGame), "tab", getClickLargeSoundResourceId())
             }
             {
                 renderButton(state => {
                     dispatch(setPage(page.IndexMain))
 
                     return Promise.resolve(state)
-                }, "back", "返回首页", "tab", getClickLargeSoundResourceId(), "default")
+                }, "back", getLanguageTextData(readState(), languageKey.BackToIndex), "tab", getClickLargeSoundResourceId(), "default")
             }
         </Row>
     </Layout >

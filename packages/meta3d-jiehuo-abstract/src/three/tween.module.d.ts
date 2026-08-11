@@ -116,6 +116,7 @@ declare class Tween<T extends UnknownProps = any> {
 
     /*! edit by meta3d */
     reset(object: T, group?: true):this
+    dispose():this
 
 
 

@@ -9,7 +9,7 @@ import { status } from "./LODContainerType";
 import { LODContainer } from "./LODContainer";
 import { getAllBoxes, getName, getOctreeForStaticLODContainer, getTransform, getVisibleIndicesAfterfrustumCull, setStatusByName } from "../LOD";
 import { getIndexFromBox } from "../utils/OctreeUtils";
-import { ArrayUtils, MutableMapUtils, MutableNumberMapUtils } from "../../Main";
+import { ArrayUtils, MutableRecordUtils, MutableNumberMapUtils, MutableMapUtils } from "../../Main";
 
 const _v1 = new THREE.Vector3();
 
@@ -80,32 +80,65 @@ class StaticLODContainer extends LODContainer {
 		return this.minIndex <= index && index <= this.maxIndex
 	}
 
-	queryByFrustum(state: state, _): [number, Array<THREE.Matrix4>, Array<string>] {
-		let [count, transforms, names] = MutableNumberMapUtils.reduce(getVisibleIndicesAfterfrustumCull(state), ([index, transforms, names], isVisible, visibleIndex) => {
+	// queryByFrustum(state: state, _): [number, Array<THREE.Matrix4>, Array<string>, Array<THREE.Color>] {
+	// 	let [count, transforms, names] = MutableNumberMapUtils.reduce(getVisibleIndicesAfterfrustumCull(state), ([index, transforms, names], isVisible, visibleIndex) => {
+	// 		if (isVisible && this.isContainIndex(visibleIndex)) {
+	// 			return [
+	// 				// ArrayUtils.push(
+	// 				// 	transforms,
+	// 				// 	getTransform(state, visibleIndex)
+	// 				// ),
+	// 				// ArrayUtils.push(
+	// 				// 	names,
+	// 				// 	getName(state, visibleIndex)
+	// 				// )
+
+	// 				index + 1,
+	// 				ArrayUtils.set(transforms, index, getTransform(state, visibleIndex)),
+	// 				ArrayUtils.set(names, index, getName(state, visibleIndex)),
+	// 				transforms[index]
+	// 			]
+	// 		}
+
+	// 		return [index, transforms, names]
+	// 	}, [0, this._transformsQueryByFrustum, this._namesQueryByFrustum])
+
+	// 	// this._countQueryByFrustum = count
+
+	// 	return [count, transforms, names, []]
+	// }
+	queryByFrustum(
+		state: state,
+		_: any
+	): [number, THREE.Matrix4[], string[], THREE.Color[]] {
+		const visibleIndices = getVisibleIndicesAfterfrustumCull(state);
+		let count = 0;
+
+		// 预分配数组避免频繁扩展
+		const maxPossible = MutableMapUtils.getCount(visibleIndices);
+		if (this._transformsQueryByFrustum.length < maxPossible) {
+			this._transformsQueryByFrustum = new Array(maxPossible);
+		}
+		if (this._namesQueryByFrustum.length < maxPossible) {
+			this._namesQueryByFrustum = new Array(maxPossible);
+		}
+
+		// 使用高效循环代替 reduce
+		MutableMapUtils.forEach(visibleIndices, (isVisible, visibleIndex) => {
 			if (isVisible && this.isContainIndex(visibleIndex)) {
-				return [
-					// ArrayUtils.push(
-					// 	transforms,
-					// 	getTransform(state, visibleIndex)
-					// ),
-					// ArrayUtils.push(
-					// 	names,
-					// 	getName(state, visibleIndex)
-					// )
-
-					index + 1,
-					ArrayUtils.set(transforms, index, getTransform(state, visibleIndex)),
-					ArrayUtils.set(names, index, getName(state, visibleIndex)),
-					transforms[index]
-				]
+				this._transformsQueryByFrustum[count] = getTransform(state, visibleIndex);
+				this._namesQueryByFrustum[count] = getName(state, visibleIndex);
+				count++;
 			}
+		});
 
-			return [index, transforms, names]
-		}, [0, this._transformsQueryByFrustum, this._namesQueryByFrustum])
-
-		// this._countQueryByFrustum = count
-
-		return [count, transforms, names]
+		// 返回实际使用的切片
+		return [
+			count,
+			this._transformsQueryByFrustum.slice(0, count),
+			this._namesQueryByFrustum.slice(0, count),
+			[]
+		];
 	}
 
 	// queryByCapsule(capsule: Capsule, capsuleBox: THREE.Box3) {
@@ -202,7 +235,7 @@ class StaticLODContainer extends LODContainer {
 	// 	return this._find((obj) => {
 	// 		let index = obj.names.indexOf(name)
 	// 		if (index != -1) {
-	// 			return return_(obj.transforms[index])
+	// 			return return_(obj.getTransform(index))
 	// 		}
 
 	// 		return getEmpty()
@@ -213,7 +246,7 @@ class StaticLODContainer extends LODContainer {
 	// 	return this._find((obj) => {
 	// 		let index = obj.names.indexOf(name)
 	// 		if (index != -1) {
-	// 			return return_([obj.transforms[index], obj.boxes[index]])
+	// 			return return_([obj.getTransform(index), obj.getBox(index)])
 	// 		}
 
 	// 		return getEmpty()
@@ -225,7 +258,7 @@ class StaticLODContainer extends LODContainer {
 	// 	return this._find((obj) => {
 	// 		let index = obj.names.indexOf(name)
 	// 		if (index != -1) {
-	// 			return return_(obj.boxes[index])
+	// 			return return_(obj.getBox(index))
 	// 		}
 
 	// 		return getEmpty()
@@ -248,6 +281,12 @@ class StaticLODContainer extends LODContainer {
 
 	// 	return this
 	// }
+
+	remove(state, index) {
+		throw new Error("not implement")
+
+		return state
+	}
 }
 
 export { StaticLODContainer };

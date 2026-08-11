@@ -41,13 +41,13 @@ import { NullableUtils } from "meta3d-jiehuo-abstract"
 // }
 
 export let update = (state: state, topParentQueue: HierachyLODQueue) => {
-	let allNeedUpdateIndices = topParentQueue.getAllIndices().filter(index => LOD.isNeedsUpdate(getAbstractState(state), topParentQueue.name, index))
+	let allNeedUpdateIndices = topParentQueue.getAllAliveIndices().filter(index => LOD.isNeedsUpdate(getAbstractState(state), topParentQueue.name, index))
 
 	allNeedUpdateIndices.forEach(index => {
 		topParentQueue.update(getAbstractState(state), NullableUtils.getEmpty(), index)
 	})
 
-	topParentQueue.getAllIndices().forEach(index => {
+	topParentQueue.getAllAliveIndices().forEach(index => {
 		LOD.markNeedsUpdate(getAbstractState(state), topParentQueue.name, index, false)
 	})
 }

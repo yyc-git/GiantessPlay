@@ -1,9 +1,22 @@
-@import "../../../../../Main.scss";
+@use "../../../../../Main.scss" as *;
 
 .loading-main {
 	@include loading-background;
 
+	height: 100%;
+
 	.div {
 		height: 100%;
+	}
+
+	.tip-row {
+		position: relative;
+		top: -30%;
+
+		.tip {
+			@include font-size-level1;
+			font-weight: 700;
+			color: yellow !important;
+		}
 	}
 }
